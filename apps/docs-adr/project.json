@@ -41,5 +41,5 @@
     }
   },
   "tags": [],
-  "implicitDependencies": []
+  "implicitDependencies": ["documentation-source"]
 }
