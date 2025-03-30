@@ -13,10 +13,7 @@
     "@ha/shell-utils": "workspace:^1.0.0",
     "@ha/terraform": "workspace:^0.0.1",
     "@types/shelljs": "^0.8.15",
-    "nx": "^20.4.6",
+    "nx": "^20.7.0",
     "shelljs": "^0.8.5"
-  },
-  "dependencies": {
-    "@ha/pihole": "workspace:^0.0.1"
   }
 }

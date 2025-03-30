@@ -2,6 +2,8 @@
   "$schema": "http://json-schema.org/schema",
   "type": "object",
   "cli": "nx",
+  "additionalProperties": true,
+  "required": ["module"],
   "properties": {
     "module": {
       "type": "string",
@@ -10,6 +12,10 @@
     "cwd": {
       "type": "string",
       "description": "Current working directory in which search for module."
+    },
+    "env": {
+      "type": "string",
+      "description": "Cluster environment to use. Will be passed to the module."
     }
   }
 }

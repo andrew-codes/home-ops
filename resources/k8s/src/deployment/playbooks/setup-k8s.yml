@@ -101,7 +101,7 @@
 
     - name: Fetch kubeconfig to repo secrets
       fetch:
-        dest: "{{ playbook_dir }}/../../../.secrets/.kube/config"
+        dest: "{{ playbook_dir }}/../../../._secrets/{{ env }}/.kube/config"
         flat: true
         src: "/root/.kube/config"
 

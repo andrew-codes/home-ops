@@ -9,8 +9,14 @@ import type { Configuration } from "./Configuration.types"
 const createConfigurationApi = async (
   providers: ConfigurationApi<any>[] = [envConfiguration],
 ): Promise<ConfigurationApi<Configuration>> => {
-  const onePasswordCliConfiguration = await createOnePasswordCliConfiguration()
+  const vaultId = await envConfiguration.get(`onepassword/vault-id`)
+  if (!vaultId) {
+    throw new Error(`No vault id found.`)
+  }
+  const onePasswordCliConfiguration =
+    await createOnePasswordCliConfiguration(vaultId)
   const onePasswordConfiguration = await createOnepasswordConfiguration(
+    vaultId,
     onePasswordCliConfiguration,
   )
   const configurationProviders = providers.concat(
@@ -63,4 +69,4 @@ const createConfigurationApi = async (
 }
 
 export { createConfigurationApi }
-export type { Configuration }
+export type { Configuration, ResourceEnvironment }

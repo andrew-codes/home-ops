@@ -1,5 +1,5 @@
 {
-  "name": "k8s",
+  "name": "resource-k8s",
   "sourceRoot": "{projectRoot}/src",
   "projectType": "application",
   "targets": {
@@ -26,5 +26,5 @@
     }
   },
   "tags": [],
-  "implicitDependencies": ["pihole"]
+  "implicitDependencies": []
 }

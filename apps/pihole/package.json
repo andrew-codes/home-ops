@@ -1,7 +1,7 @@
 {
   "private": true,
-  "name": "@ha/pihole",
-  "description": "Local DNS server, network-wide ad blocker. Deploys two instances for redundant locaL DNS.S",
+  "name": "@ha/resource-pihole",
+  "description": "Local DNS server, network-wide ad blocker. Deploys two instances for redundant locaL DNS.",
   "version": "0.0.1",
   "devDependencies": {
     "@ha/ansible": "workspace:^0.0.1",
@@ -12,7 +12,7 @@
     "@ha/shell-utils": "workspace:^1.0.0",
     "@ha/terraform": "workspace:^0.0.1",
     "lodash": "^4.17.21",
-    "nx": "^20.4.6",
+    "nx": "^20.7.0",
     "shelljs": "^0.8.5"
   }
 }

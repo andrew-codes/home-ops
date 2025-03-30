@@ -20,5 +20,5 @@
     }
   },
   "tags": [],
-  "implicitDependencies": ["pihole"]
+  "implicitDependencies": []
 }

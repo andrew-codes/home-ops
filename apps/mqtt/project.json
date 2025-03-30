@@ -13,5 +13,5 @@
     }
   },
   "tags": [],
-  "implicitDependencies": ["k8s", "nfs-provisioner", "secrets"]
+  "implicitDependencies": ["nfs-provisioner", "secrets"]
 }

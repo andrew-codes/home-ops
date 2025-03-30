@@ -5,6 +5,6 @@
   "license": "MIT",
   "main": "src/index.ts",
   "devDependencies": {
-    "nx": "^20.4.6"
+    "nx": "^20.7.0"
   }
 }

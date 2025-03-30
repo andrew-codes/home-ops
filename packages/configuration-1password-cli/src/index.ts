@@ -106,19 +106,14 @@ const configurationNames = [
   "home-assistant/withings/client-id",
   "home-assistant/withings/client-secret",
   "home-assistant/webrtc/api/port",
-  "influxdb/bucket",
-  "influxdb/org",
-  "influxdb/org-id",
-  "influxdb/password",
-  "influxdb/port/external",
-  "influxdb/username",
+  "k8s/config",
   "k8s/machine/password",
   "k8s/machine/username",
   "k8s/main-node/ip",
   "k8s/name",
   "k8s/pod-network-cidr",
-  "k8s/config",
   "known-hosts",
+  "kubeseal/key/public",
   "mqtt/password",
   "mqtt/port/external",
   "mqtt/username",
@@ -191,10 +186,10 @@ type OnePasswordCliConfiguration = Record<
   { id: string; value: string }
 >
 
-const createConfigApi = async (): Promise<
-  ConfigurationApi<OnePasswordCliConfiguration>
-> => {
-  const op = await createOp()
+const createConfigApi = async (
+  vaultId: string,
+): Promise<ConfigurationApi<OnePasswordCliConfiguration>> => {
+  const op = await createOp(vaultId)
 
   return {
     get: async (name) => {

@@ -19,5 +19,5 @@
     }
   },
   "tags": [],
-  "implicitDependencies": ["k8s", "pihole", "pihole-service"]
+  "implicitDependencies": ["pihole-service"]
 }

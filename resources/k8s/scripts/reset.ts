@@ -6,7 +6,13 @@ import path from "path"
 
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
+  context,
+  { env },
 ): Promise<void> => {
+  if (!env) {
+    throw new Error("env is required")
+  }
+
   const ip = (await configurationApi.get("k8s/main-node/ip")).value
 
   const vars = {}
@@ -24,7 +30,7 @@ const run = async (
   )
 
   try {
-    await fs.unlink(path.join(__dirname, "..", ".secrets"), { recursive: true })
+    await fs.unlink(path.join(__dirname, `../._secrets/${env}/.kube/config`))
   } catch (e) {}
 }
 

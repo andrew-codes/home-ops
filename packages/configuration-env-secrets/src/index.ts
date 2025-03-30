@@ -33,5 +33,5 @@ const configurationApi: ConfigurationApi<Configuration> = {
   },
 }
 
-export type { Configuration }
 export { configurationApi }
+export type { Configuration }

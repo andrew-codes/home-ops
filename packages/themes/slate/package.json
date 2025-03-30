@@ -6,6 +6,6 @@
     "@ha/themes-definition": "workspace:^0.0.1"
   },
   "devDependencies": {
-    "nx": "^20.4.6"
+    "nx": "^20.7.0"
   }
 }

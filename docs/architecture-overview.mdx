@@ -3,4 +3,17 @@ title: Architecture Overview
 description: Architecture and design of my home lab and automation setup.
 ---
 
+# Decision Records
+
 To understand why decisions were made in the way they were and their implications, see the [Architecture Decision Records](https://adr.smith-simms.family) for more information.
+
+# Repo Anatomy
+
+The repo is organized into several directories, each serving a specific purpose:
+
+- **docs**: Contains documentation files, including architecture overviews and decision records.
+- **resources**: Provisioning scripts for the infrastructure that apps will be deployed to; k8s and FluxCD. The same scripts may be configured to provision multiple environments.
+- **clusters**: Contains the FluxCD configuration files for the clusters in the home lab. This includes the GitOps configuration for the clusters, including the FluxCD configuration files and any other necessary files. Broken down by environment.
+- **deployments**: Contains the deployment files for the applications and services running in the home lab; broken down by environment.
+- **infrastructure**: Contains common app k8s configuration files.
+- **apps**: Contains the source code for the applications and services running in the home lab. These will be packaged and published as container images to a registry.

@@ -14,6 +14,9 @@ Before you begin, ensure you have the following prerequisites installed on your 
 - **Ansible** (@^2.17.3)
 - **Terraform** (@^1.1.9)
 - **1Password** and **1Password CLI**
+- **[fluxcd CLI](https://fluxcd.io/flux/get-started/#install-the-flux-cli)**
+- **[gitops CLI](https://docs.gitops.weaveworks.org/docs/open-source/getting-started/install-OSS/#install-the-gitops-cli)**
+- **[kubeseal](https://fluxcd.io/flux/guides/sealed-secrets/#prerequisites)**
 - **kubectl** (@^1.30.2)
 - **Helm** (@^3.17.0)
 - **Jsonnet** (@^0.20.0)
@@ -25,8 +28,8 @@ First, we will clone the repository and then configure the required Node.js and 
 
 ```bash
 # Clone the repository
-git clone https://github.com/andrew-codes/home-automation.git
-cd home-automation
+git clone https://github.com/andrew-codes/home-ops.git
+cd home-ops
 
 # Configure Node.js
 nvm use # you may be prompted to run `nvm install`; follow these instructions.
@@ -44,23 +47,20 @@ yarn install
 
 All secrets and configuration are stored in 1Password. The secrets will need to be scaffolded into the 1Password vault and then set to their appropriate values before deploying any of the applications.
 
+> Note that all secrets stored ina vault are for a single environment. This means that if you have multiple environments (e.g., dev, staging, prod), you will need to create a separate vault for each environment.
+
 1. First, ensure you have the 1Password CLI installed and configured. You can find instructions for installing the CLI [here](https://developer.1password.com/docs/cli/get-started/).
 1. Create a 1Password vault for the secrets. Take note of the Vault's UUID.
    - The UUID is a unique identifier for the vault.
    - You can find the UUID by running `op list vaults` and looking for the vault name.
 1. Create a 1Password token with read/write access to the vault.
    - This can be done via the 1Password web interface.
-1. Create a copy of `example.secrets.env` via `cp example.secrets.env .secrets.env`.
+1. Create a copy of `example.secrets.env` via `cp example.secrets.env .secrets.production.env`.
    - This file will contain your vault's ID and token only.
    - **Do not commit this file!** It contains sensitive information.
-1. Source the `.secrets.env` file to set the environment variables.
+1. Source the `.secrets.production.env` file to set the environment variables.
 
    ```bash
    set -o allexport # will export the values to the environment.
-   source .secrets.env
+   source .secrets.production.env
    ```
-
-1. Run the following command to create a template of all required secrets. `yarn nx run secrets:template`.
-   - This will create a file located in `./apps/secrets/.secrets/template.secrets.js`.
-   - Open this file and fill in the required secret values.
-1. Persist all secrets into the 1Password vault via `yarn nx run secrets:initialize-secrets`.

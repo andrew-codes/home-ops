@@ -1,0 +1,47 @@
+---
+title: Provisioning Environments
+---
+
+# Provisioning Environments
+
+This section provides a comprehensive guide to provisioning environments using the home-ops repository. It covers the following topics:
+
+- Provisioning K8s
+- Provisioning gitops via FluxCD
+- Deploying kubeseal to enable sealed secrets
+
+> Note, this guide assumes you have already completed the [Prepare Hypervisor](01-prepare-hypervisor) and [Prepare DEV](02-prepare-dev) sections. If you haven't, please do so before proceeding.
+
+> Note, this guide will provision a single environment. If you want to provision multiple environments, you will need to repeat the steps for each environment. The steps are the same for each environment, but the OnePassword vaults will be different.
+
+## Source Secrets
+
+```bash
+ENV=production
+set -o allexport
+source .secrets.${ENV}.env
+```
+
+## Provision K8s
+
+> Note this will automatically set the `k8s/config` secret in OnePassword.
+
+```bash
+yarn nx provision k8s --env=$ENV
+```
+
+## Provision gitops via FluxCD
+
+> Ensure the secrets `github/username` and `github/token` are set in the OnePassword vault. These secrets are used to authenticate with GitHub and push the FluxCD configuration to the repository. The token needs all repository access rights to the home-ops repo.
+
+```bash
+yarn nx provision fluxcd --env=$ENV
+```
+
+## Deploying kubeseal
+
+> This will automatically set the `kubeseal/key/public` secret in OnePassword. It will also save the public key to disk. This files should be committed to the repository. These keys may be used to encrypt secrets, via the kubeseal CLI, to be committed to the repository.
+
+```bash
+yarn nx deploy kubeseal --env=$ENV
+```

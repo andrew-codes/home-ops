@@ -10,6 +10,6 @@
     "@ha/kubectl": "workspace:^1.0.0",
     "@ha/nx-executors": "workspace:^0.1.0",
     "log4brains": "^1.1.0",
-    "nx": "^20.4.6"
+    "nx": "^20.7.0"
   }
 }

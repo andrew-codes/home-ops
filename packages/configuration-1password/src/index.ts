@@ -59,6 +59,8 @@ const configurationNames = [
   "gaming-pc/user",
   "github/token",
   "github/email",
+  "github/username",
+  "repository/home-ops/name",
   "github/cr/token",
   "grafana/influxdb/token",
   "grafana/password",
@@ -114,18 +116,13 @@ const configurationNames = [
   "home-assistant/withings/client-id",
   "home-assistant/withings/client-secret",
   "home-assistant/webrtc/api/port",
-  "influxdb/bucket",
-  "influxdb/org",
-  "influxdb/org-id",
-  "influxdb/password",
-  "influxdb/port/external",
-  "influxdb/username",
+  "k8s/config",
   "k8s/machine/password",
   "k8s/machine/username",
   "k8s/main-node/ip",
   "k8s/name",
   "k8s/pod-network-cidr",
-  "k8s/config",
+  "kubeseal/key/public",
   "known-hosts",
   "mqtt/password",
   "mqtt/port/external",
@@ -199,6 +196,7 @@ type OnePasswordConfiguration = Record<
 >
 
 const createConfigApi = async (
+  vaultId: string,
   onePasswordCliConfiguration?: ConfigurationApi<OnePasswordCliConfiguration>,
 ): Promise<ConfigurationApi<OnePasswordConfiguration>> => {
   let serverUrl: string | undefined
@@ -225,7 +223,6 @@ const createConfigApi = async (
       "OnePassword server URL not found. OnePassword configuration will not be available.",
     )
   }
-  const vaultId = await EnvSecretsConfiguration.get("onepassword/vault-id")
 
   return {
     get: async (name) => {
