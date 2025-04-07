@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - playnite-web-mqtt-credentials-sealed.yaml
+  - playnite-web-credentials-sealed.yaml
+  - ../base/playnite-web

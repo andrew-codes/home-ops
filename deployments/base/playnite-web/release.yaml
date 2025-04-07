@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playnite-web
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: playnite-web
+  template:
+    metadata:
+      labels:
+        app: playnite-web
+    spec:
+      containers:
+        - name: playnite-web-db
+          image: mongo:focal
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mongo
+              containerPort: 27017
+              protocol: TCP
+          volumeMounts:
+            - name: playnite-web-db
+              mountPath: /data/db
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                          - k8s-main
+        - name: playnite-web
+          image: ghcr.io/andrew-codes/playnite-web-app:11.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: CSP_ORIGINS
+              value: "*.cloudflareinsights.com,*.smith-simms.family"
+            - name: HOST
+              value: games.smith-simms.family
+            - name: DB_HOST
+              value: playnite-web-db
+            - name: DEBUG
+              value: "playnite*"
+            - name: MQTT_HOST
+              value: mqtt
+            - name: MQTT_PORT
+              value: "1883"
+            - name: MQTT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: playnite-web-mqtt-credentials
+                  key: username
+            - name: MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: playnite-web-mqtt-credentials
+                  key: password
+            - name: USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: playnite-web-credentials
+                  key: username
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: playnite-web-credentials
+                  key: password
+            - name: SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: playnite-web-credentials
+                  key: secret
+          volumeMounts:
+            - name: playnite-web-assets
+              mountPath: /opt/playnite-web-app/public/assets/asset-by-id
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /
+              port: 3000
+            failureThreshold: 30
+            periodSeconds: 10
+      volumes:
+        - name: playnite-web-assets
+          persistentVolumeClaim:
+            claimName: playnite-web-assets
+        - name: playnite-web-db
+          persistentVolumeClaim:
+            claimName: playnite-web-db
