@@ -26,7 +26,8 @@ spec:
   dependsOn:
     - name: nfs-provisioner
     - name: kubeseal
-    - nmae: mqtt
+    - name: mqtt
+    - name: ghcr.io-regcred
   interval: 10m0s
   sourceRef:
     kind: GitRepository

@@ -1,0 +1,18 @@
+namespace: kubeseal
+resources:
+  - tunnel-credentials-sealed.yaml
+  - cloudflared-config.yaml
+  - deployment.yaml
+
+patches:
+  - target:
+      kind: Deployment
+      name: cloudflared
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - tunnel
+          - --config
+          - /etc/cloudflared/config/config.yaml
+          - run
