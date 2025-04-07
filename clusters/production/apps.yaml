@@ -28,11 +28,48 @@ spec:
     - name: kubeseal
     - name: mqtt
     - name: ghcr.io-regcred
+    - name: cloudflared
   interval: 10m0s
   sourceRef:
     kind: GitRepository
     name: flux-system
   path: ./deployments/production/playnite-web
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: docs
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: ghcr.io-regcred
+    - name: cloudflared
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./deployments/production/docs
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: docs
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: ghcr.io-regcred
+    - name: cloudflared
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./deployments/production/docs-adr
   prune: true
   wait: true
   timeout: 5m0s

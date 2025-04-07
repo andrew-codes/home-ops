@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docs
+  namespace: default
+spec:
+  selector:
+    app: docs
+  ports:
+    - name: docs
+      port: 80
+      targetPort: http
+      protocol: TCP
+  type: ClusterIP
+---
+
