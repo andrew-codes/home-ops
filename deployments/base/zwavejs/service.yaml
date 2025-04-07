@@ -2,30 +2,29 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mqtt
+  name: zwavejs
   namespace: default
 spec:
   selector:
-    app: mqtt
+    app: zwavejs
   ports:
     - name: http
-      port: 1883
+      port: 8091
       targetPort: http
       protocol: TCP
-      nodePort: 30610
-  type: NodePort
+  type: ClusterIP
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mqtt-websocket
+  name: zwavejs-web-socket
   namespace: default
 spec:
   selector:
-    app: mqtt
+    app: zwavejs
   ports:
-    - name: websocket
-      port: 9001
-      targetPort: websocket
+    - name: web-socket
+      port: 3000
+      targetPort: web-socket
       protocol: TCP
   type: ClusterIP
