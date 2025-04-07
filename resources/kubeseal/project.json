@@ -3,10 +3,10 @@
   "sourceRoot": "{projectRoot}/src",
   "projectType": "application",
   "targets": {
-    "deploy": {
+    "provision": {
       "executor": "@ha/nx-executors:invoke",
       "options": {
-        "module": "scripts/deploy.ts",
+        "module": "scripts/provision.ts",
         "cwd": "{projectRoot}"
       }
     }

@@ -107,10 +107,6 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/infrastructure-elk-fleet-server"\
     },\
     {\
-      "name": "@ha/resource-kubeseal",\
-      "reference": "workspace:apps/kubeseal"\
-    },\
-    {\
       "name": "@ha/manual-deployment",\
       "reference": "workspace:apps/manual-deployment"\
     },\
@@ -133,6 +129,10 @@ const RAW_RUNTIME_STATE =
     {\
       "name": "@ha/photoprism",\
       "reference": "workspace:apps/photoprism"\
+    },\
+    {\
+      "name": "@ha/resource-pihole",\
+      "reference": "workspace:apps/pihole"\
     },\
     {\
       "name": "@ha/pihole-service",\
@@ -303,8 +303,8 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:resources/k8s"\
     },\
     {\
-      "name": "@ha/resource-pihole",\
-      "reference": "workspace:resources/pihole"\
+      "name": "@ha/kubeseal",\
+      "reference": "workspace:resources/kubeseal"\
     }\
   ],\
   "enableTopLevelFallback": true,\
@@ -354,6 +354,7 @@ const RAW_RUNTIME_STATE =
     ["@ha/jest-utils", ["workspace:packages/jest-utils"]],\
     ["@ha/jsonnet", ["workspace:packages/jsonnet"]],\
     ["@ha/kubectl", ["workspace:packages/kubectl"]],\
+    ["@ha/kubeseal", ["workspace:resources/kubeseal"]],\
     ["@ha/logger", ["workspace:packages/logger"]],\
     ["@ha/manual-deployment", ["workspace:apps/manual-deployment"]],\
     ["@ha/metrics", ["workspace:apps/metrics"]],\
@@ -370,8 +371,7 @@ const RAW_RUNTIME_STATE =
     ["@ha/pve-service", ["workspace:apps/pve-service"]],\
     ["@ha/resource-fluxcd", ["workspace:resources/fluxcd"]],\
     ["@ha/resource-k8s", ["workspace:resources/k8s"]],\
-    ["@ha/resource-kubeseal", ["workspace:apps/kubeseal"]],\
-    ["@ha/resource-pihole", ["workspace:resources/pihole"]],\
+    ["@ha/resource-pihole", ["workspace:apps/pihole"]],\
     ["@ha/secret-utils", ["workspace:packages/secret-utils"]],\
     ["@ha/secrets", ["workspace:apps/secrets"]],\
     ["@ha/shell-utils", ["workspace:packages/shell-utils"]],\
@@ -7647,6 +7647,21 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
+    ["@ha/kubeseal", [\
+      ["workspace:resources/kubeseal", {\
+        "packageLocation": "./resources/kubeseal/",\
+        "packageDependencies": [\
+          ["@ha/kubeseal", "workspace:resources/kubeseal"],\
+          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
+          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
+          ["@ha/kubectl", "workspace:packages/kubectl"],\
+          ["@ha/logger", "workspace:packages/logger"],\
+          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
+          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
     ["@ha/logger", [\
       ["workspace:packages/logger", {\
         "packageLocation": "./packages/logger/",\
@@ -8005,26 +8020,11 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/resource-kubeseal", [\
-      ["workspace:apps/kubeseal", {\
-        "packageLocation": "./apps/kubeseal/",\
-        "packageDependencies": [\
-          ["@ha/resource-kubeseal", "workspace:apps/kubeseal"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/fluxcd", "workspace:packages/fluxcd"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/resource-pihole", [\
-      ["workspace:resources/pihole", {\
-        "packageLocation": "./resources/pihole/",\
+      ["workspace:apps/pihole", {\
+        "packageLocation": "./apps/pihole/",\
         "packageDependencies": [\
-          ["@ha/resource-pihole", "workspace:resources/pihole"],\
+          ["@ha/resource-pihole", "workspace:apps/pihole"],\
           ["@ha/ansible", "workspace:packages/ansible"],\
           ["@ha/configuration-api", "workspace:packages/configuration-api"],\
           ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\

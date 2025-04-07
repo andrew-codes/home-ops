@@ -5,6 +5,9 @@ metadata:
   name: apps
   namespace: flux-system
 spec:
+  dependsOn:
+    - name: nfs-provisioner
+    - name: kubeseal
   interval: 10m0s
   sourceRef:
     kind: GitRepository

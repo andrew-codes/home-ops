@@ -40,7 +40,7 @@ yarn nx provision fluxcd --env=$ENV
 
 ## Deploying kubeseal
 
-> This will automatically set the `kubeseal/key/public` secret in OnePassword. It will also save the public key to disk. This files should be committed to the repository. These keys may be used to encrypt secrets, via the kubeseal CLI, to be committed to the repository.
+> This will automatically save the public key to disk. This files should be committed to the repository. These keys may be used to encrypt secrets, via the kubeseal CLI, to be committed to the repository.
 
 ```bash
 yarn nx deploy kubeseal --env=$ENV

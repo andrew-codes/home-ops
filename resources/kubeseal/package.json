@@ -5,7 +5,7 @@
   "devDependencies": {
     "@ha/configuration-api": "workspace:^0.0.1",
     "@ha/configuration-workspace": "workspace:^0.0.1",
-    "@ha/fluxcd": "workspace:^0.0.1",
+    "@ha/kubectl": "workspace:^1.0.0",
     "@ha/logger": "workspace:^0.0.1",
     "@ha/nx-executors": "workspace:^0.1.0",
     "nx": "^20.7.0"

@@ -113,7 +113,6 @@ const configurationNames = [
   "k8s/name",
   "k8s/pod-network-cidr",
   "known-hosts",
-  "kubeseal/key/public",
   "mqtt/password",
   "mqtt/port/external",
   "mqtt/username",

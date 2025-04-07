@@ -4752,6 +4752,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@ha/kubeseal@workspace:resources/kubeseal":
+  version: 0.0.0-use.local
+  resolution: "@ha/kubeseal@workspace:resources/kubeseal"
+  dependencies:
+    "@ha/configuration-api": "workspace:^0.0.1"
+    "@ha/configuration-workspace": "workspace:^0.0.1"
+    "@ha/kubectl": "workspace:^1.0.0"
+    "@ha/logger": "workspace:^0.0.1"
+    "@ha/nx-executors": "workspace:^0.1.0"
+    nx: "npm:^20.7.0"
+  languageName: unknown
+  linkType: soft
+
 "@ha/logger@workspace:^0.0.1, @ha/logger@workspace:packages/logger":
   version: 0.0.0-use.local
   resolution: "@ha/logger@workspace:packages/logger"
@@ -5059,22 +5072,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/resource-kubeseal@workspace:apps/kubeseal":
+"@ha/resource-pihole@workspace:apps/pihole":
   version: 0.0.0-use.local
-  resolution: "@ha/resource-kubeseal@workspace:apps/kubeseal"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/fluxcd": "workspace:^0.0.1"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.7.0"
-  languageName: unknown
-  linkType: soft
-
-"@ha/resource-pihole@workspace:resources/pihole":
-  version: 0.0.0-use.local
-  resolution: "@ha/resource-pihole@workspace:resources/pihole"
+  resolution: "@ha/resource-pihole@workspace:apps/pihole"
   dependencies:
     "@ha/ansible": "workspace:^0.0.1"
     "@ha/configuration-api": "workspace:^0.0.1"
