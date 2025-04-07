@@ -12,7 +12,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ./deployments/production/mqtt
+  path: ./deployments/staging/mqtt
   prune: true
   wait: true
   timeout: 5m0s
@@ -31,7 +31,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ./deployments/production/playnite-web
+  path: ./deployments/staging/playnite-web
   prune: true
   wait: true
   timeout: 5m0s

@@ -4,3 +4,4 @@ namespace: podinfo
 resources:
   - volumes.yaml
   - deployment.yaml
+  - service.yaml

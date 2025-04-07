@@ -33,7 +33,7 @@ spec:
                         values:
                           - k8s-main
         - name: playnite-web
-          image: ghcr.io/andrew-codes/playnite-web-app:11.1.0
+          image: ghcr.io/andrew-codes/playnite-web-app:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

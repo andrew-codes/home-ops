@@ -4,3 +4,7 @@ resources:
   - playnite-web-mqtt-credentials-sealed.yaml
   - playnite-web-credentials-sealed.yaml
   - ../base/playnite-web
+
+images:
+  - name: ghcr.io/andrew-codes/playnite-web-app
+    newTag: 11.1.0

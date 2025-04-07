@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: mqtt
+  template:
+    metadata:
+      labels:
+        app: mqtt
+    spec:
+      containers:
+        - name: mqtt
+          image: eclipse-mosquitto:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mqtt
+              containerPort: 1883
+              protocol: TCP
+            - name: web-socket
+              containerPort: 9001
+              protocol: TCP
+          volumeMounts:
+            - name: mqtt-data
+              mountPath: /mosquitto/data
+            - name: mqtt-config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+            - name: mqtt-passwd
+              mountPath: /mosquitto/config/mqtt_passwd
+              subPath: mqtt_passwd
+          securityContext:
+            runAsUser: 0
+      volumes:
+        - name: mqtt-data
+          persistentVolumeClaim:
+            claimName: mqtt-data
+        - name: mqtt-config
+          configMap:
+            name: mqtt-config
+        - name: mqtt-passwd
+          secret:
+            secretName: mqtt_passwd
+            items:
+              - key: mqtt_passwd
+                path: mqtt_passwd
