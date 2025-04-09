@@ -11,7 +11,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  path: ./infrastructure/nfs-provisioner
+  path: ./infrastructure/nfs/staging
   prune: true
   wait: true
 ---
