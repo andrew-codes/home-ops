@@ -27,24 +27,8 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/captive-portal"\
     },\
     {\
-      "name": "@ha/cloudflared",\
-      "reference": "workspace:apps/cloudflared"\
-    },\
-    {\
       "name": "@ha/coder",\
       "reference": "workspace:apps/coder"\
-    },\
-    {\
-      "name": "@ha/docker-creds",\
-      "reference": "workspace:apps/docker-creds"\
-    },\
-    {\
-      "name": "@ha/docker-registry-service",\
-      "reference": "workspace:apps/docker-registry"\
-    },\
-    {\
-      "name": "@ha/docker-registry",\
-      "reference": "workspace:apps/docker-registry-service"\
     },\
     {\
       "name": "@ha/docs",\
@@ -53,14 +37,6 @@ const RAW_RUNTIME_STATE =
     {\
       "name": "@ha/home-ops-docs-adr",\
       "reference": "workspace:apps/docs-adr"\
-    },\
-    {\
-      "name": "@ha/elk-stack",\
-      "reference": "workspace:apps/elk-stack"\
-    },\
-    {\
-      "name": "@ha/frigate",\
-      "reference": "workspace:apps/frigate"\
     },\
     {\
       "name": "@ha/gaming-pc",\
@@ -103,10 +79,6 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/home-assistant-app-daemon"\
     },\
     {\
-      "name": "@ha/infrastructure-elk-fleet-server",\
-      "reference": "workspace:apps/infrastructure-elk-fleet-server"\
-    },\
-    {\
       "name": "@ha/manual-deployment",\
       "reference": "workspace:apps/manual-deployment"\
     },\
@@ -115,32 +87,12 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/metrics"\
     },\
     {\
-      "name": "@ha/mqtt",\
-      "reference": "workspace:apps/mqtt"\
-    },\
-    {\
-      "name": "@ha/nfs-provisioner",\
-      "reference": "workspace:apps/nfs-provisioner"\
-    },\
-    {\
-      "name": "@ha/paperless",\
-      "reference": "workspace:apps/paperless"\
-    },\
-    {\
-      "name": "@ha/photoprism",\
-      "reference": "workspace:apps/photoprism"\
-    },\
-    {\
       "name": "@ha/resource-pihole",\
       "reference": "workspace:apps/pihole"\
     },\
     {\
       "name": "@ha/pihole-service",\
       "reference": "workspace:apps/pihole-service"\
-    },\
-    {\
-      "name": "@ha/playnite-web-app",\
-      "reference": "workspace:apps/playnite-web-app"\
     },\
     {\
       "name": "@ha/ps5",\
@@ -161,14 +113,6 @@ const RAW_RUNTIME_STATE =
     {\
       "name": "@ha/uptime-kuma",\
       "reference": "workspace:apps/uptime-kuma"\
-    },\
-    {\
-      "name": "@ha/wake-on-lan",\
-      "reference": "workspace:apps/wake-on-lan"\
-    },\
-    {\
-      "name": "@ha/zwavejs",\
-      "reference": "workspace:apps/zwavejs"\
     },\
     {\
       "name": "@ha/ansible",\
@@ -251,6 +195,10 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:packages/kubectl"\
     },\
     {\
+      "name": "@ha/kubeseal",\
+      "reference": "workspace:packages/kubeseal"\
+    },\
+    {\
       "name": "@ha/logger",\
       "reference": "workspace:packages/logger"\
     },\
@@ -303,8 +251,8 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:resources/k8s"\
     },\
     {\
-      "name": "@ha/kubeseal",\
-      "reference": "workspace:resources/kubeseal"\
+      "name": "@ha/sealed-secrets",\
+      "reference": "workspace:resources/sealed-secrets"\
     }\
   ],\
   "enableTopLevelFallback": true,\
@@ -317,7 +265,6 @@ const RAW_RUNTIME_STATE =
     ["@ha/build-ts", ["workspace:packages/build-ts"]],\
     ["@ha/captive-portal", ["workspace:apps/captive-portal"]],\
     ["@ha/cli-utils", ["workspace:packages/cli-utils"]],\
-    ["@ha/cloudflared", ["workspace:apps/cloudflared"]],\
     ["@ha/coder", ["workspace:apps/coder"]],\
     ["@ha/configuration-1password", ["workspace:packages/configuration-1password"]],\
     ["@ha/configuration-1password-cli", ["workspace:packages/configuration-1password-cli"]],\
@@ -328,14 +275,9 @@ const RAW_RUNTIME_STATE =
     ["@ha/delay", ["workspace:packages/delay"]],\
     ["@ha/deployment-utils", ["workspace:packages/deployment-utils"]],\
     ["@ha/docker", ["workspace:packages/docker"]],\
-    ["@ha/docker-creds", ["workspace:apps/docker-creds"]],\
-    ["@ha/docker-registry", ["workspace:apps/docker-registry-service"]],\
-    ["@ha/docker-registry-service", ["workspace:apps/docker-registry"]],\
     ["@ha/docs", ["workspace:apps/docs"]],\
-    ["@ha/elk-stack", ["workspace:apps/elk-stack"]],\
     ["@ha/env-utils", ["workspace:packages/env-utils"]],\
     ["@ha/fluxcd", ["workspace:packages/fluxcd"]],\
-    ["@ha/frigate", ["workspace:apps/frigate"]],\
     ["@ha/gaming-pc", ["workspace:apps/gaming-pc"]],\
     ["@ha/github-action-runners", ["workspace:apps/github-action-runners"]],\
     ["@ha/github-secrets", ["workspace:packages/github-secrets"]],\
@@ -350,28 +292,23 @@ const RAW_RUNTIME_STATE =
     ["@ha/home-assistant-app-daemon", ["workspace:apps/home-assistant-app-daemon"]],\
     ["@ha/home-ops-docs-adr", ["workspace:apps/docs-adr"]],\
     ["@ha/http-heartbeat", ["workspace:packages/http-heartbeat"]],\
-    ["@ha/infrastructure-elk-fleet-server", ["workspace:apps/infrastructure-elk-fleet-server"]],\
     ["@ha/jest-utils", ["workspace:packages/jest-utils"]],\
     ["@ha/jsonnet", ["workspace:packages/jsonnet"]],\
     ["@ha/kubectl", ["workspace:packages/kubectl"]],\
-    ["@ha/kubeseal", ["workspace:resources/kubeseal"]],\
+    ["@ha/kubeseal", ["workspace:packages/kubeseal"]],\
     ["@ha/logger", ["workspace:packages/logger"]],\
     ["@ha/manual-deployment", ["workspace:apps/manual-deployment"]],\
     ["@ha/metrics", ["workspace:apps/metrics"]],\
-    ["@ha/mqtt", ["workspace:apps/mqtt"]],\
     ["@ha/mqtt-client", ["virtual:9fac141d185268f36972525af283566cd75e494de29fde8754899f2ceff7d0843bff93829a18050e0bee8e312aa154cd4170d0fca8c0c1abe17a6a8ca52e2210#workspace:packages/mqtt-client", "workspace:packages/mqtt-client"]],\
     ["@ha/mqtt-heartbeat", ["workspace:packages/mqtt-heartbeat"]],\
-    ["@ha/nfs-provisioner", ["workspace:apps/nfs-provisioner"]],\
     ["@ha/nx-executors", ["workspace:packages/nx-executors"]],\
-    ["@ha/paperless", ["workspace:apps/paperless"]],\
-    ["@ha/photoprism", ["workspace:apps/photoprism"]],\
     ["@ha/pihole-service", ["workspace:apps/pihole-service"]],\
-    ["@ha/playnite-web-app", ["workspace:apps/playnite-web-app"]],\
     ["@ha/ps5", ["workspace:apps/ps5"]],\
     ["@ha/pve-service", ["workspace:apps/pve-service"]],\
     ["@ha/resource-fluxcd", ["workspace:resources/fluxcd"]],\
     ["@ha/resource-k8s", ["workspace:resources/k8s"]],\
     ["@ha/resource-pihole", ["workspace:apps/pihole"]],\
+    ["@ha/sealed-secrets", ["workspace:resources/sealed-secrets"]],\
     ["@ha/secret-utils", ["workspace:packages/secret-utils"]],\
     ["@ha/secrets", ["workspace:apps/secrets"]],\
     ["@ha/shell-utils", ["workspace:packages/shell-utils"]],\
@@ -381,9 +318,7 @@ const RAW_RUNTIME_STATE =
     ["@ha/themes-definition", ["workspace:packages/themes/definition"]],\
     ["@ha/themes-slate", ["workspace:packages/themes/slate"]],\
     ["@ha/unifi-client", ["workspace:packages/unifi-client"]],\
-    ["@ha/uptime-kuma", ["workspace:apps/uptime-kuma"]],\
-    ["@ha/wake-on-lan", ["workspace:apps/wake-on-lan"]],\
-    ["@ha/zwavejs", ["workspace:apps/zwavejs"]]\
+    ["@ha/uptime-kuma", ["workspace:apps/uptime-kuma"]]\
   ],\
   "fallbackPool": [\
   ],\
@@ -6787,28 +6722,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/cloudflared", [\
-      ["workspace:apps/cloudflared", {\
-        "packageLocation": "./apps/cloudflared/",\
-        "packageDependencies": [\
-          ["@ha/cloudflared", "workspace:apps/cloudflared"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/docker", "workspace:packages/docker"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/shell-utils", "workspace:packages/shell-utils"],\
-          ["@ha/terraform", "workspace:packages/terraform"],\
-          ["lodash", "npm:4.17.21"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["shelljs", "npm:0.8.5"],\
-          ["yaml", "npm:2.7.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/coder", [\
       ["workspace:apps/coder", {\
         "packageLocation": "./apps/coder/",\
@@ -7056,58 +6969,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/docker-creds", [\
-      ["workspace:apps/docker-creds", {\
-        "packageLocation": "./apps/docker-creds/",\
-        "packageDependencies": [\
-          ["@ha/docker-creds", "workspace:apps/docker-creds"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/docker-registry", [\
-      ["workspace:apps/docker-registry-service", {\
-        "packageLocation": "./apps/docker-registry-service/",\
-        "packageDependencies": [\
-          ["@ha/docker-registry", "workspace:apps/docker-registry-service"],\
-          ["@ha/ansible", "workspace:packages/ansible"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/shell-utils", "workspace:packages/shell-utils"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/docker-registry-service", [\
-      ["workspace:apps/docker-registry", {\
-        "packageLocation": "./apps/docker-registry/",\
-        "packageDependencies": [\
-          ["@ha/docker-registry-service", "workspace:apps/docker-registry"],\
-          ["@ha/ansible", "workspace:packages/ansible"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/shell-utils", "workspace:packages/shell-utils"],\
-          ["@ha/terraform", "workspace:packages/terraform"],\
-          ["@types/shelljs", "npm:0.8.15"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["shelljs", "npm:0.8.5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/docs", [\
       ["workspace:apps/docs", {\
         "packageLocation": "./apps/docs/",\
@@ -7178,23 +7039,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/elk-stack", [\
-      ["workspace:apps/elk-stack", {\
-        "packageLocation": "./apps/elk-stack/",\
-        "packageDependencies": [\
-          ["@ha/elk-stack", "workspace:apps/elk-stack"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/docker", "workspace:packages/docker"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["shelljs", "npm:0.8.5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/env-utils", [\
       ["workspace:packages/env-utils", {\
         "packageLocation": "./packages/env-utils/",\
@@ -7236,22 +7080,6 @@ const RAW_RUNTIME_STATE =
           ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"],\
           ["uuid", "npm:9.0.1"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/frigate", [\
-      ["workspace:apps/frigate", {\
-        "packageLocation": "./apps/frigate/",\
-        "packageDependencies": [\
-          ["@ha/frigate", "workspace:apps/frigate"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/docker", "workspace:packages/docker"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -7570,20 +7398,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/infrastructure-elk-fleet-server", [\
-      ["workspace:apps/infrastructure-elk-fleet-server", {\
-        "packageLocation": "./apps/infrastructure-elk-fleet-server/",\
-        "packageDependencies": [\
-          ["@ha/infrastructure-elk-fleet-server", "workspace:apps/infrastructure-elk-fleet-server"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/shell-utils", "workspace:packages/shell-utils"],\
-          ["shelljs", "npm:0.8.5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/jest-utils", [\
       ["workspace:packages/jest-utils", {\
         "packageLocation": "./packages/jest-utils/",\
@@ -7648,16 +7462,13 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["@ha/kubeseal", [\
-      ["workspace:resources/kubeseal", {\
-        "packageLocation": "./resources/kubeseal/",\
+      ["workspace:packages/kubeseal", {\
+        "packageLocation": "./packages/kubeseal/",\
         "packageDependencies": [\
-          ["@ha/kubeseal", "workspace:resources/kubeseal"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
+          ["@ha/kubeseal", "workspace:packages/kubeseal"],\
+          ["lodash", "npm:4.17.21"],\
+          ["shelljs", "npm:0.8.5"],\
+          ["yargs", "npm:17.7.2"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -7717,21 +7528,6 @@ const RAW_RUNTIME_STATE =
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
           ["yaml", "npm:2.7.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/mqtt", [\
-      ["workspace:apps/mqtt", {\
-        "packageLocation": "./apps/mqtt/",\
-        "packageDependencies": [\
-          ["@ha/mqtt", "workspace:apps/mqtt"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -7807,22 +7603,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/nfs-provisioner", [\
-      ["workspace:apps/nfs-provisioner", {\
-        "packageLocation": "./apps/nfs-provisioner/",\
-        "packageDependencies": [\
-          ["@ha/nfs-provisioner", "workspace:apps/nfs-provisioner"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@types/shelljs", "npm:0.8.15"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/nx-executors", [\
       ["workspace:packages/nx-executors", {\
         "packageLocation": "./packages/nx-executors/",\
@@ -7851,48 +7631,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/paperless", [\
-      ["workspace:apps/paperless", {\
-        "packageLocation": "./apps/paperless/",\
-        "packageDependencies": [\
-          ["@ha/paperless", "workspace:apps/paperless"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/docker", "workspace:packages/docker"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/photoprism", [\
-      ["workspace:apps/photoprism", {\
-        "packageLocation": "./apps/photoprism/",\
-        "packageDependencies": [\
-          ["@ha/photoprism", "workspace:apps/photoprism"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/configure-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#workspace:packages/configure-jest"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@types/jest", "npm:29.5.14"],\
-          ["@types/node", "npm:18.19.76"],\
-          ["esbuild", "npm:0.25.0"],\
-          ["esbuild-register", "virtual:67c2aad2b1bd47fe7a2a41d331ce53a09742994e6e4cf897b697836ad2af8b3577c1b4c3128f4d1437800d10106137809a85386ab3553d979a125a47045c5628#npm:3.6.0"],\
-          ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
-          ["jest-when", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:3.7.0"],\
-          ["lodash", "npm:4.17.21"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["ts-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#npm:29.2.6"],\
-          ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/pihole-service", [\
       ["workspace:apps/pihole-service", {\
         "packageLocation": "./apps/pihole-service/",\
@@ -7908,34 +7646,6 @@ const RAW_RUNTIME_STATE =
           ["@ha/terraform", "workspace:packages/terraform"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
           ["shelljs", "npm:0.8.5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/playnite-web-app", [\
-      ["workspace:apps/playnite-web-app", {\
-        "packageLocation": "./apps/playnite-web-app/",\
-        "packageDependencies": [\
-          ["@ha/playnite-web-app", "workspace:apps/playnite-web-app"],\
-          ["@ha/build-ts", "workspace:packages/build-ts"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/configure-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#workspace:packages/configure-jest"],\
-          ["@ha/docker", "workspace:packages/docker"],\
-          ["@ha/jest-utils", "workspace:packages/jest-utils"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@types/jest", "npm:29.5.14"],\
-          ["@types/node", "npm:18.19.76"],\
-          ["esbuild", "npm:0.25.0"],\
-          ["esbuild-register", "virtual:67c2aad2b1bd47fe7a2a41d331ce53a09742994e6e4cf897b697836ad2af8b3577c1b4c3128f4d1437800d10106137809a85386ab3553d979a125a47045c5628#npm:3.6.0"],\
-          ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
-          ["jest-when", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:3.7.0"],\
-          ["nodemon", "npm:2.0.22"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["ts-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#npm:29.2.6"],\
-          ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -8035,6 +7745,21 @@ const RAW_RUNTIME_STATE =
           ["lodash", "npm:4.17.21"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
           ["shelljs", "npm:0.8.5"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
+    ["@ha/sealed-secrets", [\
+      ["workspace:resources/sealed-secrets", {\
+        "packageLocation": "./resources/sealed-secrets/",\
+        "packageDependencies": [\
+          ["@ha/sealed-secrets", "workspace:resources/sealed-secrets"],\
+          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
+          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
+          ["@ha/kubectl", "workspace:packages/kubectl"],\
+          ["@ha/logger", "workspace:packages/logger"],\
+          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
+          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -8199,53 +7924,6 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./apps/uptime-kuma/",\
         "packageDependencies": [\
           ["@ha/uptime-kuma", "workspace:apps/uptime-kuma"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/wake-on-lan", [\
-      ["workspace:apps/wake-on-lan", {\
-        "packageLocation": "./apps/wake-on-lan/",\
-        "packageDependencies": [\
-          ["@ha/wake-on-lan", "workspace:apps/wake-on-lan"],\
-          ["@ha/build-ts", "workspace:packages/build-ts"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/configure-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#workspace:packages/configure-jest"],\
-          ["@ha/docker", "workspace:packages/docker"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/mqtt-client", "virtual:9fac141d185268f36972525af283566cd75e494de29fde8754899f2ceff7d0843bff93829a18050e0bee8e312aa154cd4170d0fca8c0c1abe17a6a8ca52e2210#workspace:packages/mqtt-client"],\
-          ["@ha/mqtt-heartbeat", "workspace:packages/mqtt-heartbeat"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@types/jest", "npm:29.5.14"],\
-          ["@types/node", "npm:18.19.76"],\
-          ["async-mqtt", "npm:2.6.3"],\
-          ["esbuild", "npm:0.25.0"],\
-          ["esbuild-register", "virtual:67c2aad2b1bd47fe7a2a41d331ce53a09742994e6e4cf897b697836ad2af8b3577c1b4c3128f4d1437800d10106137809a85386ab3553d979a125a47045c5628#npm:3.6.0"],\
-          ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
-          ["lodash", "npm:4.17.21"],\
-          ["nodemon", "npm:2.0.22"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["ts-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#npm:29.2.6"],\
-          ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"],\
-          ["wakeonlan", "npm:0.1.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/zwavejs", [\
-      ["workspace:apps/zwavejs", {\
-        "packageLocation": "./apps/zwavejs/",\
-        "packageDependencies": [\
-          ["@ha/zwavejs", "workspace:apps/zwavejs"],\
           ["@ha/configuration-api", "workspace:packages/configuration-api"],\
           ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
           ["@ha/jsonnet", "workspace:packages/jsonnet"],\
@@ -38454,15 +38132,6 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/vm-browserify-npm-1.1.2-f96404b36f-ad5b17c9f7.zip/node_modules/vm-browserify/",\
         "packageDependencies": [\
           ["vm-browserify", "npm:1.1.2"]\
-        ],\
-        "linkType": "HARD"\
-      }]\
-    ]],\
-    ["wakeonlan", [\
-      ["npm:0.1.0", {\
-        "packageLocation": "./.yarn/cache/wakeonlan-npm-0.1.0-c3ce173bd8-0c46cf7df8.zip/node_modules/wakeonlan/",\
-        "packageDependencies": [\
-          ["wakeonlan", "npm:0.1.0"]\
         ],\
         "linkType": "HARD"\
       }]\

@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@ha/kubeseal",
+  "name": "@ha/sealed-secrets",
   "version": "0.0.1",
   "devDependencies": {
     "@ha/configuration-api": "workspace:^0.0.1",

@@ -4011,26 +4011,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/cloudflared@workspace:apps/cloudflared":
-  version: 0.0.0-use.local
-  resolution: "@ha/cloudflared@workspace:apps/cloudflared"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    "@ha/terraform": "workspace:^0.0.1"
-    lodash: "npm:4.17.21"
-    nx: "npm:^20.7.0"
-    shelljs: "npm:^0.8.5"
-    yaml: "npm:^2.7.0"
-  languageName: unknown
-  linkType: soft
-
 "@ha/coder@workspace:apps/coder":
   version: 0.0.0-use.local
   resolution: "@ha/coder@workspace:apps/coder"
@@ -4191,52 +4171,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/docker-creds@workspace:apps/docker-creds":
-  version: 0.0.0-use.local
-  resolution: "@ha/docker-creds@workspace:apps/docker-creds"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.7.0"
-  languageName: unknown
-  linkType: soft
-
-"@ha/docker-registry-service@workspace:apps/docker-registry":
-  version: 0.0.0-use.local
-  resolution: "@ha/docker-registry-service@workspace:apps/docker-registry"
-  dependencies:
-    "@ha/ansible": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:*"
-    "@ha/kubectl": "workspace:*"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    "@ha/terraform": "workspace:^0.0.1"
-    "@types/shelljs": "npm:^0.8.15"
-    nx: "npm:^20.7.0"
-    shelljs: "npm:^0.8.5"
-  languageName: unknown
-  linkType: soft
-
-"@ha/docker-registry@workspace:apps/docker-registry-service":
-  version: 0.0.0-use.local
-  resolution: "@ha/docker-registry@workspace:apps/docker-registry-service"
-  dependencies:
-    "@ha/ansible": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:*"
-    "@ha/kubectl": "workspace:*"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    nx: "npm:^20.7.0"
-  languageName: unknown
-  linkType: soft
-
 "@ha/docker@workspace:^0.0.1, @ha/docker@workspace:packages/docker":
   version: 0.0.0-use.local
   resolution: "@ha/docker@workspace:packages/docker"
@@ -4325,21 +4259,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/elk-stack@workspace:apps/elk-stack":
-  version: 0.0.0-use.local
-  resolution: "@ha/elk-stack@workspace:apps/elk-stack"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.7.0"
-    shelljs: "npm:^0.8.5"
-  languageName: unknown
-  linkType: soft
-
 "@ha/env-utils@workspace:^0.0.1, @ha/env-utils@workspace:packages/env-utils":
   version: 0.0.0-use.local
   resolution: "@ha/env-utils@workspace:packages/env-utils"
@@ -4378,20 +4297,6 @@ __metadata:
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
     uuid: "npm:^9.0.1"
-  languageName: unknown
-  linkType: soft
-
-"@ha/frigate@workspace:apps/frigate":
-  version: 0.0.0-use.local
-  resolution: "@ha/frigate@workspace:apps/frigate"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -4683,19 +4588,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/infrastructure-elk-fleet-server@workspace:apps/infrastructure-elk-fleet-server":
-  version: 0.0.0-use.local
-  resolution: "@ha/infrastructure-elk-fleet-server@workspace:apps/infrastructure-elk-fleet-server"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    shelljs: "npm:^0.8.5"
-  languageName: unknown
-  linkType: soft
-
-"@ha/jest-utils@workspace:^0.0.1, @ha/jest-utils@workspace:packages/jest-utils":
+"@ha/jest-utils@workspace:packages/jest-utils":
   version: 0.0.0-use.local
   resolution: "@ha/jest-utils@workspace:packages/jest-utils"
   dependencies:
@@ -4752,16 +4645,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/kubeseal@workspace:resources/kubeseal":
+"@ha/kubeseal@workspace:packages/kubeseal":
   version: 0.0.0-use.local
-  resolution: "@ha/kubeseal@workspace:resources/kubeseal"
+  resolution: "@ha/kubeseal@workspace:packages/kubeseal"
   dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.7.0"
+    lodash: "npm:^4.17.21"
+    shelljs: "npm:^0.8.5"
+    yargs: "npm:^17.7.2"
+  bin:
+    kubeseal: src/bin/kubeseal.js
   languageName: unknown
   linkType: soft
 
@@ -4837,7 +4729,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/mqtt-heartbeat@workspace:^0.0.1, @ha/mqtt-heartbeat@workspace:packages/mqtt-heartbeat":
+"@ha/mqtt-heartbeat@workspace:packages/mqtt-heartbeat":
   version: 0.0.0-use.local
   resolution: "@ha/mqtt-heartbeat@workspace:packages/mqtt-heartbeat"
   dependencies:
@@ -4862,33 +4754,6 @@ __metadata:
     redux-saga-test-plan: "npm:^4.0.6"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@ha/mqtt@workspace:apps/mqtt":
-  version: 0.0.0-use.local
-  resolution: "@ha/mqtt@workspace:apps/mqtt"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.7.0"
-  languageName: unknown
-  linkType: soft
-
-"@ha/nfs-provisioner@workspace:apps/nfs-provisioner":
-  version: 0.0.0-use.local
-  resolution: "@ha/nfs-provisioner@workspace:apps/nfs-provisioner"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@types/shelljs": "npm:^0.8.15"
-    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -4919,44 +4784,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/paperless@workspace:apps/paperless":
-  version: 0.0.0-use.local
-  resolution: "@ha/paperless@workspace:apps/paperless"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.7.0"
-  languageName: unknown
-  linkType: soft
-
-"@ha/photoprism@workspace:apps/photoprism":
-  version: 0.0.0-use.local
-  resolution: "@ha/photoprism@workspace:apps/photoprism"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/configure-jest": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@types/jest": "npm:^29.5.14"
-    "@types/node": "npm:^18.19.76"
-    esbuild: "npm:^0.25.0"
-    esbuild-register: "npm:^3.6.0"
-    jest: "npm:^29.7.0"
-    jest-when: "npm:^3.7.0"
-    lodash: "npm:^4.17.21"
-    nx: "npm:^20.7.0"
-    ts-jest: "npm:^29.2.5"
-    typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
 "@ha/pihole-service@workspace:apps/pihole-service":
   version: 0.0.0-use.local
   resolution: "@ha/pihole-service@workspace:apps/pihole-service"
@@ -4971,32 +4798,6 @@ __metadata:
     "@ha/terraform": "workspace:^0.0.1"
     nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
-  languageName: unknown
-  linkType: soft
-
-"@ha/playnite-web-app@workspace:apps/playnite-web-app":
-  version: 0.0.0-use.local
-  resolution: "@ha/playnite-web-app@workspace:apps/playnite-web-app"
-  dependencies:
-    "@ha/build-ts": "workspace:^1.0.0"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/configure-jest": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jest-utils": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@types/jest": "npm:^29.5.14"
-    "@types/node": "npm:^18.19.76"
-    esbuild: "npm:^0.25.0"
-    esbuild-register: "npm:^3.6.0"
-    jest: "npm:^29.7.0"
-    jest-when: "npm:^3.7.0"
-    nodemon: "npm:^2.0.22"
-    nx: "npm:^20.7.0"
-    ts-jest: "npm:^29.2.5"
-    typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
 
@@ -5086,6 +4887,19 @@ __metadata:
     lodash: "npm:^4.17.21"
     nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
+  languageName: unknown
+  linkType: soft
+
+"@ha/sealed-secrets@workspace:resources/sealed-secrets":
+  version: 0.0.0-use.local
+  resolution: "@ha/sealed-secrets@workspace:resources/sealed-secrets"
+  dependencies:
+    "@ha/configuration-api": "workspace:^0.0.1"
+    "@ha/configuration-workspace": "workspace:^0.0.1"
+    "@ha/kubectl": "workspace:^1.0.0"
+    "@ha/logger": "workspace:^0.0.1"
+    "@ha/nx-executors": "workspace:^0.1.0"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -5229,49 +5043,6 @@ __metadata:
 "@ha/uptime-kuma@workspace:apps/uptime-kuma":
   version: 0.0.0-use.local
   resolution: "@ha/uptime-kuma@workspace:apps/uptime-kuma"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.7.0"
-  languageName: unknown
-  linkType: soft
-
-"@ha/wake-on-lan@workspace:apps/wake-on-lan":
-  version: 0.0.0-use.local
-  resolution: "@ha/wake-on-lan@workspace:apps/wake-on-lan"
-  dependencies:
-    "@ha/build-ts": "workspace:^1.0.0"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/configure-jest": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/mqtt-client": "workspace:^0.0.1"
-    "@ha/mqtt-heartbeat": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@types/jest": "npm:^29.5.14"
-    "@types/node": "npm:^18.19.76"
-    async-mqtt: "npm:^2.6.3"
-    esbuild: "npm:^0.25.0"
-    esbuild-register: "npm:^3.6.0"
-    jest: "npm:^29.7.0"
-    lodash: "npm:^4.17.21"
-    nodemon: "npm:^2.0.22"
-    nx: "npm:^20.7.0"
-    ts-jest: "npm:^29.2.5"
-    typescript: "npm:^5.7.3"
-    wakeonlan: "npm:^0.1.0"
-  languageName: unknown
-  linkType: soft
-
-"@ha/zwavejs@workspace:apps/zwavejs":
-  version: 0.0.0-use.local
-  resolution: "@ha/zwavejs@workspace:apps/zwavejs"
   dependencies:
     "@ha/configuration-api": "workspace:^0.0.1"
     "@ha/configuration-workspace": "workspace:^0.0.1"
@@ -30643,13 +30414,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"wakeonlan@npm:^0.1.0":
-  version: 0.1.0
-  resolution: "wakeonlan@npm:0.1.0"
-  checksum: 10/0c46cf7df835d2256f4b778a8af5ba1deecdd3541921572c75359c9943337725fee9c0b2cb40101442d1317125e3ec112b24059efc0e40a0d0569b2cd3e61b80
-  languageName: node
-  linkType: hard
-
 "walker@npm:^1.0.8":
   version: 1.0.8
   resolution: "walker@npm:1.0.8"
@@ -31371,7 +31135,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yargs@npm:^17.3.1, yargs@npm:^17.6.2":
+"yargs@npm:^17.3.1, yargs@npm:^17.6.2, yargs@npm:^17.7.2":
   version: 17.7.2
   resolution: "yargs@npm:17.7.2"
   dependencies:

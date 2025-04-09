@@ -1,5 +1,5 @@
 {
-  "name": "kubeseal",
+  "name": "sealed-secrets",
   "sourceRoot": "{projectRoot}/src",
   "projectType": "application",
   "targets": {
@@ -12,5 +12,5 @@
     }
   },
   "tags": [],
-  "implicitDependencies": []
+  "implicitDependencies": ["resource-k8s"]
 }
