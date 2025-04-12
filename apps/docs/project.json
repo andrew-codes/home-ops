@@ -41,8 +41,6 @@
   },
   "tags": [],
   "implicitDependencies": [
-    "documentation-source",
-    "docker-creds",
-    "cloudflared"
+    "documentation-source"
   ]
 }

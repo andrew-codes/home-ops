@@ -1,5 +1,5 @@
 {
-  "name": "sealed-secrets",
+  "name": "resource-sealed-secrets",
   "sourceRoot": "{projectRoot}/src",
   "projectType": "application",
   "targets": {

@@ -14,12 +14,11 @@ const run = async (
     throw new Error("env is required")
   }
 
-  const ip = (await configurationApi.get("k8s/main-node/ip")).value
+  const ip = (await configurationApi.get("k8s/ip")).value
   const gateway = (await configurationApi.get("unifi/ip")).value
   const pveHost = (await configurationApi.get("proxmox/host/pve")).value
   const pmUsername = (await configurationApi.get("proxmox/username")).value
   const pmPassword = (await configurationApi.get("proxmox/password")).value
-  const hostname = (await configurationApi.get("k8s/name")).value
   const proxmoxSshKey = (await configurationApi.get("proxmox/ssh-key/public"))
     .value
   const devSshKey = (await configurationApi.get("dev/ssh-key/public")).value
@@ -36,7 +35,7 @@ const run = async (
       pmApiUrl: `https://${pveHost}/api2/json`,
       pmUsername: pmUsername,
       pmPassword,
-      hostname,
+      hostname: `${env}-k8s`,
       sshKey,
       nameserver,
       vmId,
@@ -54,7 +53,7 @@ const run = async (
     },
   )
 
-  await deploy(configurationApi)
+  await deploy(configurationApi, context, { env })
 }
 
 export default run

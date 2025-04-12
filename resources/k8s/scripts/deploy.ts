@@ -8,12 +8,14 @@ import path from "path"
 
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
+  context,
+  { env },
 ): Promise<void> => {
-  const ip = (await configurationApi.get("k8s/main-node/ip")).value
+  const ip = (await configurationApi.get("k8s/ip")).value
   const networkCIDR = (await configurationApi.get("k8s/pod-network-cidr")).value
-  const hostname = (await configurationApi.get("k8s/name")).value
+  const hostname = `${env}-k8s`
 
-  const secretsPath = path.join(__dirname, "..", ".secrets")
+  const secretsPath = path.join(__dirname, "..", "._secrets", env)
   await fs.mkdir(secretsPath, { recursive: true })
 
   await runPlaybook(
@@ -23,6 +25,7 @@ const run = async (
       podNetwork: networkCIDR,
       podNetworkSubnet: `${networkCIDR.split("/")[0]}/24`,
       hostname,
+      env,
     },
   )
 

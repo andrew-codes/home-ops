@@ -13,7 +13,7 @@ const run = async (
     throw new Error("env is required")
   }
 
-  const ip = (await configurationApi.get("k8s/main-node/ip")).value
+  const ip = (await configurationApi.get("k8s/ip")).value
 
   const vars = {}
   await runPlaybook(

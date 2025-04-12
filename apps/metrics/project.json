@@ -12,5 +12,5 @@
     }
   },
   "tags": [],
-  "implicitDependencies": ["nfs-provisioner", "pihole-service"]
+  "implicitDependencies": []
 }

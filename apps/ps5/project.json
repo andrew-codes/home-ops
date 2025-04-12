@@ -12,5 +12,5 @@
     }
   },
   "tags": [],
-  "implicitDependencies": ["cloudflared", "mqtt", "nfs-provisioner", "secrets"]
+  "implicitDependencies": []
 }

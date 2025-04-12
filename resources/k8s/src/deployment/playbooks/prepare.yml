@@ -249,11 +249,3 @@
         delay: 10
         timeout: 300
         port: 22
-
-    - name: Wait for kubernetes to be available
-      wait_for:
-        host: "{{ ansible_host }}"
-        delay: 10
-        timeout: 300
-        port: 6443
-      when: inventory_hostname == groups['all'][0]
