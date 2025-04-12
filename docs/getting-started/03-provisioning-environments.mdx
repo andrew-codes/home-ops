@@ -32,26 +32,10 @@ set -o allexport
 source .secrets.${ENV}.env
 ```
 
-## Provision K8s
+## Provision K8s, gitops, and sealed-secrets
 
 > Note this will automatically set the `k8s/config` secret in OnePassword.
 
 ```bash
-yarn nx provision resource-k8s --env=$ENV
-```
-
-## Provision gitops via FluxCD
-
-> Ensure the secrets `github/username` and `github/token` are set in the OnePassword vault. These secrets are used to authenticate with GitHub and push the FluxCD configuration to the repository. The token needs all repository access rights to the home-ops repo.
-
-```bash
-yarn nx provision resource-fluxcd --env=$ENV
-```
-
-## Deploying kubeseal
-
-> This will automatically save the public key to disk. This files should be committed to the repository. These keys may be used to encrypt secrets, via the kubeseal CLI, to be committed to the repository.
-
-```bash
-yarn nx deploy resource-sealed-secrets --env=$ENV
+yarn nx provision resource-fluxcd
 ```

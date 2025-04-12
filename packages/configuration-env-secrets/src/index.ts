@@ -4,6 +4,7 @@ import { config } from "dotenv"
 import path from "path"
 
 const configurationNames = [
+  "env",
   "onepassword/server-url",
   "onepassword/token",
   "onepassword/vault-id",

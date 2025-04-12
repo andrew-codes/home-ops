@@ -5,12 +5,8 @@ import createFluxCd from "@ha/fluxcd"
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
   context,
-  options,
 ): Promise<void> => {
-  if (!options.env) {
-    throw new Error("No env provided.")
-  }
-
+  const env = await configurationApi.get("env")
   const kubeConfig = (await configurationApi.get("k8s/config")).value
   const flux = createFluxCd(kubeConfig, configurationApi)
   const repository = (await configurationApi.get("repository/home-ops/name"))
@@ -20,7 +16,7 @@ const run = async (
   --owner=$GITHUB_USER \
   --repository=${repository} \
   --branch=main \
-  --path=clusters/${options.env} \
+  --path=clusters/${env} \
   --personal \
   --components-extra image-reflector-controller,image-automation-controller`)
 }

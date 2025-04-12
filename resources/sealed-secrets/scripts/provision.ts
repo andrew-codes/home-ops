@@ -7,12 +7,8 @@ import path from "path"
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
   context,
-  { env },
 ): Promise<void> => {
-  if (!env) {
-    throw new Error("Environment variables not set")
-  }
-
+  const env = await configurationApi.get("env")
   const kubeConfig = (await configurationApi.get("k8s/config")).value
   const kube = kubectl(kubeConfig)
 

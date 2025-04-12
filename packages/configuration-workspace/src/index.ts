@@ -1,4 +1,3 @@
-import { createConfigApi as createOnepasswordConfiguration } from "@ha/configuration-1password"
 import { createConfigApi as createOnePasswordCliConfiguration } from "@ha/configuration-1password-cli"
 import type { ConfigurationApi } from "@ha/configuration-api"
 import { configurationApi as envConfiguration } from "@ha/configuration-env-secrets"
@@ -15,12 +14,12 @@ const createConfigurationApi = async (
   }
   const onePasswordCliConfiguration =
     await createOnePasswordCliConfiguration(vaultId)
-  const onePasswordConfiguration = await createOnepasswordConfiguration(
-    vaultId,
-    onePasswordCliConfiguration,
-  )
+  // const onePasswordConfiguration = await createOnepasswordConfiguration(
+  //   vaultId,
+  //   onePasswordCliConfiguration,
+  // )
   const configurationProviders = providers.concat(
-    onePasswordConfiguration,
+    // onePasswordConfiguration,
     onePasswordCliConfiguration,
   )
 
@@ -69,4 +68,4 @@ const createConfigurationApi = async (
 }
 
 export { createConfigurationApi }
-export type { Configuration, ResourceEnvironment }
+export type { Configuration }

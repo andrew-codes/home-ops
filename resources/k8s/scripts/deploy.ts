@@ -9,8 +9,8 @@ import path from "path"
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
   context,
-  { env },
 ): Promise<void> => {
+  const env = await configurationApi.get("env")
   const ip = (await configurationApi.get("k8s/ip")).value
   const networkCIDR = (await configurationApi.get("k8s/pod-network-cidr")).value
   const hostname = `${env}-k8s`

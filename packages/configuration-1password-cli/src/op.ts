@@ -35,6 +35,7 @@ const op = async (vaultId: string) => {
     updateItemByTitle: async (itemTitle: string, value: string) => {
       const { stderr, code } = sh.exec(
         `op item edit "${itemTitle}" "secret-value=${value}" --vault "${vaultId}"`,
+        { silent: true },
       )
       if (code !== 0) {
         logger.debug(
@@ -46,6 +47,7 @@ const op = async (vaultId: string) => {
     createItem: async (name: string, value: string) => {
       const { stderr, code } = sh.exec(
         `op item create --category "API Credential" --title "${name}" --vault "${vaultId}" 'secret-value=${value}'`,
+        { silent: true },
       )
       if (code !== 0) {
         logger.debug(

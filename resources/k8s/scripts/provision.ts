@@ -8,12 +8,8 @@ import deploy from "./deploy"
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
   context,
-  { env },
 ): Promise<void> => {
-  if (!env) {
-    throw new Error("env is required")
-  }
-
+  const env = await configurationApi.get("env")
   const ip = (await configurationApi.get("k8s/ip")).value
   const gateway = (await configurationApi.get("unifi/ip")).value
   const pveHost = (await configurationApi.get("proxmox/host/pve")).value
@@ -53,7 +49,7 @@ const run = async (
     },
   )
 
-  await deploy(configurationApi, context, { env })
+  await deploy(configurationApi, context)
 }
 
 export default run
