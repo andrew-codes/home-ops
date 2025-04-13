@@ -1,10 +1,10 @@
+import { createConfigurationApi } from "@ha/configuration-workspace"
+import { throwIfError } from "@ha/shell-utils"
+import type { ExecutorContext } from "@nx/devkit"
+import { spawn } from "child_process"
 import fs from "fs"
 import path from "path"
 import sh from "shelljs"
-import { createConfigurationApi } from "@ha/configuration-workspace"
-import type { ExecutorContext } from "@nrwl/devkit"
-import { spawn } from "child_process"
-import { throwIfError } from "@ha/shell-utils"
 
 interface TelepresenceExecutorOptions {
   image: string

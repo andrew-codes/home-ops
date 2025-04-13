@@ -1,0 +1,16 @@
+{
+  "name": "resource-sealed-secrets",
+  "sourceRoot": "{projectRoot}/src",
+  "projectType": "application",
+  "targets": {
+    "provision": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "module": "scripts/provision.ts",
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}

@@ -4,6 +4,7 @@ import { config } from "dotenv"
 import path from "path"
 
 const configurationNames = [
+  "env",
   "onepassword/server-url",
   "onepassword/token",
   "onepassword/vault-id",
@@ -33,5 +34,5 @@ const configurationApi: ConfigurationApi<Configuration> = {
   },
 }
 
-export type { Configuration }
 export { configurationApi }
+export type { Configuration }

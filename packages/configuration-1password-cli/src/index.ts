@@ -2,6 +2,21 @@ import { ConfigurationApi } from "@ha/configuration-api"
 import { op as createOp } from "./op"
 
 const configurationNames = [
+  // Required Secrets
+  "dev/ssh-key/public",
+  "k8s/ip",
+  "k8s/pod-network-cidr",
+  "proxmox/host/pve",
+  "proxmox/ip",
+  "proxmox/nameserver",
+  "proxmox/password",
+  "proxmox/ssh-key/public",
+  "proxmox/username",
+  "repository/home-ops/name",
+  "unifi/ip",
+  // set by provisioning
+  "k8s/config",
+  // legacy secrets
   "backup/config",
   "backup/nas/ssh-key/private",
   "backup/ssh-key/private",
@@ -25,7 +40,7 @@ const configurationNames = [
   "crowdsec/elastic/username",
   "crowdsec/password",
   "crowdsec/username",
-  "dev/ssh-key/public",
+
   "docker-registry/hostname",
   "docker-registry/ip",
   "docker-registry/machine/username",
@@ -106,18 +121,11 @@ const configurationNames = [
   "home-assistant/withings/client-id",
   "home-assistant/withings/client-secret",
   "home-assistant/webrtc/api/port",
-  "influxdb/bucket",
-  "influxdb/org",
-  "influxdb/org-id",
-  "influxdb/password",
-  "influxdb/port/external",
-  "influxdb/username",
   "k8s/machine/password",
   "k8s/machine/username",
   "k8s/main-node/ip",
   "k8s/name",
-  "k8s/pod-network-cidr",
-  "k8s/config",
+
   "known-hosts",
   "mqtt/password",
   "mqtt/port/external",
@@ -152,14 +160,9 @@ const configurationNames = [
   "pihole/ip",
   "pihole/password",
   "pihole2/ip",
-  "proxmox/host/pve",
-  "proxmox/ip",
-  "proxmox/nameserver",
-  "proxmox/password",
+
   "proxmox/provision/ssh-key/public",
   "proxmox/ssh-key/private",
-  "proxmox/ssh-key/public",
-  "proxmox/username",
   "ps5/credentials-json",
   "psn-accounts",
   "repository/name",
@@ -172,7 +175,7 @@ const configurationNames = [
   "tunnel-proxy/auth",
   "tunnel-proxy/cert",
   "tunnel-proxy/tunnel-id",
-  "unifi/ip",
+
   "unifi/password",
   "unifi/port",
   "unifi/username",
@@ -191,10 +194,10 @@ type OnePasswordCliConfiguration = Record<
   { id: string; value: string }
 >
 
-const createConfigApi = async (): Promise<
-  ConfigurationApi<OnePasswordCliConfiguration>
-> => {
-  const op = await createOp()
+const createConfigApi = async (
+  vaultId: string,
+): Promise<ConfigurationApi<OnePasswordCliConfiguration>> => {
+  const op = await createOp(vaultId)
 
   return {
     get: async (name) => {

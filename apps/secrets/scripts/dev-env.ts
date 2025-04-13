@@ -1,7 +1,7 @@
-import fs from "fs/promises"
-import path from "path"
 import type { ConfigurationApi } from "@ha/configuration-api"
 import type { Configuration } from "@ha/configuration-workspace"
+import fs from "fs/promises"
+import path from "path"
 
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2025.2.1
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cloudflared/config
+              subPath: cloudflared.yaml
+              readOnly: true
+            - name: creds
+              mountPath: /etc/cloudflared/creds
+              subPath: credentials.json
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: cloudflared-config
+            items:
+              - key: cloudflared.yaml
+                path: cloudflared.yaml
+        - name: creds
+          secret:
+            secretName: tunnel-credentials
+            items:
+              - key: credentials.json
+                path: credentials.json

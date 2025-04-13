@@ -37,20 +37,10 @@
         "cwd": "{projectRoot}",
         "module": "./scripts/publish.ts"
       }
-    },
-    "deploy": {
-      "executor": "@ha/nx-executors:invoke",
-      "options": {
-        "cwd": "{projectRoot}",
-        "module": "./scripts/deploy.ts"
-      }
     }
   },
   "tags": [],
   "implicitDependencies": [
-    "documentation-source",
-    "k8s",
-    "docker-creds",
-    "cloudflared"
+    "documentation-source"
   ]
 }

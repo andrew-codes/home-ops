@@ -1,0 +1,31 @@
+{
+  "name": "fluxcd",
+  "sourceRoot": "{projectRoot}/src",
+  "projectType": "library",
+  "targets": {
+    "clean": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/.test-runs/unit"],
+      "options": {
+        "command": "rm -rf dist .test-runs",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/.test-runs/unit"],
+      "options": {
+        "command": "jest",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "code-coverage": {
+      "executor": "@ha/nx-executors:upload-codecov",
+      "options": {
+        "coverageFilePath": "{projectRoot}/.test-runs/unit/lcov.info"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}

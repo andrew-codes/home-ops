@@ -1,0 +1,110 @@
+---
+- name: Setup Kubernetes
+  hosts: all
+  become: true
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: true
+  connection: ssh
+  remote_user: root
+
+  tasks:
+    - name: Check if kubeadm init has already been run
+      stat:
+        path: /etc/kubernetes/admin.conf
+      register: kubeadm_init_check
+
+    - name: Initializing kubernetes cluster
+      shell: kubeadm init --pod-network-cidr="{{ podNetwork  }}"
+      when: not kubeadm_init_check.stat.exists
+
+    - name: Create directory for kube config
+      file:
+        path: /root/.kube
+        state: directory
+        owner: "root"
+        group: "root"
+        mode: "0755"
+      when: not kubeadm_init_check.stat.exists
+
+    - name: Copy /etc/kubernetes/admin.conf to user's home directory /root/.kube/config.
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /root/.kube/config
+        remote_src: true
+        owner: "root"
+        group: "root"
+        mode: "0600"
+      when: not kubeadm_init_check.stat.exists
+
+    - name: Remove the cache directory
+      file:
+        path: /root/.kube/cache
+        state: absent
+
+    - name: Create pod network
+      shell: kubectl apply -f https://github.com/flannel-io/flannel/releases/download/v0.26.4/kube-flannel.yml
+
+    - name: Ensure /run/flannel directory exists
+      file:
+        path: /run/flannel
+        state: directory
+
+    - name: Create /run/flannel/subnet.env
+      copy:
+        content: |
+          FLANNEL_NETWORK={{ podNetwork }}
+          FLANNEL_SUBNET={{ podNetworkSubnet}}
+          FLANNEL_MTU=1450
+          FLANNEL_IPMASQ=true
+        dest: /run/flannel/subnet.env
+
+    - name: Deploy script to recreate /run/flannel/subnet.env
+      copy:
+        dest: /usr/local/bin/create-flannel-subnet-env.sh
+        content: |
+          #!/bin/bash
+          mkdir -p /run/flannel
+          cat <<EOF > /run/flannel/subnet.env
+          FLANNEL_NETWORK={{ podNetwork }}
+          FLANNEL_SUBNET={{ podNetworkSubnet }}
+          FLANNEL_MTU=1450
+          FLANNEL_IPMASQ=true
+          EOF
+        mode: "0755"
+
+    - name: Deploy systemd service to recreate /run/flannel/subnet.env on boot
+      copy:
+        dest: /etc/systemd/system/create-flannel-subnet-env.service
+        content: |
+          [Unit]
+          Description=Create Flannel Subnet Environment File
+          After=network.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/bin/create-flannel-subnet-env.sh
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and start the create-flannel-subnet-env service
+      systemd:
+        name: create-flannel-subnet-env
+        enabled: yes
+        state: started
+
+    - name: Pause
+      pause: seconds=60
+      when: not kubeadm_init_check.stat.exists
+
+    - name: Fetch kubeconfig to repo secrets
+      fetch:
+        dest: "{{ playbook_dir }}/../../../._secrets/{{ env }}/.kube/config"
+        flat: true
+        src: "/root/.kube/config"
+
+    - name: Remove taints
+      command: kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+      when: not kubeadm_init_check.stat.exists

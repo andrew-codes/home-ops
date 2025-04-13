@@ -6,7 +6,7 @@ import {
   Configuration,
   createConfigurationApi,
 } from "@ha/configuration-workspace"
-import { ExecutorContext } from "@nrwl/devkit"
+import { ExecutorContext } from "@nx/devkit"
 import { register } from "esbuild-register/dist/node"
 import path from "path"
 import process from "process"

@@ -13,6 +13,6 @@
   },
   "devDependencies": {
     "@ha/nx-executors": "workspace:^0.1.0",
-    "nx": "^20.4.6"
+    "nx": "^20.7.0"
   }
 }

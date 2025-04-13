@@ -340,7 +340,7 @@ __metadata:
     "@mdx-js/loader": "npm:^3.1.0"
     "@mdx-js/mdx": "npm:^3.1.0"
     "@mdx-js/react": "npm:^3.1.0"
-    "@nx/workspace": "npm:^20.4.6"
+    "@nx/workspace": "npm:^20.7.0"
     "@types/jest": "npm:^29.5.14"
     "@types/node": "npm:^18.19.76"
     "@types/react": "npm:^18.0.28"
@@ -351,7 +351,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     log4brains: "patch:log4brains@npm%3A1.1.0#~/.yarn/patches/log4brains-npm-1.1.0-a7df121b2c.patch"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     prettier: "npm:^3.5.2"
     prism-react-renderer: "npm:^2.4.1"
     react: "npm:^18.3.1"
@@ -3882,7 +3882,7 @@ __metadata:
     "@ha/jsonnet": "workspace:^0.0.1"
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -3895,7 +3895,7 @@ __metadata:
     "@ha/shell-utils": "workspace:^1.0.0"
     "@types/shelljs": "npm:^0.8.15"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
     yaml: "npm:^2.7.0"
   languageName: unknown
@@ -3912,7 +3912,7 @@ __metadata:
     "@ha/nx-executors": "workspace:^0.1.0"
     "@ha/shell-utils": "workspace:^1.0.0"
     handlebars: "npm:4.7.8"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
   languageName: unknown
   linkType: soft
@@ -3929,7 +3929,7 @@ __metadata:
     esbuild: "npm:^0.25.0"
     jest: "npm:^29.7.0"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -3953,15 +3953,11 @@ __metadata:
     "@ha/configuration-workspace": "workspace:^0.0.1"
     "@ha/configure-jest": "workspace:^0.0.1"
     "@ha/docker": "workspace:^0.0.1"
-    "@ha/docker-creds": "workspace:^0.0.1"
-    "@ha/docker-registry": "workspace:^0.0.1"
     "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/k8s": "workspace:^0.0.1"
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/logger": "workspace:^0.0.1"
     "@ha/mqtt-client": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/pihole": "workspace:^0.0.1"
     "@ha/secrets": "workspace:^0.0.1"
     "@ha/shell-utils": "workspace:^1.0.0"
     "@ha/themes-slate": "workspace:^0.0.1"
@@ -3987,7 +3983,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     react-is: "npm:18.3.1"
@@ -4009,29 +4005,9 @@ __metadata:
     "@types/node": "npm:^18.19.76"
     jest: "npm:^29.7.0"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@ha/cloudflared@workspace:apps/cloudflared":
-  version: 0.0.0-use.local
-  resolution: "@ha/cloudflared@workspace:apps/cloudflared"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    "@ha/terraform": "workspace:^0.0.1"
-    lodash: "npm:4.17.21"
-    nx: "npm:^20.4.6"
-    shelljs: "npm:^0.8.5"
-    yaml: "npm:^2.7.0"
   languageName: unknown
   linkType: soft
 
@@ -4046,7 +4022,7 @@ __metadata:
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/nx-executors": "workspace:^0.1.0"
     "@types/shelljs": "npm:^0.8.15"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -4068,7 +4044,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
@@ -4092,7 +4068,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -4102,7 +4078,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ha/configuration-api@workspace:packages/configuration-api"
   dependencies:
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -4120,7 +4096,7 @@ __metadata:
     dotenv: "npm:^16.4.7"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -4143,7 +4119,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -4159,7 +4135,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-config: "npm:^29.7.0"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   peerDependencies:
@@ -4181,7 +4157,7 @@ __metadata:
     "@types/node": "npm:^18.19.76"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -4191,54 +4167,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ha/deployment-utils@workspace:packages/deployment-utils"
   dependencies:
-    nx: "npm:^20.4.6"
-  languageName: unknown
-  linkType: soft
-
-"@ha/docker-creds@workspace:^0.0.1, @ha/docker-creds@workspace:apps/docker-creds":
-  version: 0.0.0-use.local
-  resolution: "@ha/docker-creds@workspace:apps/docker-creds"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
-  languageName: unknown
-  linkType: soft
-
-"@ha/docker-registry-service@workspace:apps/docker-registry":
-  version: 0.0.0-use.local
-  resolution: "@ha/docker-registry-service@workspace:apps/docker-registry"
-  dependencies:
-    "@ha/ansible": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:*"
-    "@ha/kubectl": "workspace:*"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/pihole": "workspace:^0.0.1"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    "@ha/terraform": "workspace:^0.0.1"
-    "@types/shelljs": "npm:^0.8.15"
-    nx: "npm:^20.4.6"
-    shelljs: "npm:^0.8.5"
-  languageName: unknown
-  linkType: soft
-
-"@ha/docker-registry@workspace:^0.0.1, @ha/docker-registry@workspace:apps/docker-registry-service":
-  version: 0.0.0-use.local
-  resolution: "@ha/docker-registry@workspace:apps/docker-registry-service"
-  dependencies:
-    "@ha/ansible": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:*"
-    "@ha/kubectl": "workspace:*"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -4255,7 +4184,7 @@ __metadata:
     "@types/node": "npm:^18.19.76"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
@@ -4310,7 +4239,7 @@ __metadata:
     graphql: "npm:^16.10.0"
     is-absolute-url: "npm:^4.0.1"
     lodash-es: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     prettier: "npm:^3.5.2"
     prism-react-renderer: "npm:^2.4.1"
     prismjs: "npm:^1.30.0"
@@ -4330,21 +4259,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/elk-stack@workspace:apps/elk-stack":
-  version: 0.0.0-use.local
-  resolution: "@ha/elk-stack@workspace:apps/elk-stack"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
-    shelljs: "npm:^0.8.5"
-  languageName: unknown
-  linkType: soft
-
 "@ha/env-utils@workspace:^0.0.1, @ha/env-utils@workspace:packages/env-utils":
   version: 0.0.0-use.local
   resolution: "@ha/env-utils@workspace:packages/env-utils"
@@ -4356,23 +4270,33 @@ __metadata:
     detect-node: "npm:^2.1.0"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
 
-"@ha/frigate@workspace:apps/frigate":
+"@ha/fluxcd@workspace:^0.0.1, @ha/fluxcd@workspace:packages/fluxcd":
   version: 0.0.0-use.local
-  resolution: "@ha/frigate@workspace:apps/frigate"
+  resolution: "@ha/fluxcd@workspace:packages/fluxcd"
   dependencies:
+    "@ha/cli-utils": "workspace:^0.0.1"
     "@ha/configuration-api": "workspace:^0.0.1"
     "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
+    "@ha/configure-jest": "workspace:^0.0.1"
+    "@ha/logger": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
+    "@ha/shell-utils": "workspace:^1.0.0"
+    "@types/jest": "npm:^29.5.14"
+    "@types/node": "npm:^18.19.76"
+    "@types/shelljs": "npm:^0.8.15"
+    jest: "npm:^29.7.0"
+    jest-when: "npm:^3.7.0"
+    nx: "npm:^20.7.0"
+    shelljs: "npm:^0.8.5"
+    ts-jest: "npm:^29.2.5"
+    typescript: "npm:^5.7.3"
+    uuid: "npm:^9.0.1"
   languageName: unknown
   linkType: soft
 
@@ -4384,7 +4308,7 @@ __metadata:
     "@ha/configuration-workspace": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
     "@ha/shell-utils": "workspace:^1.0.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
   languageName: unknown
   linkType: soft
@@ -4400,7 +4324,7 @@ __metadata:
     "@ha/jsonnet": "workspace:^0.0.1"
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -4420,7 +4344,7 @@ __metadata:
     jest-when: "npm:^3.7.0"
     libsodium-wrappers: "npm:^0.7.15"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
@@ -4439,7 +4363,7 @@ __metadata:
     "@ha/jsonnet": "workspace:^0.0.1"
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
   languageName: unknown
   linkType: soft
@@ -4455,7 +4379,7 @@ __metadata:
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/logger": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
     yaml: "npm:^2.7.0"
   languageName: unknown
@@ -4468,15 +4392,10 @@ __metadata:
     "@ha/configuration-api": "workspace:^0.0.1"
     "@ha/configuration-workspace": "workspace:^0.0.1"
     "@ha/docker": "workspace:^0.0.1"
-    "@ha/docker-creds": "workspace:^0.0.1"
-    "@ha/docker-registry": "workspace:^0.0.1"
     "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/k8s": "workspace:^0.0.1"
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/pihole": "workspace:^0.0.1"
-    "@ha/secrets": "workspace:^0.0.1"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -4490,17 +4409,12 @@ __metadata:
     "@ha/configuration-workspace": "workspace:^0.0.1"
     "@ha/configure-jest": "workspace:^0.0.1"
     "@ha/docker": "workspace:^0.0.1"
-    "@ha/docker-creds": "workspace:^0.0.1"
-    "@ha/docker-registry": "workspace:^0.0.1"
     "@ha/http-heartbeat": "workspace:^0.0.1"
     "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/k8s": "workspace:^0.0.1"
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/logger": "workspace:^0.0.1"
     "@ha/mqtt-client": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/pihole": "workspace:^0.0.1"
-    "@ha/secrets": "workspace:^0.0.1"
     "@ha/unifi-client": "workspace:^0.1.0"
     "@microsoft/microsoft-graph-client": "npm:^3.0.7"
     "@redux-saga/is": "npm:^1.1.3"
@@ -4521,7 +4435,7 @@ __metadata:
     lodash: "npm:^4.17.21"
     mongodb: "npm:~4.6.0"
     nodemon: "npm:^2.0.22"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     redux-saga: "npm:^1.3.0"
@@ -4540,18 +4454,13 @@ __metadata:
     "@ha/configuration-workspace": "workspace:^0.0.1"
     "@ha/configure-jest": "workspace:^0.0.1"
     "@ha/docker": "workspace:^0.0.1"
-    "@ha/docker-creds": "workspace:^0.0.1"
-    "@ha/docker-registry": "workspace:^0.0.1"
     "@ha/ha-entity-utils": "workspace:^0.0.1"
     "@ha/http-heartbeat": "workspace:^0.0.1"
     "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/k8s": "workspace:^0.0.1"
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/logger": "workspace:^0.0.1"
     "@ha/mqtt-client": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/pihole": "workspace:^0.0.1"
-    "@ha/secrets": "workspace:^0.0.1"
     "@ha/unifi-client": "workspace:^0.1.0"
     "@types/jest": "npm:^29.5.14"
     "@types/node": "npm:^18.19.76"
@@ -4562,7 +4471,7 @@ __metadata:
     jest-when: "npm:^3.7.0"
     lodash: "npm:^4.17.21"
     nodemon: "npm:^2.0.22"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     redux: "npm:^4.2.1"
     redux-saga: "npm:^1.3.0"
     reselect: "npm:^4.1.8"
@@ -4580,17 +4489,12 @@ __metadata:
     "@ha/configuration-workspace": "workspace:^0.0.1"
     "@ha/configure-jest": "workspace:^0.0.1"
     "@ha/docker": "workspace:^0.0.1"
-    "@ha/docker-creds": "workspace:^0.0.1"
-    "@ha/docker-registry": "workspace:^0.0.1"
     "@ha/http-heartbeat": "workspace:^0.0.1"
     "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/k8s": "workspace:^0.0.1"
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/logger": "workspace:^0.0.1"
     "@ha/mqtt-client": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/pihole": "workspace:^0.0.1"
-    "@ha/secrets": "workspace:^0.0.1"
     "@ha/unifi-client": "workspace:^0.1.0"
     "@types/jest": "npm:^29.5.14"
     "@types/node": "npm:^18.19.76"
@@ -4600,7 +4504,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     nodemon: "npm:^2.0.22"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -4617,7 +4521,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -4633,7 +4537,7 @@ __metadata:
     "@ha/jsonnet": "workspace:^0.0.1"
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -4647,7 +4551,7 @@ __metadata:
     "@ha/jsonnet": "workspace:^0.0.1"
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -4662,7 +4566,7 @@ __metadata:
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/nx-executors": "workspace:^0.1.0"
     log4brains: "npm:^1.1.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -4678,25 +4582,13 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
 
-"@ha/infrastructure-elk-fleet-server@workspace:apps/infrastructure-elk-fleet-server":
-  version: 0.0.0-use.local
-  resolution: "@ha/infrastructure-elk-fleet-server@workspace:apps/infrastructure-elk-fleet-server"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    shelljs: "npm:^0.8.5"
-  languageName: unknown
-  linkType: soft
-
-"@ha/jest-utils@workspace:^0.0.1, @ha/jest-utils@workspace:packages/jest-utils":
+"@ha/jest-utils@workspace:packages/jest-utils":
   version: 0.0.0-use.local
   resolution: "@ha/jest-utils@workspace:packages/jest-utils"
   dependencies:
@@ -4706,7 +4598,7 @@ __metadata:
     "@types/node": "npm:^18.19.76"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -4724,31 +4616,10 @@ __metadata:
     "@types/node": "npm:^18.19.76"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@ha/k8s@workspace:^0.0.1, @ha/k8s@workspace:apps/k8s":
-  version: 0.0.0-use.local
-  resolution: "@ha/k8s@workspace:apps/k8s"
-  dependencies:
-    "@ha/ansible": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/github-secrets": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    "@ha/terraform": "workspace:^0.0.1"
-    "@nrwl/devkit": "npm:^19.8.4"
-    "@types/shelljs": "npm:^0.8.15"
-    lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
-    shelljs: "npm:^0.8.5"
   languageName: unknown
   linkType: soft
 
@@ -4766,11 +4637,23 @@ __metadata:
     "@types/shelljs": "npm:^0.8.15"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
     uuid: "npm:^9.0.1"
+  languageName: unknown
+  linkType: soft
+
+"@ha/kubeseal@workspace:packages/kubeseal":
+  version: 0.0.0-use.local
+  resolution: "@ha/kubeseal@workspace:packages/kubeseal"
+  dependencies:
+    lodash: "npm:^4.17.21"
+    shelljs: "npm:^0.8.5"
+    yargs: "npm:^17.7.2"
+  bin:
+    kubeseal: src/bin/kubeseal.js
   languageName: unknown
   linkType: soft
 
@@ -4784,7 +4667,7 @@ __metadata:
     "@types/node": "npm:^18.19.76"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
     winston: "npm:^3.17.0"
@@ -4805,7 +4688,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -4822,7 +4705,7 @@ __metadata:
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/logger": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     yaml: "npm:^2.7.0"
   languageName: unknown
   linkType: soft
@@ -4838,7 +4721,7 @@ __metadata:
     async-mqtt: "npm:^2.6.3"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   peerDependencies:
@@ -4846,7 +4729,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/mqtt-heartbeat@workspace:^0.0.1, @ha/mqtt-heartbeat@workspace:packages/mqtt-heartbeat":
+"@ha/mqtt-heartbeat@workspace:packages/mqtt-heartbeat":
   version: 0.0.0-use.local
   resolution: "@ha/mqtt-heartbeat@workspace:packages/mqtt-heartbeat"
   dependencies:
@@ -4865,39 +4748,12 @@ __metadata:
     debug: "npm:^4.4.0"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     redux: "npm:^4.2.1"
     redux-saga: "npm:^1.3.0"
     redux-saga-test-plan: "npm:^4.0.6"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@ha/mqtt@workspace:apps/mqtt":
-  version: 0.0.0-use.local
-  resolution: "@ha/mqtt@workspace:apps/mqtt"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
-  languageName: unknown
-  linkType: soft
-
-"@ha/nfs-provisioner@workspace:apps/nfs-provisioner":
-  version: 0.0.0-use.local
-  resolution: "@ha/nfs-provisioner@workspace:apps/nfs-provisioner"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@types/shelljs": "npm:^0.8.15"
-    nx: "npm:^20.4.6"
   languageName: unknown
   linkType: soft
 
@@ -4913,7 +4769,7 @@ __metadata:
     "@ha/logger": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
     "@ha/shell-utils": "workspace:^1.0.0"
-    "@nrwl/devkit": "npm:19.8.4"
+    "@nx/devkit": "npm:^20.7.0"
     "@types/jest": "npm:^29.5.14"
     "@types/node": "npm:^18.19.76"
     esbuild: "npm:^0.25.0"
@@ -4921,46 +4777,8 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     lodash: "npm:4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
-    ts-jest: "npm:^29.2.5"
-    typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@ha/paperless@workspace:apps/paperless":
-  version: 0.0.0-use.local
-  resolution: "@ha/paperless@workspace:apps/paperless"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
-  languageName: unknown
-  linkType: soft
-
-"@ha/photoprism@workspace:apps/photoprism":
-  version: 0.0.0-use.local
-  resolution: "@ha/photoprism@workspace:apps/photoprism"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/configure-jest": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@types/jest": "npm:^29.5.14"
-    "@types/node": "npm:^18.19.76"
-    esbuild: "npm:^0.25.0"
-    esbuild-register: "npm:^3.6.0"
-    jest: "npm:^29.7.0"
-    jest-when: "npm:^3.7.0"
-    lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -4978,51 +4796,8 @@ __metadata:
     "@ha/nx-executors": "workspace:^0.1.0"
     "@ha/shell-utils": "workspace:^1.0.0"
     "@ha/terraform": "workspace:^0.0.1"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
-  languageName: unknown
-  linkType: soft
-
-"@ha/pihole@workspace:^0.0.1, @ha/pihole@workspace:apps/pihole":
-  version: 0.0.0-use.local
-  resolution: "@ha/pihole@workspace:apps/pihole"
-  dependencies:
-    "@ha/ansible": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    "@ha/terraform": "workspace:^0.0.1"
-    lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
-    shelljs: "npm:^0.8.5"
-  languageName: unknown
-  linkType: soft
-
-"@ha/playnite-web-app@workspace:apps/playnite-web-app":
-  version: 0.0.0-use.local
-  resolution: "@ha/playnite-web-app@workspace:apps/playnite-web-app"
-  dependencies:
-    "@ha/build-ts": "workspace:^1.0.0"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/configure-jest": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jest-utils": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@types/jest": "npm:^29.5.14"
-    "@types/node": "npm:^18.19.76"
-    esbuild: "npm:^0.25.0"
-    esbuild-register: "npm:^3.6.0"
-    jest: "npm:^29.7.0"
-    jest-when: "npm:^3.7.0"
-    nodemon: "npm:^2.0.22"
-    nx: "npm:^20.4.6"
-    ts-jest: "npm:^29.2.5"
-    typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
 
@@ -5045,7 +4820,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     nodemon: "npm:^2.0.22"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -5060,8 +4835,71 @@ __metadata:
     "@ha/jsonnet": "workspace:*"
     "@ha/kubectl": "workspace:*"
     "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
+  languageName: unknown
+  linkType: soft
+
+"@ha/resource-fluxcd@workspace:resources/fluxcd":
+  version: 0.0.0-use.local
+  resolution: "@ha/resource-fluxcd@workspace:resources/fluxcd"
+  dependencies:
+    "@ha/configuration-api": "workspace:^0.0.1"
+    "@ha/configuration-workspace": "workspace:^0.0.1"
+    "@ha/fluxcd": "workspace:^0.0.1"
+    "@ha/logger": "workspace:^0.0.1"
+    "@ha/nx-executors": "workspace:^0.1.0"
+    nx: "npm:^20.7.0"
+  languageName: unknown
+  linkType: soft
+
+"@ha/resource-k8s@workspace:resources/k8s":
+  version: 0.0.0-use.local
+  resolution: "@ha/resource-k8s@workspace:resources/k8s"
+  dependencies:
+    "@ha/ansible": "workspace:^0.0.1"
+    "@ha/configuration-api": "workspace:^0.0.1"
+    "@ha/configuration-workspace": "workspace:^0.0.1"
+    "@ha/github-secrets": "workspace:^0.0.1"
+    "@ha/kubectl": "workspace:^1.0.0"
+    "@ha/logger": "workspace:^0.0.1"
+    "@ha/nx-executors": "workspace:^0.1.0"
+    "@ha/shell-utils": "workspace:^1.0.0"
+    "@ha/terraform": "workspace:^0.0.1"
+    "@types/shelljs": "npm:^0.8.15"
+    lodash: "npm:^4.17.21"
+    nx: "npm:^20.7.0"
+    shelljs: "npm:^0.8.5"
+  languageName: unknown
+  linkType: soft
+
+"@ha/resource-pihole@workspace:apps/pihole":
+  version: 0.0.0-use.local
+  resolution: "@ha/resource-pihole@workspace:apps/pihole"
+  dependencies:
+    "@ha/ansible": "workspace:^0.0.1"
+    "@ha/configuration-api": "workspace:^0.0.1"
+    "@ha/configuration-workspace": "workspace:^0.0.1"
+    "@ha/logger": "workspace:^0.0.1"
+    "@ha/nx-executors": "workspace:^0.1.0"
+    "@ha/shell-utils": "workspace:^1.0.0"
+    "@ha/terraform": "workspace:^0.0.1"
+    lodash: "npm:^4.17.21"
+    nx: "npm:^20.7.0"
+    shelljs: "npm:^0.8.5"
+  languageName: unknown
+  linkType: soft
+
+"@ha/sealed-secrets@workspace:resources/sealed-secrets":
+  version: 0.0.0-use.local
+  resolution: "@ha/sealed-secrets@workspace:resources/sealed-secrets"
+  dependencies:
+    "@ha/configuration-api": "workspace:^0.0.1"
+    "@ha/configuration-workspace": "workspace:^0.0.1"
+    "@ha/kubectl": "workspace:^1.0.0"
+    "@ha/logger": "workspace:^0.0.1"
+    "@ha/nx-executors": "workspace:^0.1.0"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -5075,7 +4913,7 @@ __metadata:
     "@types/node": "npm:^18.19.76"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -5097,7 +4935,7 @@ __metadata:
     "@types/node": "npm:^18.19.76"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -5115,7 +4953,7 @@ __metadata:
     "@types/node": "npm:^18.19.76"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -5132,7 +4970,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     lodash: "npm:^4.17.21"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -5151,7 +4989,7 @@ __metadata:
     "@ha/nx-executors": "workspace:^0.1.0"
     "@ha/shell-utils": "workspace:^1.0.0"
     "@ha/terraform": "workspace:^0.0.1"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
   languageName: unknown
   linkType: soft
@@ -5164,7 +5002,7 @@ __metadata:
     "@ha/nx-executors": "workspace:^0.1.0"
     "@ha/shell-utils": "workspace:^1.0.0"
     "@types/shelljs": "npm:^0.8.15"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
   languageName: unknown
   linkType: soft
@@ -5173,7 +5011,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ha/themes-definition@workspace:packages/themes/definition"
   dependencies:
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -5182,22 +5020,7 @@ __metadata:
   resolution: "@ha/themes-slate@workspace:packages/themes/slate"
   dependencies:
     "@ha/themes-definition": "workspace:^0.0.1"
-    nx: "npm:^20.4.6"
-  languageName: unknown
-  linkType: soft
-
-"@ha/ubuntu-cloud-template@workspace:apps/ubuntu-cloud-template":
-  version: 0.0.0-use.local
-  resolution: "@ha/ubuntu-cloud-template@workspace:apps/ubuntu-cloud-template"
-  dependencies:
-    "@ha/ansible": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    "@types/shelljs": "npm:^0.8.15"
-    nx: "npm:^20.4.6"
-    shelljs: "npm:^0.8.5"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -5211,7 +5034,7 @@ __metadata:
     "@types/node": "npm:^18.19.76"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -5226,50 +5049,7 @@ __metadata:
     "@ha/jsonnet": "workspace:^0.0.1"
     "@ha/kubectl": "workspace:^1.0.0"
     "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
-  languageName: unknown
-  linkType: soft
-
-"@ha/wake-on-lan@workspace:apps/wake-on-lan":
-  version: 0.0.0-use.local
-  resolution: "@ha/wake-on-lan@workspace:apps/wake-on-lan"
-  dependencies:
-    "@ha/build-ts": "workspace:^1.0.0"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/configure-jest": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/mqtt-client": "workspace:^0.0.1"
-    "@ha/mqtt-heartbeat": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@types/jest": "npm:^29.5.14"
-    "@types/node": "npm:^18.19.76"
-    async-mqtt: "npm:^2.6.3"
-    esbuild: "npm:^0.25.0"
-    esbuild-register: "npm:^3.6.0"
-    jest: "npm:^29.7.0"
-    lodash: "npm:^4.17.21"
-    nodemon: "npm:^2.0.22"
-    nx: "npm:^20.4.6"
-    ts-jest: "npm:^29.2.5"
-    typescript: "npm:^5.7.3"
-    wakeonlan: "npm:^0.1.0"
-  languageName: unknown
-  linkType: soft
-
-"@ha/zwavejs@workspace:apps/zwavejs":
-  version: 0.0.0-use.local
-  resolution: "@ha/zwavejs@workspace:apps/zwavejs"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.4.6"
+    nx: "npm:^20.7.0"
   languageName: unknown
   linkType: soft
 
@@ -6362,65 +6142,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nrwl/devkit@npm:19.8.14, @nrwl/devkit@npm:^19.8.4":
-  version: 19.8.14
-  resolution: "@nrwl/devkit@npm:19.8.14"
-  dependencies:
-    "@nx/devkit": "npm:19.8.14"
-  checksum: 10/821ef76ebda0df08204d6ec61481fb17d0ef311cb5b02d49848fb270aefb832f08f2be1f5cbbd2770b583d75ff2be0f9773d0a1660501bceb578ee0b58d20061
-  languageName: node
-  linkType: hard
-
-"@nrwl/devkit@npm:19.8.4":
-  version: 19.8.4
-  resolution: "@nrwl/devkit@npm:19.8.4"
-  dependencies:
-    "@nx/devkit": "npm:19.8.4"
-  checksum: 10/bfbe6a6dd531e156040bd33c655a47561afa363e48f61f15a7c1d153d19c89fa4ac459db218328a5d515b3b6a091d7e15ca6eeed7046be0d69b77dbf1c793b8f
-  languageName: node
-  linkType: hard
-
-"@nx/devkit@npm:19.8.14":
-  version: 19.8.14
-  resolution: "@nx/devkit@npm:19.8.14"
-  dependencies:
-    "@nrwl/devkit": "npm:19.8.14"
-    ejs: "npm:^3.1.7"
-    enquirer: "npm:~2.3.6"
-    ignore: "npm:^5.0.4"
-    minimatch: "npm:9.0.3"
-    semver: "npm:^7.5.3"
-    tmp: "npm:~0.2.1"
-    tslib: "npm:^2.3.0"
-    yargs-parser: "npm:21.1.1"
-  peerDependencies:
-    nx: ">= 19 <= 21"
-  checksum: 10/979295085b9c44b62c6bc58bb4874791003028613880511d6d7758833badb43ea55a22b970a9bac51f664ec041425be6997920d47f3107ac78ef2f1865056c6b
-  languageName: node
-  linkType: hard
-
-"@nx/devkit@npm:19.8.4":
-  version: 19.8.4
-  resolution: "@nx/devkit@npm:19.8.4"
-  dependencies:
-    "@nrwl/devkit": "npm:19.8.4"
-    ejs: "npm:^3.1.7"
-    enquirer: "npm:~2.3.6"
-    ignore: "npm:^5.0.4"
-    minimatch: "npm:9.0.3"
-    semver: "npm:^7.5.3"
-    tmp: "npm:~0.2.1"
-    tslib: "npm:^2.3.0"
-    yargs-parser: "npm:21.1.1"
-  peerDependencies:
-    nx: ">= 17 <= 20"
-  checksum: 10/901ce7e9bb5f69c20d47e8133aca93d3f94e0c7eb0ec76335ab665aa254c3e1b1c95f8e9cbe6fcab6b6bb536fdd07bc8ca6dde9021060cb8993fa91d265f560b
-  languageName: node
-  linkType: hard
-
-"@nx/devkit@npm:20.4.6":
-  version: 20.4.6
-  resolution: "@nx/devkit@npm:20.4.6"
+"@nx/devkit@npm:20.7.0, @nx/devkit@npm:^20.7.0":
+  version: 20.7.0
+  resolution: "@nx/devkit@npm:20.7.0"
   dependencies:
     ejs: "npm:^3.1.7"
     enquirer: "npm:~2.3.6"
@@ -6432,91 +6156,93 @@ __metadata:
     yargs-parser: "npm:21.1.1"
   peerDependencies:
     nx: ">= 19 <= 21"
-  checksum: 10/b2a4b3bf8f9f286fa772fb0ad1a76d120299678cd113262357067bbd105339186f41325bf7eead35fb5e08e0be3dc83751392b2b804720dbde8eb316cb46acb7
+  checksum: 10/2591736a53578ad05aa4fc19823c280cdd73eea5c3e92626336e3299ced2aca723e9bb27b7cbc46ad7cbdada507947f5a06871e88e677cb8e8265277bffc6305
   languageName: node
   linkType: hard
 
-"@nx/nx-darwin-arm64@npm:20.4.6":
-  version: 20.4.6
-  resolution: "@nx/nx-darwin-arm64@npm:20.4.6"
+"@nx/nx-darwin-arm64@npm:20.7.0":
+  version: 20.7.0
+  resolution: "@nx/nx-darwin-arm64@npm:20.7.0"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@nx/nx-darwin-x64@npm:20.4.6":
-  version: 20.4.6
-  resolution: "@nx/nx-darwin-x64@npm:20.4.6"
+"@nx/nx-darwin-x64@npm:20.7.0":
+  version: 20.7.0
+  resolution: "@nx/nx-darwin-x64@npm:20.7.0"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@nx/nx-freebsd-x64@npm:20.4.6":
-  version: 20.4.6
-  resolution: "@nx/nx-freebsd-x64@npm:20.4.6"
+"@nx/nx-freebsd-x64@npm:20.7.0":
+  version: 20.7.0
+  resolution: "@nx/nx-freebsd-x64@npm:20.7.0"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-arm-gnueabihf@npm:20.4.6":
-  version: 20.4.6
-  resolution: "@nx/nx-linux-arm-gnueabihf@npm:20.4.6"
+"@nx/nx-linux-arm-gnueabihf@npm:20.7.0":
+  version: 20.7.0
+  resolution: "@nx/nx-linux-arm-gnueabihf@npm:20.7.0"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-arm64-gnu@npm:20.4.6":
-  version: 20.4.6
-  resolution: "@nx/nx-linux-arm64-gnu@npm:20.4.6"
+"@nx/nx-linux-arm64-gnu@npm:20.7.0":
+  version: 20.7.0
+  resolution: "@nx/nx-linux-arm64-gnu@npm:20.7.0"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-arm64-musl@npm:20.4.6":
-  version: 20.4.6
-  resolution: "@nx/nx-linux-arm64-musl@npm:20.4.6"
+"@nx/nx-linux-arm64-musl@npm:20.7.0":
+  version: 20.7.0
+  resolution: "@nx/nx-linux-arm64-musl@npm:20.7.0"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-x64-gnu@npm:20.4.6":
-  version: 20.4.6
-  resolution: "@nx/nx-linux-x64-gnu@npm:20.4.6"
+"@nx/nx-linux-x64-gnu@npm:20.7.0":
+  version: 20.7.0
+  resolution: "@nx/nx-linux-x64-gnu@npm:20.7.0"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@nx/nx-linux-x64-musl@npm:20.4.6":
-  version: 20.4.6
-  resolution: "@nx/nx-linux-x64-musl@npm:20.4.6"
+"@nx/nx-linux-x64-musl@npm:20.7.0":
+  version: 20.7.0
+  resolution: "@nx/nx-linux-x64-musl@npm:20.7.0"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@nx/nx-win32-arm64-msvc@npm:20.4.6":
-  version: 20.4.6
-  resolution: "@nx/nx-win32-arm64-msvc@npm:20.4.6"
+"@nx/nx-win32-arm64-msvc@npm:20.7.0":
+  version: 20.7.0
+  resolution: "@nx/nx-win32-arm64-msvc@npm:20.7.0"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@nx/nx-win32-x64-msvc@npm:20.4.6":
-  version: 20.4.6
-  resolution: "@nx/nx-win32-x64-msvc@npm:20.4.6"
+"@nx/nx-win32-x64-msvc@npm:20.7.0":
+  version: 20.7.0
+  resolution: "@nx/nx-win32-x64-msvc@npm:20.7.0"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"@nx/workspace@npm:^20.4.6":
-  version: 20.4.6
-  resolution: "@nx/workspace@npm:20.4.6"
+"@nx/workspace@npm:^20.7.0":
+  version: 20.7.0
+  resolution: "@nx/workspace@npm:20.7.0"
   dependencies:
-    "@nx/devkit": "npm:20.4.6"
+    "@nx/devkit": "npm:20.7.0"
+    "@zkochan/js-yaml": "npm:0.0.7"
     chalk: "npm:^4.1.0"
     enquirer: "npm:~2.3.6"
-    nx: "npm:20.4.6"
+    nx: "npm:20.7.0"
+    picomatch: "npm:4.0.2"
     tslib: "npm:^2.3.0"
     yargs-parser: "npm:21.1.1"
-  checksum: 10/ce479cf1df79b4b60a1a220bff72cde5a1638687af9097475aa7497e39b910344e27c25f26a4be426c905a74c6f337996ddbb1dea621e59deaa1be392bc6eafe
+  checksum: 10/6e1cc99275b06a5291305522e20eafc825ed23de235052c6dd8d3c5cd54cb11fea09f3818f34f2c348cac2ed51dd7ee2c7fae2c2c130280f458b1dc70b9b7f96
   languageName: node
   linkType: hard
 
@@ -9948,7 +9674,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.6.2, axios@npm:^1.7.4":
+"axios@npm:^1.6.2":
   version: 1.8.1
   resolution: "axios@npm:1.8.1"
   dependencies:
@@ -9967,6 +9693,17 @@ __metadata:
     form-data: "npm:^4.0.0"
     proxy-from-env: "npm:^1.1.0"
   checksum: 10/d4328758128d0602cc809a8e7627622cb7839b379eae5e4d6b9d603dd4d5fb89159985630243ec107cf5c675cd8825dba737a319dff9499f3b7688d9a69ec9ed
+  languageName: node
+  linkType: hard
+
+"axios@npm:^1.8.3":
+  version: 1.8.4
+  resolution: "axios@npm:1.8.4"
+  dependencies:
+    follow-redirects: "npm:^1.15.6"
+    form-data: "npm:^4.0.0"
+    proxy-from-env: "npm:^1.1.0"
+  checksum: 10/a10f0dd836613924e48cf03dc2eff3fd21b14f764807aedaee4880a70c0f142aaebdb21da7ce27104d4c16ca00d0e452a20a20851f60e385a8d5bad1ae909d46
   languageName: node
   linkType: hard
 
@@ -23657,25 +23394,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nx@npm:20.4.6, nx@npm:^20.4.6":
-  version: 20.4.6
-  resolution: "nx@npm:20.4.6"
+"nx@npm:20.7.0, nx@npm:^20.7.0":
+  version: 20.7.0
+  resolution: "nx@npm:20.7.0"
   dependencies:
     "@napi-rs/wasm-runtime": "npm:0.2.4"
-    "@nx/nx-darwin-arm64": "npm:20.4.6"
-    "@nx/nx-darwin-x64": "npm:20.4.6"
-    "@nx/nx-freebsd-x64": "npm:20.4.6"
-    "@nx/nx-linux-arm-gnueabihf": "npm:20.4.6"
-    "@nx/nx-linux-arm64-gnu": "npm:20.4.6"
-    "@nx/nx-linux-arm64-musl": "npm:20.4.6"
-    "@nx/nx-linux-x64-gnu": "npm:20.4.6"
-    "@nx/nx-linux-x64-musl": "npm:20.4.6"
-    "@nx/nx-win32-arm64-msvc": "npm:20.4.6"
-    "@nx/nx-win32-x64-msvc": "npm:20.4.6"
+    "@nx/nx-darwin-arm64": "npm:20.7.0"
+    "@nx/nx-darwin-x64": "npm:20.7.0"
+    "@nx/nx-freebsd-x64": "npm:20.7.0"
+    "@nx/nx-linux-arm-gnueabihf": "npm:20.7.0"
+    "@nx/nx-linux-arm64-gnu": "npm:20.7.0"
+    "@nx/nx-linux-arm64-musl": "npm:20.7.0"
+    "@nx/nx-linux-x64-gnu": "npm:20.7.0"
+    "@nx/nx-linux-x64-musl": "npm:20.7.0"
+    "@nx/nx-win32-arm64-msvc": "npm:20.7.0"
+    "@nx/nx-win32-x64-msvc": "npm:20.7.0"
     "@yarnpkg/lockfile": "npm:^1.1.0"
     "@yarnpkg/parsers": "npm:3.0.2"
     "@zkochan/js-yaml": "npm:0.0.7"
-    axios: "npm:^1.7.4"
+    axios: "npm:^1.8.3"
     chalk: "npm:^4.1.0"
     cli-cursor: "npm:3.1.0"
     cli-spinners: "npm:2.6.1"
@@ -23737,7 +23474,7 @@ __metadata:
   bin:
     nx: bin/nx.js
     nx-cloud: bin/nx-cloud.js
-  checksum: 10/607246c69b1db7aa6288366b02817c27b1855d1bae6597d797e4f53e8402b7c515b0a788594d7aadc9a3599436b810db7d722b5abdc43de9789a4d9ec31a763e
+  checksum: 10/448c06fe037ed284be874837226fa75b8c84812dcc8af8b4743d7f6ccae1c7ea718f5bd0efa2cc84f29a72a971e48f9babc72b6a6ed4cc8b55004665e7bdccac
   languageName: node
   linkType: hard
 
@@ -24692,17 +24429,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"picomatch@npm:4.0.2, picomatch@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "picomatch@npm:4.0.2"
+  checksum: 10/ce617b8da36797d09c0baacb96ca8a44460452c89362d7cb8f70ca46b4158ba8bc3606912de7c818eb4a939f7f9015cef3c766ec8a0c6bfc725fdc078e39c717
+  languageName: node
+  linkType: hard
+
 "picomatch@npm:^2.0.4, picomatch@npm:^2.2.1, picomatch@npm:^2.2.2, picomatch@npm:^2.2.3, picomatch@npm:^2.3.1":
   version: 2.3.1
   resolution: "picomatch@npm:2.3.1"
   checksum: 10/60c2595003b05e4535394d1da94850f5372c9427ca4413b71210f437f7b2ca091dbd611c45e8b37d10036fa8eade25c1b8951654f9d3973bfa66a2ff4d3b08bc
-  languageName: node
-  linkType: hard
-
-"picomatch@npm:^4.0.2":
-  version: 4.0.2
-  resolution: "picomatch@npm:4.0.2"
-  checksum: 10/ce617b8da36797d09c0baacb96ca8a44460452c89362d7cb8f70ca46b4158ba8bc3606912de7c818eb4a939f7f9015cef3c766ec8a0c6bfc725fdc078e39c717
   languageName: node
   linkType: hard
 
@@ -30677,13 +30414,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"wakeonlan@npm:^0.1.0":
-  version: 0.1.0
-  resolution: "wakeonlan@npm:0.1.0"
-  checksum: 10/0c46cf7df835d2256f4b778a8af5ba1deecdd3541921572c75359c9943337725fee9c0b2cb40101442d1317125e3ec112b24059efc0e40a0d0569b2cd3e61b80
-  languageName: node
-  linkType: hard
-
 "walker@npm:^1.0.8":
   version: 1.0.8
   resolution: "walker@npm:1.0.8"
@@ -31405,7 +31135,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yargs@npm:^17.3.1, yargs@npm:^17.6.2":
+"yargs@npm:^17.3.1, yargs@npm:^17.6.2, yargs@npm:^17.7.2":
   version: 17.7.2
   resolution: "yargs@npm:17.7.2"
   dependencies:

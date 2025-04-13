@@ -1,4 +1,3 @@
-import { createConfigApi as createOnepasswordConfiguration } from "@ha/configuration-1password"
 import { createConfigApi as createOnePasswordCliConfiguration } from "@ha/configuration-1password-cli"
 import type { ConfigurationApi } from "@ha/configuration-api"
 import { configurationApi as envConfiguration } from "@ha/configuration-env-secrets"
@@ -9,12 +8,18 @@ import type { Configuration } from "./Configuration.types"
 const createConfigurationApi = async (
   providers: ConfigurationApi<any>[] = [envConfiguration],
 ): Promise<ConfigurationApi<Configuration>> => {
-  const onePasswordCliConfiguration = await createOnePasswordCliConfiguration()
-  const onePasswordConfiguration = await createOnepasswordConfiguration(
-    onePasswordCliConfiguration,
-  )
+  const vaultId = await envConfiguration.get(`onepassword/vault-id`)
+  if (!vaultId) {
+    throw new Error(`No vault id found.`)
+  }
+  const onePasswordCliConfiguration =
+    await createOnePasswordCliConfiguration(vaultId)
+  // const onePasswordConfiguration = await createOnepasswordConfiguration(
+  //   vaultId,
+  //   onePasswordCliConfiguration,
+  // )
   const configurationProviders = providers.concat(
-    onePasswordConfiguration,
+    // onePasswordConfiguration,
     onePasswordCliConfiguration,
   )
 

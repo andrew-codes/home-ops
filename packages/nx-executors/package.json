@@ -7,11 +7,11 @@
   "executors": "./executors.json",
   "dependencies": {
     "@ha/logger": "workspace:^0.0.1",
-    "@nrwl/devkit": "19.8.4",
+    "@nx/devkit": "^20.7.0",
     "esbuild": "^0.25.0",
     "esbuild-register": "^3.6.0",
     "lodash": "^4.17.21",
-    "nx": "^20.4.6",
+    "nx": "^20.7.0",
     "shelljs": "^0.8.5"
   },
   "devDependencies": {
@@ -27,7 +27,7 @@
     "jest": "^29.7.0",
     "jest-when": "^3.7.0",
     "lodash": "4.17.21",
-    "nx": "^20.4.6",
+    "nx": "^20.7.0",
     "ts-jest": "^29.2.5",
     "typescript": "^5.7.3"
   }

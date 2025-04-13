@@ -4,6 +4,7 @@ jest.mock("shelljs", () => ({
 }))
 jest.mock("fs/promises")
 jest.mock("uuid")
+import { ChildProcess } from "child_process"
 import fs from "fs/promises"
 import sh from "shelljs"
 import { v4 as uuidv4 } from "uuid"
@@ -15,7 +16,13 @@ describe("kubectl", () => {
   })
 
   beforeEach(() => {
-    jest.mocked(sh.exec).mockReturnValue({ stderr: "", stdout: "", code: 0 })
+    jest
+      .mocked(sh.exec)
+      .mockReturnValue({
+        stderr: "",
+        stdout: "",
+        code: 0,
+      } as unknown as ChildProcess)
   })
 
   let kube

@@ -1,0 +1,4 @@
+namespace: kubeseal
+resources:
+  - source.yaml
+  - release.yaml

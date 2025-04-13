@@ -1,0 +1,29 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: playnite-web-assets
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+    volume.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+spec:
+  resources:
+    requests:
+      storage: 40Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: playnite-web-db
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: manual
+  hostPath:
+    path: /mnt/data/playnite-web-db
+    type: DirectoryOrCreate

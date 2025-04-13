@@ -1,0 +1,15 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: mqtt_passwd
+  namespace: default
+spec:
+  encryptedData:
+    mqtt_passwd: AgCW/bfcXWpqnK1H5RBxQu/oasyC2Z8o91MiGNBg8PCrQpw+zMv95mBjjkQIdTCm2DzTqxaIetbPtAoyJ53s8p967/j3NyNbQ99OpaiNmzQSlFa+JVK5Msxyz0mFKxAR7RMqebrgfIvFjx1AAvLxe3aGVHtb6P6EUIgxHxnhXARuTup1K1zHsSMLKlQc2IuaJueoqtc/zy3iiMX4/giXZ01RMQavljz+hLqWVkwk+0/vX+MmM+/gCseyMYNZT+JSJVsrMkzrpQBwJpHBQFXRbgXrb3kfO32tHbEA5FvgytrU+Rrzfb5x7hzAzEOpA2crNUbIYXLzsO7Osru/lqAxOpW1mY3a4DntKuIpTCxpg3Hgosr4zAqtndzF/aqLTAJmvAqUaRERpgYmppXVEs9nOZ2Ma69tzEA2YRVuVBHl2s04RoyKYgj3q/olxMEFZM6YQIcGGrq2vzLKZhoL7NZNtfxThu+rTGg3q4dSbo7d0SoaCnozv4tbzdunPF5x6AS1IZj/jND/TE4D6tUQUeYm8AF8fhP4YOvHStnwS5r6S0aQl79vejPV76KD8spUVE6DaW1vZn3GZCX9kr7ZgflFfxWcZn1xbPLS3MB85dAKB9apj7rka9dSXdnAKRK61F4FBATFCQHP3Gq0Cgmkufy6v/vQOwpksYnjJGjFaUI/x1v4iVSmpuy0ilIOD3xrQQxrXNLvFjh2t26i2hIF8qmcgmykwph2VwhkQDAgQeMbIJlgBdu31e7FQpphM3jfcvnqggygTW4MkYWLDZQM0+4E9TXC/WvL1ddAWpozWTao868phfkUkUaS82eO1Ht5DYsZvkCIyQXSSkoAYJ/tswXz5moO6wl67/ErQs2u5QCCjoOLw3Mh5zXen8OQ7pJIsQojjejidtJUY+rdGsqpQUJkVuN9iSFzOX65gw==
+  template:
+    metadata:
+      creationTimestamp: null
+      name: mqtt_passwd
+      namespace: default

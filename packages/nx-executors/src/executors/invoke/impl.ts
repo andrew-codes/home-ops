@@ -1,6 +1,6 @@
 import { createConfigurationApi } from "@ha/configuration-workspace"
 import { logger } from "@ha/logger"
-import type { ExecutorContext } from "@nrwl/devkit"
+import type { ExecutorContext } from "@nx/devkit"
 import { register } from "esbuild-register/dist/node"
 import path from "path"
 import process from "process"
@@ -11,19 +11,21 @@ interface InvokeExecutorOptions {
 }
 
 async function executor(
-  { module, cwd }: InvokeExecutorOptions,
+  options: InvokeExecutorOptions & Record<string, string>,
   context: ExecutorContext,
 ): Promise<{ success: boolean }> {
   try {
+    const { cwd, module } = options
     register()
     let currentDir = path.resolve(context.root)
     if (!!cwd) {
       currentDir = path.resolve(context.root, cwd)
     }
     process.chdir(currentDir)
-    const loadedModule = require(path.resolve(currentDir, module))
     const configApi = await createConfigurationApi()
-    await loadedModule.default(configApi, context)
+
+    const loadedModule = require(path.resolve(currentDir, module))
+    await loadedModule.default(configApi, context, options)
   } catch (error) {
     if (error instanceof Error) {
       logger.error((error as Error).message)

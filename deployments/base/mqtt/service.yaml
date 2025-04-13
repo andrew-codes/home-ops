@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mqtt
+  namespace: default
+spec:
+  selector:
+    app: mqtt
+  ports:
+    - name: http
+      port: 1883
+      targetPort: http
+      protocol: TCP
+      nodePort: 30610
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mqtt-websocket
+  namespace: default
+spec:
+  selector:
+    app: mqtt
+  ports:
+    - name: websocket
+      port: 9001
+      targetPort: websocket
+      protocol: TCP
+  type: ClusterIP

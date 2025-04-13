@@ -26,5 +26,5 @@
     }
   },
   "tags": [],
-  "implicitDependencies": ["k8s", "mqtt", "nfs-provisioner", "pihole-service"]
+  "implicitDependencies": []
 }

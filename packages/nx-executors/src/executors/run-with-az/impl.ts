@@ -1,7 +1,7 @@
-import type { ExecutorContext } from "@nrwl/devkit"
+import { throwIfError } from "@ha/shell-utils"
+import type { ExecutorContext } from "@nx/devkit"
 import { exec } from "child_process"
 import { promisify } from "util"
-import { throwIfError } from "@ha/shell-utils"
 
 interface RunWithAzExecutorOptions {
   command: string

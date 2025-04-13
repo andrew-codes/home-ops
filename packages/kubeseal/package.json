@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "name": "@ha/kubeseal",
+  "version": "0.0.1",
+  "bin": "src/bin/kubeseal.js",
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "shelljs": "^0.8.5",
+    "yargs": "^17.7.2"
+  }
+}

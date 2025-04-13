@@ -25,15 +25,8 @@
     "jest": "^29.7.0",
     "jest-when": "^3.7.0",
     "nodemon": "^2.0.22",
-    "nx": "^20.4.6",
+    "nx": "^20.7.0",
     "ts-jest": "^29.2.5",
     "typescript": "^5.7.3"
-  },
-  "dependencies": {
-    "@ha/docker-creds": "workspace:^0.0.1",
-    "@ha/docker-registry": "workspace:^0.0.1",
-    "@ha/k8s": "workspace:^0.0.1",
-    "@ha/pihole": "workspace:^0.0.1",
-    "@ha/secrets": "workspace:^0.0.1"
   }
 }

@@ -11,13 +11,6 @@
         "command": "docker run --rm -t -v $(pwd):/workdir thomvaill/log4brains build --out {projectRoot}/._dist"
       }
     },
-    "deploy": {
-      "executor": "@ha/nx-executors:invoke",
-      "options": {
-        "cwd": "{projectRoot}",
-        "module": "scripts/deploy.ts"
-      }
-    },
     "start": {
       "executor": "nx:run-commands",
       "options": {

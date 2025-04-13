@@ -1,0 +1,30 @@
+{
+  "name": "resource-k8s",
+  "sourceRoot": "{projectRoot}/src",
+  "projectType": "application",
+  "targets": {
+    "reset": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/reset.ts"
+      }
+    },
+    "clean/provision": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "rm -rf .terraform src/.terraform* src/provision/terraform* src/provision/.terraform* src/provision/terraform.plan",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "provision": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "module": "scripts/provision.ts",
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}
