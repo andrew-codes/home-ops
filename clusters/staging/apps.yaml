@@ -3,7 +3,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: mqtt
-  namespace: flux-system
+  namespace: default
 spec:
   dependsOn:
     - name: nfs-provisioner
@@ -11,7 +11,7 @@ spec:
   interval: 10m0s
   sourceRef:
     kind: GitRepository
-    name: flux-system
+    name: default
   path: ./deployments/staging/mqtt
   prune: true
   wait: true
@@ -21,7 +21,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: playnite-web
-  namespace: flux-system
+  namespace: default
 spec:
   dependsOn:
     - name: nfs-provisioner
@@ -30,7 +30,7 @@ spec:
   interval: 10m0s
   sourceRef:
     kind: GitRepository
-    name: flux-system
+    name: default
   path: ./deployments/staging/playnite-web
   prune: true
   wait: true
@@ -40,7 +40,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: ps5
-  namespace: flux-system
+  namespace: default
 spec:
   dependsOn:
     - name: nfs-provisioner
@@ -49,7 +49,7 @@ spec:
   interval: 10m0s
   sourceRef:
     kind: GitRepository
-    name: flux-system
+    name: default
   path: ./deployments/staging/ps5
   prune: true
   wait: true

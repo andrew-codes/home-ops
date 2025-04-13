@@ -12,5 +12,5 @@
     }
   },
   "tags": [],
-  "implicitDependencies": ["resource-k8s"]
+  "implicitDependencies": []
 }

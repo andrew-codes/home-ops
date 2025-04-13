@@ -20,7 +20,6 @@ const configurationNames = [
   "proxmox/password",
   "proxmox/ssh-key/public",
   "proxmox/username",
-  "repository/home-ops/name",
   "unifi/ip",
   // set by provisioning
   "k8s/config",
@@ -75,7 +74,6 @@ const configurationNames = [
   "github/token",
   "github/email",
   "github/username",
-  "repository/home-ops/name",
   "github/cr/token",
   "grafana/influxdb/token",
   "grafana/password",

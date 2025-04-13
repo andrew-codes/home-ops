@@ -10,10 +10,10 @@ spec:
   timeout: 5m
   sourceRef:
     kind: GitRepository
-    name: flux-system
+    name: default
   path: ./infrastructure/nfs/staging
   prune: true
-  wait: false
+  wait: true
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -26,7 +26,7 @@ spec:
   timeout: 5m
   sourceRef:
     kind: GitRepository
-    name: flux-system
+    name: default
   path: ./infrastructure/kubeseal
   prune: true
-  wait: false
+  wait: true

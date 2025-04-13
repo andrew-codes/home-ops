@@ -9,13 +9,12 @@ const run = async (
   const env = await configurationApi.get("env")
   const kubeConfig = (await configurationApi.get("k8s/config")).value
   const flux = createFluxCd(kubeConfig, configurationApi)
-  const repository = (await configurationApi.get("repository/home-ops/name"))
-    .value
 
   await flux.exec(`flux bootstrap github \
-  --owner=$GITHUB_USER \
-  --repository=${repository} \
+  --owner=andrew-codes \
+  --repository=home-ops \
   --branch=main \
+  --namespace=default \
   --path=clusters/${env} \
   --personal \
   --components-extra image-reflector-controller,image-automation-controller`)

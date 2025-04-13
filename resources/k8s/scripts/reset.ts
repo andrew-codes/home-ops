@@ -27,6 +27,7 @@ const run = async (
 
   try {
     await fs.unlink(path.join(__dirname, `../._secrets/${env}/.kube/config`))
+    configurationApi.set("k8s/config", "")
   } catch (e) {}
 }
 

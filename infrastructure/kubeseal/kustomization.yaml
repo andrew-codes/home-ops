@@ -1,4 +1,4 @@
-namespace: kubeseal
+namespace: default
 resources:
   - source.yaml
   - release.yaml

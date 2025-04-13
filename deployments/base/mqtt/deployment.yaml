@@ -43,7 +43,7 @@ spec:
             name: mqtt-config
         - name: mqtt-passwd
           secret:
-            secretName: mqtt_passwd
+            secretName: mqtt-passwd
             items:
               - key: mqtt_passwd
                 path: mqtt_passwd

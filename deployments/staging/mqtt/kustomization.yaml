@@ -3,4 +3,4 @@ kind: Kustomization
 resources:
   - mqtt-passwd-sealed.yaml
   - mqtt-credentials-sealed.yaml
-  - ../base/mqtt
+  - ../../base/mqtt

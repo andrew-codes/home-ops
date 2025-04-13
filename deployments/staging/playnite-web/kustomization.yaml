@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
   - playnite-web-mqtt-credentials-sealed.yaml
   - playnite-web-credentials-sealed.yaml
-  - ../base/playnite-web
+  - ../../base/playnite-web
 
 images:
   - name: ghcr.io/andrew-codes/playnite-web-app
