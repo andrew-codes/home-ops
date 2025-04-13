@@ -1,15 +1,3 @@
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: GitRepository
-metadata:
-  name: flux-system
-  namespace: flux-system
-spec:
-  interval: 1m0s
-  url: https://github.com/andrew-codes/home-ops
-  ref:
-    branch: main
-  secretRef:
-    name: flux-system
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -25,7 +13,7 @@ spec:
     name: flux-system
   path: ./infrastructure/nfs/staging
   prune: true
-  wait: true
+  wait: false
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -41,4 +29,4 @@ spec:
     name: flux-system
   path: ./infrastructure/kubeseal
   prune: true
-  wait: true
+  wait: false
