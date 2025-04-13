@@ -1,20 +1,4 @@
 ---
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mqtt-data
-  annotations:
-    volume.beta.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
-    volume.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
-spec:
-  resources:
-    requests:
-      storage: 10Gi
-  accessModes:
-    - ReadWriteMany
-  storageClassName: nfs
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -29,6 +13,21 @@ data:
 
     persistence true
     persistence_location /mosquitto/data
-    log_dest file /mosquitto/log/mosquitto.log
+    log_dest file /mosquitto/data/mosquitto.log
     password_file /mosquitto/config/passwd
-    user root
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mqtt-data
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+    volume.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+spec:
+  resources:
+    requests:
+      storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+---

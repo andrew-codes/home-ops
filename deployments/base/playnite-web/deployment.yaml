@@ -45,7 +45,7 @@ spec:
             - name: HOST
               value: games.smith-simms.family
             - name: DB_HOST
-              value: playnite-web-db
+              value: localhost
             - name: DEBUG
               value: "playnite*"
             - name: MQTT_HOST
@@ -55,12 +55,12 @@ spec:
             - name: MQTT_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: playnite-web-mqtt-credentials
+                  name: mqtt-credentials
                   key: username
             - name: MQTT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: playnite-web-mqtt-credentials
+                  name: mqtt-credentials
                   key: password
             - name: USERNAME
               valueFrom:

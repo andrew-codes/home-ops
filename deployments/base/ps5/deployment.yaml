@@ -16,6 +16,11 @@ spec:
         - name: ps5
           image: ghcr.io/funkeyflo/ps5-mqtt/amd64:latest
           imagePullPolicy: IfNotPresent
+          command:
+            - sh
+          args:
+            - '-c'
+            - /app/run-standalone.sh
           ports:
             - name: http
               containerPort: 8080
@@ -28,27 +33,27 @@ spec:
             - name: MQTT_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: ps5-mqtt-credentials
+                  name: mqtt-credentials
                   key: username
             - name: MQTT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: ps5-mqtt-credentials
+                  name: mqtt-credentials
                   key: password
             - name: DEVICE_CHECK_INTERVAL
-              value: 5000
+              value: "5000"
             - name: DEVICE_DISCOVERY_INTERVAL
-              value: 60000
+              value: "60000"
             - name: ACCOUNT_CHECK_INTERVAL
-              value: 5000
+              value: "5000"
             - name: FRONTEND_PORT
-              value: 8080
+              value: "8080"
             - name: CREDENTIAL_STORAGE_PATH
               value: /config/credentials.json
             - name: PSN_ACCOUNTS
               valueFrom:
                 secretKeyRef:
-                  name: ps5-accounts
+                  name: psn-accounts
                   key: accounts
             - name: DEBUG
               value: "@ha:ps5:*"

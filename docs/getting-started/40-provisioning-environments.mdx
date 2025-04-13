@@ -1,0 +1,77 @@
+---
+title: Provisioning Environments
+---
+
+# Provisioning Environments
+
+This section provides a comprehensive guide to provisioning environments using the home-ops repository. It covers the following topics:
+
+- Provisioning K8s
+- Provisioning gitops via FluxCD
+- Deploying sealed-secrets to enable secret encryption
+
+> Note, this guide assumes you have already completed the [Prepare Hypervisor](01-prepare-hypervisor) and [Prepare DEV](02-prepare-dev) sections. If you haven't, please do so before proceeding.
+
+> Note, this guide will provision a single environment. If you want to provision multiple environments, you will need to repeat the steps for each environment. The steps are the same for each environment, but the OnePassword vaults will be different.
+
+## Sourcing Secrets
+
+The required environment variable secrets are listed in the file `example.env`. Note you will need a 1Password vault ID and a 1Password token that has read/write access to the vault. It is recommended to have a separate vault per environment. The vault ID and token can be found in the 1Password web interface.
+
+> Note, all secrets stored in 1Password may be provided as environment variables. Environment variable equivalents are all uppercase and replace `/` with `_`. For example, the secret `k8s/config` is available as `K8S_CONFIG`.
+
+> Note, a list of required secrets that require values may be found in the `./packages/configuration-1password-cli/src/index.ts` file.
+
+```bash
+ENV=production
+
+cp example.env ._${ENV}.env
+# Fill in values in ._${ENV}.env file.
+
+set -o allexport
+source ._${ENV}.env
+```
+
+## Provision K8s Environments
+
+These steps are performed for each environment. The steps will provision a K8s cluster and install the required components. Ensure you have sourced the appropriate `.${ENV}.env` file before proceeding.
+
+### Provision K8s Cluster
+
+This will create a K8s cluster in Proxmox VE. The cluster will be created using kubeadm. All environments will be created with the same hardware configuration. See the `./resources/k8s/src/provision/provision.tf` file for the hardware configuration.
+
+> Note this will automatically set the `k8s/config` secret in the environment's OnePassword vault.
+
+```bash
+yarn nx provision resource-k8s
+```
+
+You can now also set the KUBECONFIG environment variable to point to the K8s cluster. This will allow you to use kubectl commands without specifying the config file each time.
+
+```bash
+export KUBECONFIG=./resources/k8s/._secrets/${ENV}/.kube/config
+```
+
+### Provision FluxCD
+
+This will install FluxCD in the K8s cluster. FluxCD is a GitOps tool that will be used to manage deployments to the K8s cluster. The environment FluxCD directory will be created in `./clusters/${ENV}`. The configuration files will be used to deploy the applications to the K8s cluster.
+
+```bash
+yarn nx provision resource-fluxcd
+```
+
+### Sealed Secrets
+
+Sealed secrets is an FluxCD infrastructure component that will be used to encrypt secrets in the K8s cluster. The related definition files are located in `./infrastructure/sealed-secrets`.
+
+Before proceeding, ensure the sealed-secrets controller is running in the K8s cluster. You can check the status of the controller by running the following command:
+
+```bash
+kubectl get pods | grep sealed-secrets
+```
+
+Once sealed-secrets-controller is running, you can run the following command to save the public key to a file. This file will be used to encrypt secrets in the K8s cluster. Commit these keys to the repository.
+
+```bash
+yarn nx provision resource-sealed-secrets
+```

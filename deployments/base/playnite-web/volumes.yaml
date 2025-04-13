@@ -27,3 +27,15 @@ spec:
   hostPath:
     path: /mnt/data/playnite-web-db
     type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: playnite-web-db
+spec:
+  resources:
+    requests:
+      storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: manual

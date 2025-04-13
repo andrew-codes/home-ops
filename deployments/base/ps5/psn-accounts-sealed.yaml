@@ -1,0 +1,15 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: psn-accounts
+  namespace: default
+spec:
+  encryptedData:
+    accounts: AgBO+gOrf5bzx2HVecQMKxKTQ3p6T6QLXzqkKWjiKUlR/NqCvO0tVAbS3mWA7YnuN5wYqPQzAUoMgswQwXdOXQIJwhnFUK6FSs1NVYn1I5kCiLWoxtBu4CQwrLZm1P0Tj7D1pAyqtSmWCGlVqKFHQD9o3vXUXrn3iFdv6zjnaRdZNdcutmlvwIJCzh1Ld1hDTseRXKLcwQM1AyFYBllAyY2IVJrgufdYGb/RRIibf4pEXMKEh1zdnpCNo6oiGG6vJUNa1pGS+EyaZ6Nmk71aNpVNihxsiJtUyesU8uAlxm1b24pvsNPQnEX9+xT0kMR7TVV/xGi4y/mri+Amg6vHjR/NDEFRV2kGSkLTyHY0QD0OI+HadAkoW1oTh5kUcPb9sxRPcLbo12PyN3F296JWnShEKBvIRJBSxd98B3VFkORjbBNApRnZ1unhVLAWHtxYJ+tZG6qmEmI4/c+IaD8DP7mAjH6Gq/CMAPvCiZYiUQWIqtTbjKYVF6phISSTmj4qYqFx3ibZpaG7WKbHAy1LJDj/BG2UjKMiGqV9ftNWH/+OC9V92oHLGvYIEUz2cci1o5X8/4s1PYOAYpI2K3DH/xQmSKcaRJ/dDCpCvshmPA/rfvW78qnq0Q47O9BurmjaPShTSx8y9FEPdCHJqDl1WLIcChsSrAsGu3tfsEoiWU4IimoT+GcRlvu/98hj1+joeuoB+ygfCaVvSUgW8XAfuwbkQ2MERlDpxDxZNkcblSvJfAFoaZiJlzoRV/IrDlzHreMO4U4yc5IkIOVLFGCwDLyM4L5GGlwaPgkJEXjPYOAWPMcHrIwq9YTzCOJ8yYjI7IEuu83BTzZELNpRLag=
+  template:
+    metadata:
+      creationTimestamp: null
+      name: psn-accounts
+      namespace: default

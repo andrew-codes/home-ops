@@ -16,11 +16,17 @@ spec:
         - name: mqtt
           image: eclipse-mosquitto:latest
           imagePullPolicy: IfNotPresent
+          command:
+            - sh
+          args:
+            - '-c'
+            - >-
+              /usr/sbin/mosquitto -v -c /mosquitto/config/mosquitto.conf
           ports:
             - name: mqtt
               containerPort: 1883
               protocol: TCP
-            - name: web-socket
+            - name: websocket
               containerPort: 9001
               protocol: TCP
           volumeMounts:
@@ -29,11 +35,17 @@ spec:
             - name: mqtt-config
               mountPath: /mosquitto/config/mosquitto.conf
               subPath: mosquitto.conf
+              readOnly: true
             - name: mqtt-passwd
-              mountPath: /mosquitto/config/mqtt_passwd
-              subPath: mqtt_passwd
+              mountPath: /mosquitto/config/passwd
+              subPath: passwd
+              readOnly: true
           securityContext:
-            runAsUser: 0
+            runAsUser: 1883
+      securityContext:
+        fsGroup: 1883
+        runAsUser: 1883
+        runAsGroup: 1883
       volumes:
         - name: mqtt-data
           persistentVolumeClaim:
@@ -45,5 +57,5 @@ spec:
           secret:
             secretName: mqtt-passwd
             items:
-              - key: mqtt_passwd
-                path: mqtt_passwd
+              - key: passwd
+                path: passwd

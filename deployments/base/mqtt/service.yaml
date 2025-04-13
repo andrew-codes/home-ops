@@ -8,9 +8,9 @@ spec:
   selector:
     app: mqtt
   ports:
-    - name: http
+    - name: mqtt
       port: 1883
-      targetPort: http
+      targetPort: mqtt
       protocol: TCP
       nodePort: 30610
   type: NodePort

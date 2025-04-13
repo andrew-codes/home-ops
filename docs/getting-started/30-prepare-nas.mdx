@@ -1,0 +1,16 @@
+---
+title: "Prepare NAS"
+description: "Prepare NFS file share on NAS for k8s provisioned volume claims."
+---
+
+# Recommended Hardware
+
+I'm using a Synology NAS for this setup.
+
+# NFS Shares
+
+An NFS share is required for each k8s environment. The NFS share will be used to store the persistent volumes for the k8s cluster. The NFS share should be configured to allow access from the Proxmox server and the k8s cluster's IP.
+
+> Ensure the NFS share is configured to allow access from the Proxmox server and the k8s cluster's IP. This setup can be deferred until the k8s cluster is up and running.
+
+> Note, the NFS share should be configured to squash all users to admin user.

@@ -7,6 +7,8 @@ description: "Prepare the DEV machine used to deploy the home ops repo."
 
 Before you begin, ensure you have the following prerequisites installed on your DEV machine:
 
+> Note a dev container is available for this setup. The dev container is configured to use the same tools as the local setup. See the [dev container documentation](https://code.visualstudio.com/docs/devcontainers/containers) for more information.
+
 - **Git** and **Bash** (git bash on Windows)
 - **Docker** (configured to use `buildx` for cross-platform container builds)
 - **nvm** (Node Version Manager; available for [Windows](https://github.com/coreybutler/nvm-windows) and [OSX/Linux](https://github.com/nvm-sh/nvm))
@@ -18,8 +20,6 @@ Before you begin, ensure you have the following prerequisites installed on your 
 - **[gitops CLI](https://docs.gitops.weaveworks.org/docs/open-source/getting-started/install-OSS/#install-the-gitops-cli)**
 - **[kubeseal](https://fluxcd.io/flux/guides/sealed-secrets/#prerequisites)**
 - **kubectl** (@^1.30.2)
-- **Helm** (@^3.17.0)
-- **Jsonnet** (@^0.20.0)
 - **Platypus** `brew install --cask platypus` (used for creating MacOS apps from scripts used by backups)
 
 # Setting up the Repo
@@ -45,7 +45,7 @@ yarn install
 
 All secrets and configuration are stored in 1Password. The secrets will need to be scaffolded into the 1Password vault and then set to their appropriate values before deploying any of the applications.
 
-> Note that all secrets stored ina vault are for a single environment. This means that if you have multiple environments (e.g., dev, staging, prod), you will need to create a separate vault for each environment.
+> Note that all secrets stored in a vault are for a single environment. This means that if you have multiple environments (e.g., dev, staging, prod), you will need to create a separate vault for each environment.
 
 1. First, ensure you have the 1Password CLI installed and configured. You can find instructions for installing the CLI [here](https://developer.1password.com/docs/cli/get-started/).
 1. Create a 1Password vault for the secrets. Take note of the Vault's UUID.

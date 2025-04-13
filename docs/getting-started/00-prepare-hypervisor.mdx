@@ -22,7 +22,3 @@ The following setup is required:
   - Should be assigned a static IP address from your router. Note, this does not need to be static externally from your home network.
   - User used to provision `LXC` is `root@pam`.
   - Access to the machine via an SSH key. SSH key should have admin permissions and be able to elevate.
-- **NFS**: This is the network file system that will be used to store volumes (application data) for the Kubernetes cluster.
-  - Should be assigned a static IP address from your router. Note, this does not need to be static externally from your home network.
-  - Should be configured to allow access from the the Proxmox server's IP address.
-  - Should be configured to allow access from the `K8S`'s IP address. This setup can be deferred until the `K8S` cluster is up and running.

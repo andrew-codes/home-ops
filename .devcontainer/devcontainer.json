@@ -9,15 +9,16 @@
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.11"
+      "version": "3.13"
     },
-    "ghcr.io/flexwie/devcontainer-features/op:1": {},
-    "ghcr.io/eitsupi/devcontainer-features/jq-likes:2": {},
-    "ghcr.io/devcontainers/features/go:1": {},
     "ghcr.io/devcontainers-contrib/features/kubectl-asdf:2": {},
     "ghcr.io/devcontainers-extra/features/ansible:2": {},
-    "ghcr.io/hspaans/devcontainer-features/ansible-lint:1": {},
-    "ghcr.io/devcontainers-extra/features/terraform-asdf:2": {}
+    "ghcr.io/devcontainers-extra/features/terraform-asdf:2": {},
+    "ghcr.io/devcontainers/features/go:1": {},
+    "ghcr.io/eitsupi/devcontainer-features/jq-likes:2": {},
+    "ghcr.io/flexwie/devcontainer-features/op:1": {},
+    "ghcr.io/gickis/devcontainer-features/kubeseal:1": {},
+    "ghcr.io/hspaans/devcontainer-features/ansible-lint:1": {}
   },
   "customizations": {
     "vscode": {

@@ -7,6 +7,7 @@ kubernetes_join_command
 *.ignored
 dist
 ._*/
+._*
 image.tar
 coverage/
 .terraform/
@@ -14,7 +15,7 @@ terraform.tfstate*
 .terraform*lock*
 .yarn-cache
 *.env
-!example.secrets.env
+!example.env
 id_rsa
 /vendor
 .test-runs

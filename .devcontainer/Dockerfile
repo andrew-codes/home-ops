@@ -42,6 +42,9 @@ RUN apt-get install -y \
 RUN curl -fL https://app.getambassador.io/download/tel2/linux/amd64/latest/telepresence -o /usr/local/bin/telepresence
 RUN chmod a+x /usr/local/bin/telepresence
 
+# FluxCD
+RUN curl -s https://fluxcd.io/install.sh | FLUX_VERSION=2.0.0 bash -s ~/.local/bin
+
 # Ansible
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
 RUN locale-gen
@@ -51,4 +54,3 @@ ENV LC_ALL en_US.UTF-8
 
 RUN mkdir -p ~/.kube
 COPY bash_profile_setup.sh /root/.bash_profile_setup.sh
-RUN echo "source ~/.bash_profile_setup.sh" >>/root/.bash_profile

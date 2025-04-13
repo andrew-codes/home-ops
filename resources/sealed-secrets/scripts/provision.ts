@@ -14,7 +14,7 @@ const run = async (
 
   const publicKey = await kube.exec(`kubeseal --fetch-cert \
 --controller-name=sealed-secrets-controller \
---controller-namespace=flux-system`)
+--controller-namespace=default`)
   await fs.writeFile(path.join(__dirname, `../keys/${env}.pub`), publicKey, {
     encoding: "utf8",
     mode: 0o600,
