@@ -14,13 +14,13 @@ spec:
     spec:
       containers:
         - name: zwavejs
-          image: zwavejs/zwave-js-ui:9.31.0
+          image: zwavejs/zwave-js-ui:10.2.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8091
               protocol: TCP
-            - name: web-socket
+            - name: websocket
               containerPort: 3000
               protocol: TCP
           volumeMounts:

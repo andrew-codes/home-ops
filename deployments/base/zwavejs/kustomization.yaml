@@ -3,5 +3,5 @@ kind: Kustomization
 namespace: default
 resources:
   - volumes.yaml
-  - deployment.yaml
   - service.yaml
+  - deployment.yaml

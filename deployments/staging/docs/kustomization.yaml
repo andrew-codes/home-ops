@@ -2,4 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: default
 resources:
-  - ../../base/docs-adr
+  - ../../base/docs
+
+images:
+  - name: ghcr.io/andrew-codes/home-ops-docs
+    newTag: latest

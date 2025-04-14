@@ -17,14 +17,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: zwavejs-web-socket
+  name: zwavejs-websocket
   namespace: default
 spec:
   selector:
     app: zwavejs
   ports:
-    - name: web-socket
+    - name: websocket
       port: 3000
-      targetPort: web-socket
+      targetPort: websocket
       protocol: TCP
   type: ClusterIP

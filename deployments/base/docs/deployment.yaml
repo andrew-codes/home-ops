@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: docs
-          image: ghcr.io/andrew-codes/home-automation-docs:latest
+          image: ghcr.io/andrew-codes/home-ops-docs:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
