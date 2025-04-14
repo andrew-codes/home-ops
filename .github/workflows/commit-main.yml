@@ -1,90 +1,83 @@
-# name: "Deploy to Production"
+name: "Deploy to Production"
 
-# on:
-#   push:
-#     branches:
-#       - main
+on:
+  push:
+    branches:
+      - main
 
-# jobs:
-#   test:
-#     name: Run all Verifications/Tests
-#     runs-on: home-automation
-#     steps:
-#       []
-#       # - uses: actions/checkout@v4
-#       #   with:
-#       #     fetch-depth: 0
-#       #     ref: main
-#       # - name: Extract node version from package.json
-#       #   uses: sergeysova/jq-action@v2
-#       #   id: node_version
-#       #   with:
-#       #     cmd: jq .engines.node package.json -r | sed -e 's/"//g' | sed -e 's/>=//g'
-#       # - name: Use Node.js
-#       #   uses: actions/setup-node@v4
-#       #   with:
-#       #     node-version: "${{ steps.node_version.outputs.value }}"
-#       # - name: Use Yarn
-#       #   run: corepack enable
-#       # - name: Install deps
-#       #   run: yarn
-#       # - name: Prepare
-#       #   run: yarn nx run-many --target=prepare --parallel --all
-#       #   env:
-#       #     ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
-#       #     ONEPASSWORD_SERVER_URL: ${{ secrets.ONEPASSWORD_SERVER_URL }}
-#       #     ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
-#       # - name: Run all tests
-#       #   run: yarn run test/all
-#       # - name: Coverage
-#       #   if: always()
-#       #   run: yarn run test/coverage/all
-#       #   env:
-#       #     CODECOV_TOKEN: ${{ secrets.CODE_COV_TOKEN }}
+jobs:
+  test:
+    name: Run all Verifications/Tests
+    runs-on: home-automation
+    steps:
+      []
+      # - uses: actions/checkout@v4
+      #   with:
+      #     fetch-depth: 0
+      #     ref: main
+      # - name: Extract node version from package.json
+      #   uses: sergeysova/jq-action@v2
+      #   id: node_version
+      #   with:
+      #     cmd: jq .engines.node package.json -r | sed -e 's/"//g' | sed -e 's/>=//g'
+      # - name: Use Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: "${{ steps.node_version.outputs.value }}"
+      # - name: Use Yarn
+      #   run: corepack enable
+      # - name: Install deps
+      #   run: yarn
+      # - name: Prepare
+      #   run: yarn nx run-many --target=prepare --parallel --all
+      #   env:
+      #     ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
+      #     ONEPASSWORD_SERVER_URL: ${{ secrets.ONEPASSWORD_SERVER_URL }}
+      #     ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
+      # - name: Run all tests
+      #   run: yarn run test/all
+      # - name: Coverage
+      #   if: always()
+      #   run: yarn run test/coverage/all
+      #   env:
+      #     CODECOV_TOKEN: ${{ secrets.CODE_COV_TOKEN }}
 
-#   deploy:
-#     name: Test and Deploy Affected Apps
-#     runs-on: home-automation
-#     needs:
-#       - test
-#     steps:
-#       []
-#       # - uses: actions/checkout@v4
-#       #   with:
-#       #     fetch-depth: 0
-#       #     ref: main
-#       # - name: Extract node version from package.json
-#       #   uses: sergeysova/jq-action@v2
-#       #   id: node_version
-#       #   with:
-#       #     cmd: jq .engines.node package.json -r | sed -e 's/"//g' | sed -e 's/>=//g'
-#       # - name: Use Node.js
-#       #   uses: actions/setup-node@v4
-#       #   with:
-#       #     node-version: "${{ steps.node_version.outputs.value }}"
-#       # - name: Use Yarn
-#       #   run: corepack enable
-#       # - name: Set up QEMU
-#       #   uses: docker/setup-qemu-action@v3
-#       # - name: Set up Docker Buildx
-#       #   uses: docker/setup-buildx-action@v3
-#       # - name: Install deps
-#       #   run: yarn
-#       # - name: Prepare
-#       #   run: yarn nx run-many --target=prepare --parallel --all
-#       #   env:
-#       #     ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
-#       #     ONEPASSWORD_SERVER_URL: ${{ secrets.ONEPASSWORD_SERVER_URL }}
-#       #     ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
-#       # - name: Install jsonnet plugins
-#       #   run: jb install
-#       # - name: Deploy affected apps
-#       #   run: yarn nx affected --target=deploy --parallel --base=HEAD~ --head=HEAD --verbose --exclude=manual-deployment,pihole,guest-db,gaming-library-db
-#       #   env:
-#       #     CODECOV_TOKEN: ${{ secrets.CODE_COV_TOKEN }}
-#       #     ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
-#       #     ONEPASSWORD_SERVER_URL: ${{ secrets.ONEPASSWORD_SERVER_URL }}
-#       #     ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
-#       #     NODE_ENV: production
-#       # - name: Remove disk pressure taint
-#       #   run: ./scripts/bin/remove-evicted-pods.sh || true
+  deploy:
+    name: Test and Deploy Affected Apps
+    runs-on: home-automation
+    needs:
+      - test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+      - name: Extract node version from package.json
+        uses: sergeysova/jq-action@v2
+        id: node_version
+        with:
+          cmd: jq .engines.node package.json -r | sed -e 's/"//g' | sed -e 's/>=//g'
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "${{ steps.node_version.outputs.value }}"
+      - name: Use Yarn
+        run: corepack enable
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Install deps
+        run: yarn
+      - name: Prepare
+        run: yarn nx run-many --target=prepare --parallel --all
+        env:
+          ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
+          ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
+      - name: Publish affected apps
+        run: yarn nx affected --target=publish --parallel --base=HEAD~ --head=HEAD --verbose --exclude=guest-db
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODE_COV_TOKEN }}
+          ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
+          ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
+          NODE_ENV: production
