@@ -1,4 +1,4 @@
-name: "Deploy to Production"
+name: "Publish affected apps"
 
 on:
   push:
