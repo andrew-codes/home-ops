@@ -28,9 +28,6 @@ jobs:
         run: yarn
       - name: Prepare
         run: yarn nx run-many --target=prepare --parallel --all
-        env:
-          ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
-          ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
       - name: Run all tests
         run: yarn run test/all
       - name: Coverage
@@ -61,12 +58,8 @@ jobs:
         run: yarn
       - name: Prepare
         run: yarn nx run-many --target=prepare --parallel --all
-        env:
-          ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
-          ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
       - name: Compile affected apps
         run: yarn nx affected --target=package --parallel --base=HEAD~ --head=HEAD --verbose
         env:
-          ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
-          ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_ENV: production
