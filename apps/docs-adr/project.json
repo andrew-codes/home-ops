@@ -8,7 +8,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "",
-        "command": "docker run --rm -t -v $(pwd):/workdir thomvaill/log4brains build --out {projectRoot}/._dist"
+        "command": "docker run --rm -t -v $(pwd):/workdir thomvaill/log4brains build --out /workdir/{projectRoot}/._dist"
       }
     },
     "start": {

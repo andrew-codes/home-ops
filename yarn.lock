@@ -3890,13 +3890,20 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ha/ansible@workspace:packages/ansible"
   dependencies:
+    "@ha/configure-jest": "workspace:^0.0.1"
     "@ha/logger": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
     "@ha/shell-utils": "workspace:^1.0.0"
+    "@jest/globals": "npm:^29.5.0"
+    "@types/jest": "npm:^29.5.14"
+    "@types/node": "npm:^18.19.76"
     "@types/shelljs": "npm:^0.8.15"
+    jest: "npm:^29.7.0"
     lodash: "npm:^4.17.21"
     nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
+    ts-jest: "npm:^29.2.5"
+    typescript: "npm:^5.7.3"
     yaml: "npm:^2.7.0"
   languageName: unknown
   linkType: soft
@@ -4921,12 +4928,18 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ha/terraform@workspace:packages/terraform"
   dependencies:
+    "@ha/configure-jest": "workspace:^0.0.1"
     "@ha/logger": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
     "@ha/shell-utils": "workspace:^1.0.0"
+    "@types/jest": "npm:^29.5.14"
+    "@types/node": "npm:^18.19.76"
     "@types/shelljs": "npm:^0.8.15"
+    jest: "npm:^29.7.0"
     nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
+    ts-jest: "npm:^29.2.5"
+    typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
 
@@ -5197,7 +5210,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jest/globals@npm:^29.7.0":
+"@jest/globals@npm:^29.5.0, @jest/globals@npm:^29.7.0":
   version: 29.7.0
   resolution: "@jest/globals@npm:29.7.0"
   dependencies:
