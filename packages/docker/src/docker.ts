@@ -29,7 +29,7 @@ const createClient = async (
     build: async (name, options = {}) => {
       await throwIfError(
         sh.exec(
-          `docker buildx build --build-arg OWNER=${username} --build-arg REPO=${repo} --load --platform linux/amd64 -t ${registryScope}/${name} ${
+          `docker buildx build --build-arg OWNER=${username} --build-arg REPO=${repo} --load --platform linux/amd64 -t ${registryScope}/${username}/${name} ${
             options.context ?? process.cwd()
           } -f ${options.dockerFile ?? "Dockerfile"};`,
           { async: true, silent: false },
@@ -38,7 +38,7 @@ const createClient = async (
     },
     pushImage: async (name) => {
       await throwIfError(
-        sh.exec(`docker push ${registryScope}/${name};`, {
+        sh.exec(`docker push ${registryScope}/${username}/${name};`, {
           async: true,
           silent: true,
         }),
