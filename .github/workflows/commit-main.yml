@@ -70,4 +70,6 @@ jobs:
         run: yarn nx affected --target=publish --parallel --base=HEAD~ --head=HEAD --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           NODE_ENV: production

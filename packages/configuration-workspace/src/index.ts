@@ -10,12 +10,14 @@ const createConfigurationApi = async (
 ): Promise<ConfigurationApi<Configuration>> => {
   const configurationProviders = providers
 
-  const vaultId = await envConfiguration.get(`onepassword/vault-id`)
-  if (vaultId) {
-    configurationProviders.push(
-      await createOnePasswordCliConfiguration(vaultId),
-    )
-  }
+  try {
+    const vaultId = await envConfiguration.get(`onepassword/vault-id`)
+    if (vaultId) {
+      configurationProviders.push(
+        await createOnePasswordCliConfiguration(vaultId),
+      )
+    }
+  } catch (error) {}
 
   return {
     get: async (name) => {
