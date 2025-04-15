@@ -1,6 +1,6 @@
 # Use GitOps
 
-- Status: proposed
+- Status: accepted
 - Deciders: Andrew Smith
 - Date: 2025-03-29
 - Tags: devops
@@ -26,9 +26,12 @@ Should home-ops utilize a deployment mechanism that is controlled by automation 
 
 ## Decision Outcome
 
+Chosen option: "1. FluxCD" because it is the more mature of the options and it addresses all decision drivers.
+
 ### Positive Consequences
 
 - Following a more standard approach to deployments help new users navigate the codebase and understand its various concepts.
+- Removal of jsonnet dependency.
 
 ### Negative Consequences
 
