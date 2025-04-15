@@ -6,6 +6,8 @@ metadata:
   namespace: default
 spec:
   interval: 10m0s
+  dependsOn:
+    - name: regcred
   sourceRef:
     kind: GitRepository
     name: default
@@ -21,6 +23,8 @@ metadata:
   namespace: default
 spec:
   interval: 10m0s
+  dependsOn:
+    - name: regcred
   sourceRef:
     kind: GitRepository
     name: default
@@ -38,6 +42,7 @@ spec:
   dependsOn:
     - name: nfs-provisioner
     - name: sealed-secrets
+    - name: regcred
   interval: 10m0s
   sourceRef:
     kind: GitRepository

@@ -12,6 +12,8 @@ spec:
       labels:
         app: docs-adr
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: docs-adr
           image: ghcr.io/andrew-codes/home-ops-docs-adr:latest
