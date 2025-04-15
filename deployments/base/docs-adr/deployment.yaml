@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: docs
+  name: docs-adr
   namespace: default
 spec:
   selector:
     matchLabels:
-      app: docs
+      app: docs-adr
   template:
     metadata:
       labels:
-        app: docs
+        app: docs-adr
     spec:
       containers:
-        - name: docs
+        - name: docs-adr
           image: ghcr.io/andrew-codes/home-ops-docs-adr:latest
           imagePullPolicy: IfNotPresent
           ports:
