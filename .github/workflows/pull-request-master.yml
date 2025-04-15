@@ -59,7 +59,7 @@ jobs:
       - name: Prepare
         run: yarn nx run-many --target=prepare --parallel --all
       - name: Compile affected apps
-        run: yarn nx affected --target=package --parallel --base=HEAD~ --head=HEAD --verbose
+        run: yarn nx affected --target=package --parallel --base=HEAD~ --head=HEAD --verbose --exclude=backups
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}

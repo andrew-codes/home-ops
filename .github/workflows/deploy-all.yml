@@ -1,4 +1,4 @@
-name: "Deploy all"
+name: "Publish all"
 
 on: workflow_dispatch
 
@@ -62,7 +62,7 @@ jobs:
       - name: Prepare
         run: yarn nx run-many --target=prepare --parallel --all
       - name: Publish all apps
-        run: yarn nx run-many --target=publish --parallel --all
+        run: yarn nx run-many --target=publish --parallel --all --exclude=backups
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
