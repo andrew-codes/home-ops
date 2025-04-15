@@ -1,6 +1,6 @@
 jest.mock("dotenv")
-import path from "path"
 import { config } from "dotenv"
+import path from "path"
 import { configurationApi } from "../"
 
 describe("configuration api module exports", () => {
@@ -19,7 +19,7 @@ describe("configuration api module exports", () => {
   test("Can get a list of all configuration names", () => {
     const actual = configurationApi.getNames()
     expect(actual).toEqual([
-      "onepassword/server-url",
+      "env",
       "onepassword/token",
       "onepassword/vault-id",
       "code-cov/token",

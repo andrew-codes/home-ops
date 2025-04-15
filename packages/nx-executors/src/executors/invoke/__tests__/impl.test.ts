@@ -76,7 +76,7 @@ test("Modules are resolved relative to the cwd option.", async () => {
     },
     ctx,
   )
-  expect(deploy).toBeCalled()
+  expect(deploy).toHaveBeenCalled()
   expect(success).toEqual(true)
 })
 
@@ -89,14 +89,12 @@ test("Modules default exported function will be invoked with the configuration A
     configuration: true,
   } as unknown as ConfigurationApi<Configuration>)
 
-  const { success } = await executor(
-    {
-      module: "./deploy.ts",
-      cwd: path.join("nx-executors", "src", "executors", "invoke", "__mocks__"),
-    },
-    ctx,
-  )
-  expect(process.chdir).toBeCalledWith(
+  const options = {
+    module: "./deploy.ts",
+    cwd: path.join("nx-executors", "src", "executors", "invoke", "__mocks__"),
+  }
+  const { success } = await executor(options, ctx)
+  expect(process.chdir).toHaveBeenCalledWith(
     path.resolve(
       __dirname,
       "..",
@@ -113,6 +111,6 @@ test("Modules default exported function will be invoked with the configuration A
       "__mocks__",
     ),
   )
-  expect(deploy).toBeCalledWith({ configuration: true }, ctx)
+  expect(deploy).toHaveBeenCalledWith({ configuration: true }, ctx, options)
   expect(success).toEqual(true)
 })

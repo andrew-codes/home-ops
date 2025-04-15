@@ -17,15 +17,13 @@ interface DockerClient {
 const createClient = async (
   configurationApi: ConfigurationApi<Configuration>,
 ): Promise<DockerClient> => {
-  const registry = (await configurationApi.get("docker-registry/hostname"))
-    .value
+  const registry = "https://ghci.io"
   const username = (await configurationApi.get("docker-registry/username"))
     .value
   const password = (await configurationApi.get("docker-registry/password"))
     .value
-  const registryScope = (await configurationApi.get("docker-registry/name"))
-    .value
-  const repo = (await configurationApi.get("repository/name")).value
+  const registryScope = "ghcr.io"
+  const repo = "home-ops"
 
   return {
     build: async (name, options = {}) => {

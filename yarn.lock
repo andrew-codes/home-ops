@@ -4051,29 +4051,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/configuration-1password@workspace:^0.0.1, @ha/configuration-1password@workspace:packages/configuration-1password":
-  version: 0.0.0-use.local
-  resolution: "@ha/configuration-1password@workspace:packages/configuration-1password"
-  dependencies:
-    "@1password/connect": "npm:^1.4.1"
-    "@ha/configuration-1password-cli": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-env-secrets": "workspace:^0.0.1"
-    "@ha/configure-jest": "workspace:^0.0.1"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/secret-utils": "workspace:^0.0.1"
-    "@types/jest": "npm:^29.5.14"
-    "@types/node": "npm:^18.19.76"
-    jest: "npm:^29.7.0"
-    jest-when: "npm:^3.7.0"
-    lodash: "npm:^4.17.21"
-    nx: "npm:^20.7.0"
-    ts-jest: "npm:^29.2.5"
-    typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
 "@ha/configuration-api@workspace:^0.0.1, @ha/configuration-api@workspace:packages/configuration-api":
   version: 0.0.0-use.local
   resolution: "@ha/configuration-api@workspace:packages/configuration-api"
@@ -4106,7 +4083,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ha/configuration-workspace@workspace:packages/configuration-workspace"
   dependencies:
-    "@ha/configuration-1password": "workspace:^0.0.1"
     "@ha/configuration-1password-cli": "workspace:^0.0.1"
     "@ha/configuration-api": "workspace:^0.0.1"
     "@ha/configuration-env-secrets": "workspace:^0.0.1"

@@ -1,10 +1,6 @@
 import { safeCliString, safeCliStringWithDoubleQuotes } from "../utils"
 
 describe("cli utils", () => {
-  beforeEach(() => {
-    jest.resetAllMocks()
-  })
-
   describe("safeCliString", () => {
     test("CLI safe string properly handles double quotes and new lines", () => {
       const input = `{

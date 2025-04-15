@@ -4,7 +4,6 @@ jest.mock("shelljs", () => ({
 import { ConfigurationApi } from "@ha/configuration-api"
 import { Configuration } from "@ha/configuration-workspace"
 import { when } from "jest-when"
-import path from "path"
 import sh from "shelljs"
 import { createClient } from "../docker"
 
@@ -16,9 +15,6 @@ describe("docker", () => {
       .calledWith(expect.stringContaining("docker login"), { silent: true })
       .mockReturnValue({ stderr: "", stdout: "", code: 0 })
     when(get)
-      .calledWith("docker-registry/hostname")
-      .mockResolvedValue({ value: "registry.com" })
-    when(get)
       .calledWith("docker-registry/username")
       .mockResolvedValue({ value: "username" })
     when(get)
@@ -26,26 +22,17 @@ describe("docker", () => {
       .mockResolvedValue({ value: "password" })
   })
 
-  test("Creating a docker client will authenticate the docker CLI to the registry.", async () => {
-    await createClient({
+  test("Failures to authenticate throw an error", async () => {
+    when(sh.exec)
+      .calledWith(expect.stringContaining("docker login"), expect.anything())
+      .mockReturnValue({ stderr: "error", stdout: "", code: 1 })
+    const docker = await createClient({
       get,
     } as unknown as ConfigurationApi<Configuration>)
 
-    expect(sh.exec).toHaveBeenCalledWith(
-      `docker login registry.com --username username --password password`,
-      { silent: true },
+    await expect(docker.pushImage("some/imageName:latest")).rejects.toThrow(
+      "error",
     )
-  })
-
-  test("Failures to authenticate throw an error", async () => {
-    when(sh.exec)
-      .calledWith(expect.stringContaining("docker login"), { silent: true })
-      .mockReturnValue({ stderr: "error", stdout: "", code: 1 })
-    await expect(
-      createClient({
-        get,
-      } as unknown as ConfigurationApi<Configuration>),
-    ).rejects.toThrow("error")
   })
 
   test("Building a docker image proxies to the docker CLI.", async () => {
@@ -56,8 +43,32 @@ describe("docker", () => {
     await docker.build("some/imageName:latest")
 
     expect(sh.exec).toHaveBeenCalledWith(
-      `docker build -t registry.com/some/imageName:latest ${process.cwd()} -f Dockerfile;`,
-      { silent: false },
+      expect.stringMatching(/^docker buildx build.*/),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--build-arg OWNER=username"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--build-arg REPO=home-ops"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--load"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--platform linux/amd64"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("-t ghcr.io/some/imageName:latest"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringMatching(/.* -f Dockerfile;$/),
+      expect.anything(),
     )
   })
 
@@ -67,14 +78,36 @@ describe("docker", () => {
     } as unknown as ConfigurationApi<Configuration>)
 
     await docker.build("some/imageName:latest", {
-      context: path.join(__dirname),
+      context: "..some/directory",
     })
 
     expect(sh.exec).toHaveBeenCalledWith(
-      `docker build -t registry.com/some/imageName:latest ${path.join(
-        __dirname,
-      )} -f Dockerfile;`,
-      { silent: false },
+      expect.stringMatching(/^docker buildx build.*/),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--build-arg OWNER=username"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--build-arg REPO=home-ops"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--load"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--platform linux/amd64"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("-t ghcr.io/some/imageName:latest"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringMatching(/.* \.\.some\/directory -f Dockerfile;$/),
+      expect.anything(),
     )
   })
 
@@ -88,8 +121,32 @@ describe("docker", () => {
     })
 
     expect(sh.exec).toHaveBeenCalledWith(
-      `docker build -t registry.com/some/imageName:latest ${process.cwd()} -f aFile;`,
-      { silent: false },
+      expect.stringMatching(/^docker buildx build.*/),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--build-arg OWNER=username"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--build-arg REPO=home-ops"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--load"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("--platform linux/amd64"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringContaining("-t ghcr.io/some/imageName:latest"),
+      expect.anything(),
+    )
+    expect(sh.exec).toHaveBeenCalledWith(
+      expect.stringMatching(/.* -f aFile;$/),
+      expect.anything(),
     )
   })
 
@@ -104,7 +161,7 @@ describe("docker", () => {
     await expect(docker.build("some/imageName:latest")).rejects.toThrow("error")
   })
 
-  test("Pushing an image to a registy proxy to the docker CLI.", async () => {
+  test("Pushing an image to a registry proxy to the docker CLI.", async () => {
     const docker = await createClient({
       get,
     } as unknown as ConfigurationApi<Configuration>)
@@ -112,8 +169,15 @@ describe("docker", () => {
     await docker.pushImage("some/imageName:latest")
 
     expect(sh.exec).toHaveBeenCalledWith(
-      `docker push registry.com/some/imageName:latest;`,
-      { silent: false },
+      expect.stringMatching(
+        /^docker login (.*--username username)|(.*--password password)/,
+      ),
+      expect.anything(),
+    )
+
+    expect(sh.exec).toHaveBeenCalledWith(
+      `docker push ghcr.io/some/imageName:latest;`,
+      expect.anything(),
     )
   })
 
