@@ -4541,20 +4541,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/home-assistant@workspace:apps/home-assistant":
-  version: 0.0.0-use.local
-  resolution: "@ha/home-assistant@workspace:apps/home-assistant"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.7.0"
-  languageName: unknown
-  linkType: soft
-
 "@ha/home-ops-docs-adr@workspace:apps/docs-adr":
   version: 0.0.0-use.local
   resolution: "@ha/home-ops-docs-adr@workspace:apps/docs-adr"
@@ -4796,45 +4782,6 @@ __metadata:
     "@ha/nx-executors": "workspace:^0.1.0"
     "@ha/shell-utils": "workspace:^1.0.0"
     "@ha/terraform": "workspace:^0.0.1"
-    nx: "npm:^20.7.0"
-    shelljs: "npm:^0.8.5"
-  languageName: unknown
-  linkType: soft
-
-"@ha/ps5@workspace:apps/ps5":
-  version: 0.0.0-use.local
-  resolution: "@ha/ps5@workspace:apps/ps5"
-  dependencies:
-    "@ha/build-ts": "workspace:^1.0.0"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/configure-jest": "workspace:^0.0.1"
-    "@ha/docker": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@types/jest": "npm:^29.5.14"
-    "@types/node": "npm:^18.19.76"
-    esbuild: "npm:^0.25.0"
-    esbuild-register: "npm:^3.6.0"
-    jest: "npm:^29.7.0"
-    jest-when: "npm:^3.7.0"
-    nodemon: "npm:^2.0.22"
-    nx: "npm:^20.7.0"
-    ts-jest: "npm:^29.2.5"
-    typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@ha/pve-service@workspace:apps/pve-service":
-  version: 0.0.0-use.local
-  resolution: "@ha/pve-service@workspace:apps/pve-service"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:*"
-    "@ha/kubectl": "workspace:*"
-    "@ha/nx-executors": "workspace:^0.1.0"
     nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
   languageName: unknown

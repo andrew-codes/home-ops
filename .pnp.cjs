@@ -71,10 +71,6 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/guest-wifi-renewal"\
     },\
     {\
-      "name": "@ha/home-assistant",\
-      "reference": "workspace:apps/home-assistant"\
-    },\
-    {\
       "name": "@ha/home-assistant-app-daemon",\
       "reference": "workspace:apps/home-assistant-app-daemon"\
     },\
@@ -93,14 +89,6 @@ const RAW_RUNTIME_STATE =
     {\
       "name": "@ha/pihole-service",\
       "reference": "workspace:apps/pihole-service"\
-    },\
-    {\
-      "name": "@ha/ps5",\
-      "reference": "workspace:apps/ps5"\
-    },\
-    {\
-      "name": "@ha/pve-service",\
-      "reference": "workspace:apps/pve-service"\
     },\
     {\
       "name": "@ha/secrets",\
@@ -288,7 +276,6 @@ const RAW_RUNTIME_STATE =
     ["@ha/guest-wifi-registrar", ["workspace:apps/guest-wifi-registrar"]],\
     ["@ha/guest-wifi-renewal", ["workspace:apps/guest-wifi-renewal"]],\
     ["@ha/ha-entity-utils", ["workspace:packages/ha-entity-utils"]],\
-    ["@ha/home-assistant", ["workspace:apps/home-assistant"]],\
     ["@ha/home-assistant-app-daemon", ["workspace:apps/home-assistant-app-daemon"]],\
     ["@ha/home-ops-docs-adr", ["workspace:apps/docs-adr"]],\
     ["@ha/http-heartbeat", ["workspace:packages/http-heartbeat"]],\
@@ -303,8 +290,6 @@ const RAW_RUNTIME_STATE =
     ["@ha/mqtt-heartbeat", ["workspace:packages/mqtt-heartbeat"]],\
     ["@ha/nx-executors", ["workspace:packages/nx-executors"]],\
     ["@ha/pihole-service", ["workspace:apps/pihole-service"]],\
-    ["@ha/ps5", ["workspace:apps/ps5"]],\
-    ["@ha/pve-service", ["workspace:apps/pve-service"]],\
     ["@ha/resource-fluxcd", ["workspace:resources/fluxcd"]],\
     ["@ha/resource-k8s", ["workspace:resources/k8s"]],\
     ["@ha/resource-pihole", ["workspace:apps/pihole"]],\
@@ -7329,22 +7314,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/home-assistant", [\
-      ["workspace:apps/home-assistant", {\
-        "packageLocation": "./apps/home-assistant/",\
-        "packageDependencies": [\
-          ["@ha/home-assistant", "workspace:apps/home-assistant"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/docker", "workspace:packages/docker"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/home-assistant-app-daemon", [\
       ["workspace:apps/home-assistant-app-daemon", {\
         "packageLocation": "./apps/home-assistant-app-daemon/",\
@@ -7644,49 +7613,6 @@ const RAW_RUNTIME_STATE =
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
           ["@ha/shell-utils", "workspace:packages/shell-utils"],\
           ["@ha/terraform", "workspace:packages/terraform"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["shelljs", "npm:0.8.5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/ps5", [\
-      ["workspace:apps/ps5", {\
-        "packageLocation": "./apps/ps5/",\
-        "packageDependencies": [\
-          ["@ha/ps5", "workspace:apps/ps5"],\
-          ["@ha/build-ts", "workspace:packages/build-ts"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/configure-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#workspace:packages/configure-jest"],\
-          ["@ha/docker", "workspace:packages/docker"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@types/jest", "npm:29.5.14"],\
-          ["@types/node", "npm:18.19.76"],\
-          ["esbuild", "npm:0.25.0"],\
-          ["esbuild-register", "virtual:67c2aad2b1bd47fe7a2a41d331ce53a09742994e6e4cf897b697836ad2af8b3577c1b4c3128f4d1437800d10106137809a85386ab3553d979a125a47045c5628#npm:3.6.0"],\
-          ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
-          ["jest-when", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:3.7.0"],\
-          ["nodemon", "npm:2.0.22"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["ts-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#npm:29.2.6"],\
-          ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/pve-service", [\
-      ["workspace:apps/pve-service", {\
-        "packageLocation": "./apps/pve-service/",\
-        "packageDependencies": [\
-          ["@ha/pve-service", "workspace:apps/pve-service"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
           ["shelljs", "npm:0.8.5"]\
         ],\
