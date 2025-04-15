@@ -5,7 +5,7 @@ on: workflow_dispatch
 jobs:
   test:
     name: Run all tests
-    runs-on: home-automation
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,7 +35,7 @@ jobs:
 
   deploy:
     name: Package and Publish all apps
-    runs-on: home-automation
+    runs-on: ubuntu-latest
     needs:
       - test
     steps:

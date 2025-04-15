@@ -8,7 +8,7 @@ on:
 jobs:
   test:
     name: Run all Verifications/Tests
-    runs-on: home-automation
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,7 +42,7 @@ jobs:
 
   publish:
     name: Package and publish affected apps
-    runs-on: home-automation
+    runs-on: ubuntu-latest
     needs:
       - test
     steps:
