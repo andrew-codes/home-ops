@@ -42,10 +42,10 @@
       "dependsOn": ["^prepare", "prepare", "compile", "^deploy", "publish"]
     },
     "package": {
-      "dependsOn": ["compile"]
+      "dependsOn": ["^prepare", "prepare", "compile"]
     },
     "publish": {
-      "dependsOn": ["^package", "package", "^publish", "^deploy"]
+      "dependsOn": ["^prepare", "prepare", "^package", "package", "^publish", "^deploy"]
     },
     "provision": {
       "dependsOn": ["^prepare", "prepare", "^provision", "^deploy"]
