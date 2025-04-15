@@ -14,12 +14,7 @@ describe("docker", () => {
     when(sh.exec)
       .calledWith(expect.stringContaining("docker login"), { silent: true })
       .mockReturnValue({ stderr: "", stdout: "", code: 0 })
-    when(get)
-      .calledWith("docker-registry/username")
-      .mockResolvedValue({ value: "username" })
-    when(get)
-      .calledWith("docker-registry/password")
-      .mockResolvedValue({ value: "password" })
+    when(get).calledWith("github/username").mockReturnValue("username")
   })
 
   test("Building a docker image proxies to the docker CLI.", async () => {
