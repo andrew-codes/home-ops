@@ -7,8 +7,8 @@
     "compile": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "",
-        "command": "docker run --rm -t -v $(pwd):/workdir thomvaill/log4brains build --out {projectRoot}/._dist"
+        "cwd": "{projectRoot}",
+        "command": "chmod -R 777 . && docker run --rm -t -v $(pwd)/../../:/workdir thomvaill/log4brains build --out {projectRoot}/._dist"
       }
     },
     "start": {

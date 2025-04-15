@@ -30,7 +30,9 @@ jobs:
       - name: Prepare
         run: yarn nx run-many --target=prepare --parallel --all
       - name: Deploy apps
-        run: yarn nx run-many --target=publish --parallel --projects=${{ github.event.client_payload.projects }} --verbose
+        run: yarn nx run-many --target=publish --parallel --projects=${{ github.event.client_payload.projects }} --verbose --exclude=backups
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           NODE_ENV: production

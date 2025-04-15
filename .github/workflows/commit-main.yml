@@ -67,7 +67,9 @@ jobs:
       - name: Prepare
         run: yarn nx run-many --target=prepare --parallel --all
       - name: Publish affected apps
-        run: yarn nx affected --target=publish --parallel --base=HEAD~ --head=HEAD --verbose
+        run: yarn nx affected --target=publish --parallel --base=HEAD~ --head=HEAD --verbose --exclude=backups
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           NODE_ENV: production

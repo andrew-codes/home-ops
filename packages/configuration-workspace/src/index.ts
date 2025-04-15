@@ -8,20 +8,16 @@ import type { Configuration } from "./Configuration.types"
 const createConfigurationApi = async (
   providers: ConfigurationApi<any>[] = [envConfiguration],
 ): Promise<ConfigurationApi<Configuration>> => {
-  const vaultId = await envConfiguration.get(`onepassword/vault-id`)
-  if (!vaultId) {
-    throw new Error(`No vault id found.`)
-  }
-  const onePasswordCliConfiguration =
-    await createOnePasswordCliConfiguration(vaultId)
-  // const onePasswordConfiguration = await createOnepasswordConfiguration(
-  //   vaultId,
-  //   onePasswordCliConfiguration,
-  // )
-  const configurationProviders = providers.concat(
-    // onePasswordConfiguration,
-    onePasswordCliConfiguration,
-  )
+  const configurationProviders = providers
+
+  try {
+    const vaultId = await envConfiguration.get(`onepassword/vault-id`)
+    if (vaultId) {
+      configurationProviders.push(
+        await createOnePasswordCliConfiguration(vaultId),
+      )
+    }
+  } catch (error) {}
 
   return {
     get: async (name) => {
@@ -32,7 +28,7 @@ const createConfigurationApi = async (
           return value
         } catch (error) {}
       }
-      throw new Error(`Configuration value not found, ${name}.`)
+      throw new Error(`Configuration value not found, ${String(name)}.`)
     },
     getNames: () => {
       const allConfiguration = configurationProviders.reduce<
@@ -46,23 +42,20 @@ const createConfigurationApi = async (
       return uniq(allConfiguration) as (keyof Configuration)[]
     },
     set: async (name, value) => {
-      const providers = configurationProviders.filter((provider) =>
-        provider.getNames().includes(name),
-      )
+      const providers = configurationProviders.filter((provider) => {
+        return provider.getNames().includes(name)
+      })
+
       for (const configurationProvider of providers) {
         try {
           await configurationProvider.set(name, value)
-          return
         } catch (error) {
           logger.debug(
-            `Configuration: Error setting value for ${name}: ${error?.message}. ConfigurationApi index: ${providers.indexOf(configurationProvider)}`,
+            `Configuration: Error setting value for ${String(name)}. ConfigurationApi index: ${providers.indexOf(configurationProvider)}.
+Error: ${String(error)}`,
           )
         }
       }
-
-      throw new Error(
-        `No configuration provider found to set value for ${name}.`,
-      )
     },
   }
 }

@@ -43,7 +43,6 @@ const configurationNames = [
   "docker-registry/hostname",
   "docker-registry/ip",
   "docker-registry/machine/username",
-  "docker-registry/name",
   "docker-registry/password",
   "docker-registry/username",
   "domain",

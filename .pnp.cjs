@@ -115,10 +115,6 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:packages/cli-utils"\
     },\
     {\
-      "name": "@ha/configuration-1password",\
-      "reference": "workspace:packages/configuration-1password"\
-    },\
-    {\
       "name": "@ha/configuration-1password-cli",\
       "reference": "workspace:packages/configuration-1password-cli"\
     },\
@@ -254,7 +250,6 @@ const RAW_RUNTIME_STATE =
     ["@ha/captive-portal", ["workspace:apps/captive-portal"]],\
     ["@ha/cli-utils", ["workspace:packages/cli-utils"]],\
     ["@ha/coder", ["workspace:apps/coder"]],\
-    ["@ha/configuration-1password", ["workspace:packages/configuration-1password"]],\
     ["@ha/configuration-1password-cli", ["workspace:packages/configuration-1password-cli"]],\
     ["@ha/configuration-api", ["workspace:packages/configuration-api"]],\
     ["@ha/configuration-env-secrets", ["workspace:packages/configuration-env-secrets"]],\
@@ -6577,13 +6572,20 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./packages/ansible/",\
         "packageDependencies": [\
           ["@ha/ansible", "workspace:packages/ansible"],\
+          ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
           ["@ha/logger", "workspace:packages/logger"],\
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
           ["@ha/shell-utils", "workspace:packages/shell-utils"],\
+          ["@jest/globals", "npm:29.7.0"],\
+          ["@types/jest", "npm:29.5.14"],\
+          ["@types/node", "npm:18.19.76"],\
           ["@types/shelljs", "npm:0.8.15"],\
+          ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
           ["lodash", "npm:4.17.21"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
           ["shelljs", "npm:0.8.5"],\
+          ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
+          ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"],\
           ["yaml", "npm:2.7.0"]\
         ],\
         "linkType": "SOFT"\
@@ -6724,31 +6726,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/configuration-1password", [\
-      ["workspace:packages/configuration-1password", {\
-        "packageLocation": "./packages/configuration-1password/",\
-        "packageDependencies": [\
-          ["@ha/configuration-1password", "workspace:packages/configuration-1password"],\
-          ["@1password/connect", "npm:1.4.1"],\
-          ["@ha/configuration-1password-cli", "workspace:packages/configuration-1password-cli"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
-          ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/secret-utils", "workspace:packages/secret-utils"],\
-          ["@types/jest", "npm:29.5.14"],\
-          ["@types/node", "npm:18.19.76"],\
-          ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
-          ["jest-when", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:3.7.0"],\
-          ["lodash", "npm:4.17.21"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
-          ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/configuration-1password-cli", [\
       ["workspace:packages/configuration-1password-cli", {\
         "packageLocation": "./packages/configuration-1password-cli/",\
@@ -6812,7 +6789,6 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./packages/configuration-workspace/",\
         "packageDependencies": [\
           ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/configuration-1password", "workspace:packages/configuration-1password"],\
           ["@ha/configuration-1password-cli", "workspace:packages/configuration-1password-cli"],\
           ["@ha/configuration-api", "workspace:packages/configuration-api"],\
           ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
@@ -7796,12 +7772,18 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./packages/terraform/",\
         "packageDependencies": [\
           ["@ha/terraform", "workspace:packages/terraform"],\
+          ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
           ["@ha/logger", "workspace:packages/logger"],\
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
           ["@ha/shell-utils", "workspace:packages/shell-utils"],\
+          ["@types/jest", "npm:29.5.14"],\
+          ["@types/node", "npm:18.19.76"],\
           ["@types/shelljs", "npm:0.8.15"],\
+          ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["shelljs", "npm:0.8.5"]\
+          ["shelljs", "npm:0.8.5"],\
+          ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
+          ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
         ],\
         "linkType": "SOFT"\
       }]\

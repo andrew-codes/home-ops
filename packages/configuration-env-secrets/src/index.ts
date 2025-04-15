@@ -5,7 +5,6 @@ import path from "path"
 
 const configurationNames = [
   "env",
-  "onepassword/server-url",
   "onepassword/token",
   "onepassword/vault-id",
   "code-cov/token",

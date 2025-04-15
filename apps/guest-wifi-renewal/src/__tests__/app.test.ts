@@ -14,7 +14,6 @@ describe.skip("guest wifi renewal", () => {
   const authorizeGuest = jest.fn()
 
   beforeEach(() => {
-    jest.resetAllMocks()
     jest.mocked(createMqtt).mockResolvedValue({
       on: onMock,
       subscribe,
