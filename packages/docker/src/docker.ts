@@ -38,15 +38,6 @@ const createClient = async (
     },
     pushImage: async (name) => {
       await throwIfError(
-        sh.exec(
-          `docker login ${registry} --username ${username} --password ${password}`,
-          {
-            async: true,
-            silent: true,
-          },
-        ),
-      )
-      await throwIfError(
         sh.exec(`docker push ${registryScope}/${name};`, {
           async: true,
           silent: true,

@@ -22,19 +22,6 @@ describe("docker", () => {
       .mockResolvedValue({ value: "password" })
   })
 
-  test("Failures to authenticate throw an error", async () => {
-    when(sh.exec)
-      .calledWith(expect.stringContaining("docker login"), expect.anything())
-      .mockReturnValue({ stderr: "error", stdout: "", code: 1 })
-    const docker = await createClient({
-      get,
-    } as unknown as ConfigurationApi<Configuration>)
-
-    await expect(docker.pushImage("some/imageName:latest")).rejects.toThrow(
-      "error",
-    )
-  })
-
   test("Building a docker image proxies to the docker CLI.", async () => {
     const docker = await createClient({
       get,
@@ -167,13 +154,6 @@ describe("docker", () => {
     } as unknown as ConfigurationApi<Configuration>)
 
     await docker.pushImage("some/imageName:latest")
-
-    expect(sh.exec).toHaveBeenCalledWith(
-      expect.stringMatching(
-        /^docker login (.*--username username)|(.*--password password)/,
-      ),
-      expect.anything(),
-    )
 
     expect(sh.exec).toHaveBeenCalledWith(
       `docker push ghcr.io/some/imageName:latest;`,
