@@ -50,7 +50,7 @@ describe("docker", () => {
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
-      expect.stringContaining("-t ghcr.io/some/imageName:latest"),
+      expect.stringContaining("-t ghcr.io/username/some/imageName:latest"),
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
@@ -89,7 +89,7 @@ describe("docker", () => {
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
-      expect.stringContaining("-t ghcr.io/some/imageName:latest"),
+      expect.stringContaining("-t ghcr.io/username/some/imageName:latest"),
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
@@ -128,7 +128,7 @@ describe("docker", () => {
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
-      expect.stringContaining("-t ghcr.io/some/imageName:latest"),
+      expect.stringContaining("-t ghcr.io/username/some/imageName:latest"),
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
@@ -156,7 +156,7 @@ describe("docker", () => {
     await docker.pushImage("some/imageName:latest")
 
     expect(sh.exec).toHaveBeenCalledWith(
-      `docker push ghcr.io/some/imageName:latest;`,
+      `docker push ghcr.io/username/some/imageName:latest;`,
       expect.anything(),
     )
   })
