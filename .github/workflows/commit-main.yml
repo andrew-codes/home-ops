@@ -38,6 +38,9 @@ jobs:
   publish:
     name: Package and publish affected apps
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     needs:
       - test
     steps:

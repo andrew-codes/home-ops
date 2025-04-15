@@ -34,6 +34,9 @@ jobs:
   deploy:
     name: Package and Publish all apps
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     needs:
       - test
     steps:
