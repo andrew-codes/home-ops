@@ -27,8 +27,6 @@ jobs:
         run: corepack enable
       - name: Install deps
         run: yarn
-      - name: Prepare
-        run: yarn nx run-many --target=prepare --parallel --all
       - name: Run all tests
         run: yarn run test/all
       - name: Coverage
@@ -70,8 +68,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Install deps
         run: yarn
-      - name: Prepare
-        run: yarn nx run-many --target=prepare --parallel --all
       - name: Publish affected apps
         run: yarn nx affected --target=publish --parallel --base=HEAD~ --head=HEAD --verbose --exclude=backups
         env:
