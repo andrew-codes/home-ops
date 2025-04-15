@@ -34,7 +34,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODE_COV_TOKEN }}
 
   deploy:
-    name: Compile, Push, Deploy
+    name: Package and Publish all apps
     runs-on: home-automation
     needs:
       - test
@@ -63,17 +63,10 @@ jobs:
         run: yarn nx run-many --target=prepare --parallel --all
         env:
           ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
-          ONEPASSWORD_SERVER_URL: ${{ secrets.ONEPASSWORD_SERVER_URL }}
           ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
-      - name: Install jsonnet plugins
-        run: jb install
-      - name: Deploy all apps
-        run: yarn nx affected --target=deploy --parallel --base=HEAD~ --head=HEAD --verbose --exclude=manual-deployment,pihole,docker-registry,k8s,openvpn
+      - name: Publish all apps
+        run: yarn nx run-many --target=publish --parallel --all
         env:
-          CODECOV_TOKEN: ${{ secrets.CODE_COV_TOKEN }}
           ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
-          ONEPASSWORD_SERVER_URL: ${{ secrets.ONEPASSWORD_SERVER_URL }}
           ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
           NODE_ENV: production
-      - name: Remove disk pressure taint
-        run: ./scripts/bin/remove-evicted-pods.sh || true

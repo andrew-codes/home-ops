@@ -1,11 +1,11 @@
-name: Manual Deploy
+name: Manual Publish
 on:
   repository_dispatch:
     types:
       - manual-deploy
 jobs:
   deploy:
-    name: Manual Deployment
+    name: Manual Publish
     runs-on: home-automation
     steps:
       - name: Checkout
@@ -31,17 +31,10 @@ jobs:
         run: yarn nx run-many --target=prepare --parallel --all
         env:
           ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
-          ONEPASSWORD_SERVER_URL: ${{ secrets.ONEPASSWORD_SERVER_URL }}
           ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
-      - name: Install jsonnet plugins
-        run: jb install
       - name: Deploy apps
-        run: yarn nx run-many --target=deploy --parallel --projects=${{ github.event.client_payload.projects }} --exclude=docker-registry,k8s,openvpn,pihole --verbose
+        run: yarn nx run-many --target=publish --parallel --projects=${{ github.event.client_payload.projects }} --verbose
         env:
-          CODECOV_TOKEN: ${{ secrets.CODE_COV_TOKEN }}
           ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
-          ONEPASSWORD_SERVER_URL: ${{ secrets.ONEPASSWORD_SERVER_URL }}
           ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
           NODE_ENV: production
-      - name: Remove disk pressure taint
-        run: ./scripts/bin/remove-evicted-pods.sh || true

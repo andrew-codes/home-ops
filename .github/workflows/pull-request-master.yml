@@ -1,4 +1,4 @@
-name: "Test"
+name: "Verify"
 
 on:
   pull_request:
@@ -40,7 +40,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODE_COV_TOKEN }}
 
   build:
-    name: Verify PR - Build
+    name: Verify PR - Package
     runs-on: home-automation
     steps:
       - uses: actions/checkout@v4
@@ -65,7 +65,7 @@ jobs:
           ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
           ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
       - name: Compile affected apps
-        run: yarn nx affected --target=compile --parallel --base=HEAD~ --head=HEAD --verbose
+        run: yarn nx affected --target=package --parallel --base=HEAD~ --head=HEAD --verbose
         env:
           ONEPASSWORD_TOKEN: ${{ secrets.ONEPASSWORD_TOKEN }}
           ONEPASSWORD_VAULT_ID: ${{ secrets.ONEPASSWORD_VAULT_ID }}
