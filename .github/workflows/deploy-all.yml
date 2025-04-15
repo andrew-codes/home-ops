@@ -69,7 +69,5 @@ jobs:
       - name: Publish all apps
         run: yarn nx run-many --target=publish --parallel --all --exclude=backups
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
-          DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USERNAME: ${{ github.actor }}
           NODE_ENV: production

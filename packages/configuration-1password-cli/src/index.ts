@@ -4,6 +4,7 @@ import { op as createOp } from "./op"
 const configurationNames = [
   // Required Secrets
   "dev/ssh-key/public",
+  "github/username",
   "k8s/ip",
   "k8s/pod-network-cidr",
   "proxmox/host/pve",

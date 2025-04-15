@@ -59,7 +59,5 @@ jobs:
       - name: Compile affected apps
         run: yarn nx affected --target=package --parallel --base=HEAD~ --head=HEAD --verbose --exclude=backups
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
-          DOCKER_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USERNAME: ${{ github.actor }}
           NODE_ENV: production
