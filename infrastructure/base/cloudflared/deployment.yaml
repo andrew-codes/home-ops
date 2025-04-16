@@ -19,11 +19,9 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/cloudflared/config
-              subPath: config.yaml
               readOnly: true
             - name: creds
               mountPath: /etc/cloudflared/creds
-              subPath: credentials.json
               readOnly: true
       volumes:
         - name: config
