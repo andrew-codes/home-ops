@@ -96,7 +96,7 @@ spec:
   interval: 1m0s
   values:
     remoteWrite:
-      - url: "http://vmcluster-victoria-metrics-cluster-vminsert.default.svc.cluster.local:8480/insert/0/prometheus/"
+      - url: "http://vminsert-vmcluster.default.svc.cluster.local:8480/insert/0/prometheus/"
     config:
       global:
         scrape_interval: "10s"
