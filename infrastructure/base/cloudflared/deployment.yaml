@@ -19,7 +19,7 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/cloudflared/config
-              subPath: cloudflared.yaml
+              subPath: config.yaml
               readOnly: true
             - name: creds
               mountPath: /etc/cloudflared/creds
@@ -31,7 +31,7 @@ spec:
             name: cloudflared-config
             items:
               - key: config.yaml
-                path: cloudflared.yaml
+                path: config.yaml
         - name: creds
           secret:
             secretName: tunnel-credentials
