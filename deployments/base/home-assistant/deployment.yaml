@@ -7,6 +7,8 @@ metadata:
   labels:
     name: home-assistant
 spec:
+  imagePullSecrets:
+    - name: regcred
   volumes:
     - name: home-assistant-config
       persistentVolumeClaim:
