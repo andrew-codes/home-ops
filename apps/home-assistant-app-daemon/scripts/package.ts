@@ -8,7 +8,7 @@ const run = async (
   configurationApi: ConfigurationApi<Configuration>,
 ): Promise<void> => {
   const docker = await createClient(configurationApi)
-  await docker.build(`home-automation-${name}-apps:latest`, {
+  await docker.build(`${name}:latest`, {
     context: path.join(__dirname, "../"),
     dockerFile: path.join("src", "Dockerfile"),
   })
