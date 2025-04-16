@@ -1,0 +1,15 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: home-assistant-token
+  namespace: default
+spec:
+  encryptedData:
+    token: AgC0pSw1mshAnSIb6kKTPYs0vpVAg+S3I5Z2V0Rb3u8OrhKcSwwtgpoykZ1zlcwZbIZOzFosm+pwtF08gO6vdTTwAm46/H4Ftt9lTn3fLh7j2FNsiBNnqGnop4Pp8PvDXA2fZxZ/RKMvjYLcQ2krg833XZoT6+Ra/e9C48SDoagH3F0Jaw7lhn0Y5GvPo6OJTqlQjZd1xkxIwC23fdAN+nTJlOZPeJbgmtNGZZazsjxqFW00vVyDTk225i3MLeJBMn7u5uiJIsWVyIIH+D/eRNTwC2ibDce/5ll1VKU3SL7TN7MC5kGyawCXgZa7R81hz9zIaFgi6KKcdCVmQHE8WqwQfYchlr8+VaNYWHfEEZHhoLZEfcwfcIzhpzUHAKZS9JKZJCjK9yhHbbi7gfCE3SiusHzidMZKVxJSp4zxTXNvcyxag1U2f7oGmFgUpFlt+htSpMSvaLeRIH27t8M4oJtIQZNQcmUS3WgLVHMjvhbZXJX4r+5ueWZsGxctEDtKD2DahBZ8s76U1/8vlwGem08/6bHMhT1xr6pnphbkt1h9zGxrp0eGR8HwiD3Z0fVMIE6VppDMjh7NaryJQDtcy6qd0iksIHf3z/e/iEZ/oKmfSVmJgDtr0cxnTO5zfuNHTqoNkN9rLcNO1TzZerrTgdUD628s9JHmLS2ZIPORGECReDw0sy6VPknGERxLGpvtAyw=
+  template:
+    metadata:
+      creationTimestamp: null
+      name: home-assistant-token
+      namespace: default
