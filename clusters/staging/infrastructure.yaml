@@ -48,3 +48,21 @@ spec:
   path: ./infrastructure/staging/ghcr.io-creds
   prune: true
   wait: true
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cloudflared
+  namespace: default
+spec:
+  interval: 1h
+  retryInterval: 1m
+  timeout: 5m
+  dependsOn:
+    - name: sealed-secrets
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./infrastructure/staging/cloudflared
+  prune: true
+  wait: true
