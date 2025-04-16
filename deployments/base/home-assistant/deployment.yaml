@@ -12,10 +12,7 @@ spec:
   volumes:
     - name: home-assistant-config
       persistentVolumeClaim:
-        claimName: home-assistant-config  
-    - name: home-assistant-app-daemon-config
-      persistentVolumeClaim:
-        claimName: home-assistant-app-daemon-config
+        claimName: home-assistant-config
   containers:
     - name: home-assistant
       image: homeassistant/home-assistant:2025.4.1
@@ -68,7 +65,7 @@ spec:
 apiVersion: v1
 kind: Deployment
 metadata:
-  name: home-assistant
+  name: home-assistant-app-daemon
   namespace: default
   labels:
     name: home-assistant
