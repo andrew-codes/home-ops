@@ -36,6 +36,24 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
+  name: grafana
+  namespace: default
+spec:
+  dependsOn:
+    - name: metrics
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/staging/grafana
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
   name: home-assistant
   namespace: default
 spec:
@@ -48,6 +66,23 @@ spec:
     kind: GitRepository
     name: default
   path: ./deployments/staging/home-assistant
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: metrics
+  namespace: default
+spec:
+  dependsOn:
+    - name: nfs-provisioner
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/staging/metrics
   prune: true
   wait: true
   timeout: 5m0s
