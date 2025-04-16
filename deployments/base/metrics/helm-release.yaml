@@ -98,7 +98,7 @@ spec:
     extraVolumes:
       - name: ha-bearer-token
         secret:
-          secretName: home-assistant-token\
+          secretName: home-assistant-token
     extraVolumeMounts:
       - name: ha-bearer-token
         mountPath: /etc/secrets/ha-bearer-token
