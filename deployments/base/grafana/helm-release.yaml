@@ -10,7 +10,7 @@ spec:
       chart: grafana
       sourceRef:
         kind: HelmRepository
-        name: vm
+        name: grafana
       version: 1.21.0
   interval: 1m0s
   values:
