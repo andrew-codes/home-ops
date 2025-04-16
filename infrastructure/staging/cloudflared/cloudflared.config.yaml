@@ -5,17 +5,17 @@ metadata:
   namespace: default
 data:
   config.yaml: |-
-    tunnel: ""
+    tunnel: "0f8b4e42-68b1-4058-b159-6a39136ce6f8"
     credentials-file: "/etc/cloudflared/creds/credentials.json"
     ingress:
-      - hostname: "staging.ha.smith-simms.family"
+      - hostname: "staging-ha.smith-simms.family"
         service: "http://home-assistant:8123"
-      - hostname: "staging.games.smith-simms.family"
+      - hostname: "staging-games.smith-simms.family"
         service: "http://playnite-web-app:3000"
-      - hostname: "staging.grafana.smith-simms.family"
+      - hostname: "staging-grafana.smith-simms.family"
         service: "http://grafana"
-      - hostname: "staging.docs.smith-simms.family"
+      - hostname: "staging-docs.smith-simms.family"
         service: "http://docs:80"
-      - hostname: "staging.adr.smith-simms.family"
+      - hostname: "staging-adr.smith-simms.family"
         service: "http://docs-adr:80"
       - service: "http_status:404"
