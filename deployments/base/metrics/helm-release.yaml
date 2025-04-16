@@ -40,7 +40,8 @@ spec:
   replicationFactor: 1
 
   vmstorage:
-    podAnnotations:
+    podMetadata:
+      annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8482"
     replicaCount: 1
@@ -76,7 +77,8 @@ spec:
             mountPath: /vmstorage-data
 
   vmselect:
-    podAnnotations:
+    podMetadata:
+      annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8481"
     replicaCount: 1
@@ -85,7 +87,8 @@ spec:
       tag: v1.115.0
 
   vminsert:
-    podAnnotations:
+    podMetadata:
+      annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8480"
     replicaCount: 1
