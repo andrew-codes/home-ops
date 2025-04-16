@@ -30,7 +30,7 @@ spec:
           configMap:
             name: cloudflared-config
             items:
-              - key: cloudflared.yaml
+              - key: config.yaml
                 path: cloudflared.yaml
         - name: creds
           secret:
