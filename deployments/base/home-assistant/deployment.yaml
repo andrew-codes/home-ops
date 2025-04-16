@@ -39,18 +39,6 @@ spec:
       env:
         - name: PORT
           value: "8123"
-        - name: DEBUG
-        - name: MQTT_HOST
-          value: mqtt
-        - name: MQTT_PORT
-          value: "1883"
-        - name: HOME_ASSISTANT_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: home-assistant-token
-              key: token
-        - name: HOME_ASSISTANT_SERVER
-          value: https://ha.smith-simms.family
       volumeMounts:
         - name: home-assistant-config
           mountPath: /config
