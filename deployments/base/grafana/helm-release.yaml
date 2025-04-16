@@ -11,7 +11,7 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: vm
-      version: 9.18.2
+      version: 1.21.0
   interval: 1m0s
   values:
     admin:
