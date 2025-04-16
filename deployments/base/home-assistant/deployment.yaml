@@ -17,7 +17,7 @@ spec:
   initContainers:
     - name: home-assistant-app-daemon-apps
       image: >-
-        ghcr.io/andrew-codes/home-automation-home-assistant-app-daemon-apps:latest
+        ghcr.io/andrew-codes/home-assistant-app-daemon:latest
       command:
         - sh
       args:
