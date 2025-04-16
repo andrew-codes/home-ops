@@ -95,19 +95,19 @@ spec:
       version: 0.18.0
   interval: 1m0s
   values:
+    extraVolumes:
+      - name: ha-bearer-token
+        secret:
+          secretName: home-assistant-token\
+    extraVolumeMounts:
+      - name: ha-bearer-token
+        mountPath: /etc/secrets/ha-bearer-token
+        readOnly: true
     remoteWrite:
       - url: "http://vminsert-vmcluster.default.svc.cluster.local:8480/insert/0/prometheus/"
     config:
       global:
         scrape_interval: "10s"
-      extraVolumes:
-        - name: ha-bearer-token
-          secret:
-            secretName: home-assistant-token\
-      extraVolumeMounts:
-        - name: ha-bearer-token
-          mountPath: /etc/secrets/ha-bearer-token
-          readOnly: true
       scrape_configs:
         - job_name: "hass"
           scrape_interval: "60s"
