@@ -17,12 +17,17 @@ interface DockerClient {
 const createClient = async (
   configurationApi: ConfigurationApi<Configuration>,
 ): Promise<DockerClient> => {
-  const username = configurationApi.get("github/username")
+  const username = await configurationApi.get("github/username")
   const registryScope = "ghcr.io"
   const repo = "home-ops"
 
   return {
     build: async (name, options = {}) => {
+      console.debug(
+        `docker buildx build --build-arg OWNER=${username} --build-arg REPO=${repo} --load --platform linux/amd64 -t ${registryScope}/${username}/${name} ${
+          options.context ?? process.cwd()
+        } -f ${options.dockerFile ?? "Dockerfile"};`,
+      )
       await throwIfError(
         sh.exec(
           `docker buildx build --build-arg OWNER=${username} --build-arg REPO=${repo} --load --platform linux/amd64 -t ${registryScope}/${username}/${name} ${
