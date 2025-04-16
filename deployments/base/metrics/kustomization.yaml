@@ -3,4 +3,7 @@ kind: Kustomization
 namespace: default
 resources:
   - services.yaml
+  - volumes.yaml
+  - helm-source.yaml
+  - helm-release.yaml
 
