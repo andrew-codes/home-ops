@@ -16,19 +16,6 @@ spec:
     - name: home-assistant-app-daemon-config
       persistentVolumeClaim:
         claimName: home-assistant-app-daemon-config
-  initContainers:
-    - name: home-assistant-app-daemon-apps
-      image: >-
-        ghcr.io/andrew-codes/home-assistant-app-daemon:latest
-      command:
-        - sh
-      args:
-        - '-c'
-        - rsync -tr --delete /opt/apps /conf
-      volumeMounts:
-        - name: home-assistant-app-daemon-config
-          mountPath: /conf
-      imagePullPolicy: Always
   containers:
     - name: home-assistant
       image: homeassistant/home-assistant:2025.4.1
@@ -77,6 +64,38 @@ spec:
       securityContext:
         privileged: true
         allowPrivilegeEscalation: true
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: home-assistant
+  namespace: default
+  labels:
+    name: home-assistant
+spec:
+  imagePullSecrets:
+    - name: regcred
+  volumes:
+    - name: home-assistant-config
+      persistentVolumeClaim:
+        claimName: home-assistant-config  
+    - name: home-assistant-app-daemon-config
+      persistentVolumeClaim:
+        claimName: home-assistant-app-daemon-config
+  initContainers:
+    - name: home-assistant-app-daemon-apps
+      image: >-
+        ghcr.io/andrew-codes/home-assistant-app-daemon:latest
+      command:
+        - sh
+      args:
+        - '-c'
+        - rsync -tr --delete /opt/apps /conf
+      volumeMounts:
+        - name: home-assistant-app-daemon-config
+          mountPath: /conf
+      imagePullPolicy: Always
+  containers:
     - name: home-assistant-app-daemon
       image: acockburn/appdaemon:4.4.2
       ports:
@@ -91,6 +110,16 @@ spec:
           value: mqtt
         - name: MQTT_PORT
           value: "1883"
+        - name: MQTT_USER
+          valueFrom:
+            secretKeyRef:
+              name: mqtt-credentials
+              key: username
+        - name: MQTT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mqtt-credentials
+              key: password
         - name: TOKEN
           valueFrom:
             secretKeyRef:
