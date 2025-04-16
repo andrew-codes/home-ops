@@ -11,7 +11,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: default
-  path: ./infrastructure/nfs/staging
+  path: ./infrastructure/staging/nfs
   prune: true
   wait: true
 ---
@@ -27,7 +27,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: default
-  path: ./infrastructure/sealed-secrets
+  path: ./infrastructure/staging/sealed-secrets
   prune: true
   wait: true
 ---
@@ -45,6 +45,6 @@ spec:
   sourceRef:
     kind: GitRepository
     name: default
-  path: ./infrastructure/ghcr.io-creds
+  path: ./infrastructure/staging/ghcr.io-creds
   prune: true
   wait: true

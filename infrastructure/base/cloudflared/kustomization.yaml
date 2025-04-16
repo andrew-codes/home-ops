@@ -1,7 +1,5 @@
 namespace: default
 resources:
-  - tunnel-credentials-sealed.yaml
-  - cloudflared-config.yaml
   - deployment.yaml
 
 patches:
