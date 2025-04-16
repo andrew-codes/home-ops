@@ -1,0 +1,7 @@
+---
+title: Deploying Apps
+---
+
+# Deploying Apps
+
+Apps are declaratively deployed to a cluster using FluxCD. Each environment has its own FluxCD configuration. The configuration is stored in the `./clusters/${ENV}` directory. The configuration is used to deploy the applications to the K8s cluster. Within the `./clusters/${ENV}` directory, there are two areas of deployment: infrastructure and applications. Infrastructure contains common resources that are shared across all applications. These are all located in `./infrastructure`. The `apps.yaml` file contains a list of all applications to be deployed to the cluster. Each app points to a deployment found in the `./deployments/${ENV}` directory. Additionally, there is a `./deployments/base` directory that contains the base (common) configuration for each app in all environments. The base configuration is used to generate the environment-specific configuration.
