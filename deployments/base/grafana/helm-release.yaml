@@ -16,7 +16,7 @@ spec:
   values:
     admin:
       existingSecret: grafana-admin
-      userKey: admin-user
+      userKey: admin
       passwordKey: admin-password
     datasources:
       datasources.yaml:
@@ -58,269 +58,269 @@ spec:
           gnetId: 14205
           revision: 1
           datasource: victoriametrics
-      # proxmox:
-      #   __inputs: []
-      #   __elements: {}
-      #   __requires:
-      #     - type: grafana
-      #       id: grafana
-      #       name: Grafana
-      #       version: "11.0.0"
-      #     - type: datasource
-      #       id: prometheus
-      #       name: Prometheus
-      #       version: "1.0.0"
-      #     - type: panel
-      #       id: table
-      #       name: Table
-      #       version: ""
-      #     - type: panel
-      #       id: timeseries
-      #       name: Time series
-      #       version: ""
-      #   annotations:
-      #     list:
-      #       - builtIn: 1
-      #         datasource:
-      #           type: datasource
-      #           uid: grafana
-      #         enable: true
-      #         hide: true
-      #         iconColor: rgba(0, 211, 255, 1)
-      #         name: Annotations & Alerts
-      #         target:
-      #           limit: 100
-      #           matchAny: false
-      #           tags: []
-      #           type: dashboard
-      #         type: dashboard
-      #   editable: true
-      #   fiscalYearStartMonth: 0
-      #   graphTooltip: 0
-      #   id: null
-      #   links:
-      #     - asDropdown: true
-      #       icon: external link
-      #       includeVars: false
-      #       keepTime: true
-      #       tags:
-      #         - proxmox
-      #       targetBlank: true
-      #       title: Proxmox
-      #       tooltip: ""
-      #       type: dashboards
-      #       url: ""
-      #   liveNow: false
-      #   panels:
-      #     - datasource: victoriametrics
-      #       fieldConfig:
-      #         defaults:
-      #           color:
-      #             mode: thresholds
-      #           custom:
-      #             align: auto
-      #             cellOptions:
-      #               type: auto
-      #             filterable: true
-      #             inspect: false
-      #           mappings: []
-      #           thresholds:
-      #             mode: absolute
-      #             steps:
-      #               - color: green
-      #                 value: null
-      #               - color: red
-      #                 value: 80
-      #           unit: dtdhms
-      #         overrides:
-      #           - matcher:
-      #               id: byName
-      #               options: CPU Usage
-      #             properties:
-      #               - id: unit
-      #                 value: percentunit
-      #               - id: custom.cellOptions
-      #                 value:
-      #                   type: color-background
-      #               - id: thresholds
-      #                 value:
-      #                   mode: absolute
-      #                   steps:
-      #                     - color: green
-      #                       value: null
-      #                     - color: "#EAB839"
-      #                       value: 0.7
-      #                     - color: red
-      #                       value: 0.9
-      #       gridPos:
-      #         h: 8
-      #         w: 11
-      #         x: 0
-      #         y: 0
-      #       id: 25
-      #       options:
-      #         cellHeight: sm
-      #         footer:
-      #           countRows: false
-      #           fields: ""
-      #           reducer:
-      #             - sum
-      #           show: false
-      #         frameIndex: 0
-      #         showHeader: true
-      #       pluginVersion: "11.0.0"
-      #       targets:
-      #         - datasource: victoriametrics
-      #           editorMode: code
-      #           exemplar: false
-      #           expr: system_uptime{object=~"nodes",host=~"$node"}
-      #           format: table
-      #           instant: true
-      #           interval: ""
-      #           legendFormat: "{{host}}"
-      #           range: false
-      #           refId: A
-      #         - datasource: victoriametrics
-      #           editorMode: code
-      #           exemplar: false
-      #           expr: cpustat_cpu{object="nodes",host=~"$node"}
-      #           format: table
-      #           hide: false
-      #           instant: true
-      #           legendFormat: __auto
-      #           range: false
-      #           refId: B
-      #         - datasource: victoriametrics
-      #           editorMode: code
-      #           exemplar: false
-      #           expr: memory_memused{object="nodes",host=~"$node"} / memory_memtotal{object="nodes",host=~"$node"}
-      #           format: table
-      #           hide: false
-      #           instant: true
-      #           legendFormat: __auto
-      #           range: false
-      #           refId: C
-      #         - datasource: victoriametrics
-      #           editorMode: code
-      #           exemplar: false
-      #           expr: memory_memtotal{object="nodes",host=~"$node"}
-      #           format: table
-      #           hide: false
-      #           instant: true
-      #           legendFormat: __auto
-      #           range: false
-      #           refId: D
-      #         - datasource: victoriametrics
-      #           editorMode: code
-      #           exemplar: false
-      #           expr: cpustat_cpus{object="nodes",host=~"$node"}
-      #           format: table
-      #           hide: false
-      #           instant: true
-      #           legendFormat: __auto
-      #           range: false
-      #           refId: E
-      #       title: Uptime
-      #       transformations:
-      #         - id: joinByField
-      #           options:
-      #             byField: host
-      #             mode: outer
-      #         - id: organize
-      #           options:
-      #             excludeByName:
-      #               Time 1: true
-      #               Time 2: true
-      #               Time 3: true
-      #               Time 4: true
-      #               Time 5: true
-      #               __name__ 1: true
-      #               __name__ 2: true
-      #               __name__ 3: true
-      #               __name__ 4: true
-      #               object 1: true
-      #               object 2: true
-      #               object 3: true
-      #               object 4: true
-      #               object 5: true
-      #             includeByName: {}
-      #             indexByName:
-      #               Time 1: 7
-      #               Time 2: 9
-      #               Time 3: 12
-      #               Time 4: 14
-      #               Time 5: 17
-      #               "Value #A": 1
-      #               "Value #B": 5
-      #               "Value #C": 3
-      #               "Value #D": 2
-      #               "Value #E": 4
-      #               __name__ 1: 6
-      #               __name__ 2: 10
-      #               __name__ 3: 15
-      #               __name__ 4: 18
-      #               host: 0
-      #               object 1: 8
-      #               object 2: 11
-      #               object 3: 13
-      #               object 4: 16
-      #               object 5: 19
-      #             renameByName:
-      #               Field: Node
-      #               Last *: Uptime
-      #               "Value #A": uptime
-      #               "Value #B": CPU Usage
-      #               "Value #C": memory usage
-      #               "Value #D": memory
-      #               "Value #E": CPUs
-      #               __name__ 1: ""
-      #   refresh: ""
-      #   schemaVersion: 39
-      #   tags:
-      #     - proxmox
-      #   templating:
-      #     list:
-      #       - current: {}
-      #         datasource: victoriametrics
-      #         definition: label_values(cpustat_idle{object="nodes"},host)
-      #         hide: 0
-      #         includeAll: true
-      #         multi: true
-      #         name: node
-      #         options: []
-      #         query:
-      #           query: label_values(cpustat_idle{object="nodes"},host)
-      #           refId: StandardVariableQuery
-      #         refresh: 1
-      #         regex: ""
-      #         skipUrlSync: false
-      #         sort: 0
-      #         type: query
-      #       - current: {}
-      #         datasource: victoriametrics
-      #         definition: label_values(system_cpu{object=~"lxc|qemu", nodename=~"$node"},host)
-      #         hide: 0
-      #         includeAll: true
-      #         multi: true
-      #         name: guest
-      #         options: []
-      #         query:
-      #           qryType: 1
-      #           query: label_values(system_cpu{object=~"lxc|qemu", nodename=~"$node"},host)
-      #           refId: PrometheusVariableQueryEditor-VariableQuery
-      #         refresh: 1
-      #         regex: ""
-      #         skipUrlSync: false
-      #         sort: 0
-      #         type: query
-      #   time:
-      #     from: now-24h
-      #     to: now
-      #   timeRangeUpdatedDuringEditOrView: false
-      #   timepicker: {}
-      #   timezone: ""
-      #   title: Proxmox metrics
-      #   uid: CcDBg5Knk
-      #   version: 12
-      #   weekStart: ""
-      #   gnetId: 16060
+      proxmox:
+        __inputs: []
+        __elements: {}
+        __requires:
+          - type: grafana
+            id: grafana
+            name: Grafana
+            version: "11.0.0"
+          - type: datasource
+            id: prometheus
+            name: Prometheus
+            version: "1.0.0"
+          - type: panel
+            id: table
+            name: Table
+            version: ""
+          - type: panel
+            id: timeseries
+            name: Time series
+            version: ""
+        annotations:
+          list:
+            - builtIn: 1
+              datasource:
+                type: datasource
+                uid: grafana
+              enable: true
+              hide: true
+              iconColor: rgba(0, 211, 255, 1)
+              name: Annotations & Alerts
+              target:
+                limit: 100
+                matchAny: false
+                tags: []
+                type: dashboard
+              type: dashboard
+        editable: true
+        fiscalYearStartMonth: 0
+        graphTooltip: 0
+        id: null
+        links:
+          - asDropdown: true
+            icon: external link
+            includeVars: false
+            keepTime: true
+            tags:
+              - proxmox
+            targetBlank: true
+            title: Proxmox
+            tooltip: ""
+            type: dashboards
+            url: ""
+        liveNow: false
+        panels:
+          - datasource: victoriametrics
+            fieldConfig:
+              defaults:
+                color:
+                  mode: thresholds
+                custom:
+                  align: auto
+                  cellOptions:
+                    type: auto
+                  filterable: true
+                  inspect: false
+                mappings: []
+                thresholds:
+                  mode: absolute
+                  steps:
+                    - color: green
+                      value: null
+                    - color: red
+                      value: 80
+                unit: dtdhms
+              overrides:
+                - matcher:
+                    id: byName
+                    options: CPU Usage
+                  properties:
+                    - id: unit
+                      value: percentunit
+                    - id: custom.cellOptions
+                      value:
+                        type: color-background
+                    - id: thresholds
+                      value:
+                        mode: absolute
+                        steps:
+                          - color: green
+                            value: null
+                          - color: "#EAB839"
+                            value: 0.7
+                          - color: red
+                            value: 0.9
+            gridPos:
+              h: 8
+              w: 11
+              x: 0
+              y: 0
+            id: 25
+            options:
+              cellHeight: sm
+              footer:
+                countRows: false
+                fields: ""
+                reducer:
+                  - sum
+                show: false
+              frameIndex: 0
+              showHeader: true
+            pluginVersion: "11.0.0"
+            targets:
+              - datasource: victoriametrics
+                editorMode: code
+                exemplar: false
+                expr: system_uptime{object=~"nodes",host=~"$node"}
+                format: table
+                instant: true
+                interval: ""
+                legendFormat: "{{host}}"
+                range: false
+                refId: A
+              - datasource: victoriametrics
+                editorMode: code
+                exemplar: false
+                expr: cpustat_cpu{object="nodes",host=~"$node"}
+                format: table
+                hide: false
+                instant: true
+                legendFormat: __auto
+                range: false
+                refId: B
+              - datasource: victoriametrics
+                editorMode: code
+                exemplar: false
+                expr: memory_memused{object="nodes",host=~"$node"} / memory_memtotal{object="nodes",host=~"$node"}
+                format: table
+                hide: false
+                instant: true
+                legendFormat: __auto
+                range: false
+                refId: C
+              - datasource: victoriametrics
+                editorMode: code
+                exemplar: false
+                expr: memory_memtotal{object="nodes",host=~"$node"}
+                format: table
+                hide: false
+                instant: true
+                legendFormat: __auto
+                range: false
+                refId: D
+              - datasource: victoriametrics
+                editorMode: code
+                exemplar: false
+                expr: cpustat_cpus{object="nodes",host=~"$node"}
+                format: table
+                hide: false
+                instant: true
+                legendFormat: __auto
+                range: false
+                refId: E
+            title: Uptime
+            transformations:
+              - id: joinByField
+                options:
+                  byField: host
+                  mode: outer
+              - id: organize
+                options:
+                  excludeByName:
+                    Time 1: true
+                    Time 2: true
+                    Time 3: true
+                    Time 4: true
+                    Time 5: true
+                    __name__ 1: true
+                    __name__ 2: true
+                    __name__ 3: true
+                    __name__ 4: true
+                    object 1: true
+                    object 2: true
+                    object 3: true
+                    object 4: true
+                    object 5: true
+                  includeByName: {}
+                  indexByName:
+                    Time 1: 7
+                    Time 2: 9
+                    Time 3: 12
+                    Time 4: 14
+                    Time 5: 17
+                    "Value #A": 1
+                    "Value #B": 5
+                    "Value #C": 3
+                    "Value #D": 2
+                    "Value #E": 4
+                    __name__ 1: 6
+                    __name__ 2: 10
+                    __name__ 3: 15
+                    __name__ 4: 18
+                    host: 0
+                    object 1: 8
+                    object 2: 11
+                    object 3: 13
+                    object 4: 16
+                    object 5: 19
+                  renameByName:
+                    Field: Node
+                    Last *: Uptime
+                    "Value #A": uptime
+                    "Value #B": CPU Usage
+                    "Value #C": memory usage
+                    "Value #D": memory
+                    "Value #E": CPUs
+                    __name__ 1: ""
+        refresh: ""
+        schemaVersion: 39
+        tags:
+          - proxmox
+        templating:
+          list:
+            - current: {}
+              datasource: victoriametrics
+              definition: label_values(cpustat_idle{object="nodes"},host)
+              hide: 0
+              includeAll: true
+              multi: true
+              name: node
+              options: []
+              query:
+                query: label_values(cpustat_idle{object="nodes"},host)
+                refId: StandardVariableQuery
+              refresh: 1
+              regex: ""
+              skipUrlSync: false
+              sort: 0
+              type: query
+            - current: {}
+              datasource: victoriametrics
+              definition: label_values(system_cpu{object=~"lxc|qemu", nodename=~"$node"},host)
+              hide: 0
+              includeAll: true
+              multi: true
+              name: guest
+              options: []
+              query:
+                qryType: 1
+                query: label_values(system_cpu{object=~"lxc|qemu", nodename=~"$node"},host)
+                refId: PrometheusVariableQueryEditor-VariableQuery
+              refresh: 1
+              regex: ""
+              skipUrlSync: false
+              sort: 0
+              type: query
+        time:
+          from: now-24h
+          to: now
+        timeRangeUpdatedDuringEditOrView: false
+        timepicker: {}
+        timezone: ""
+        title: Proxmox metrics
+        uid: CcDBg5Knk
+        version: 12
+        weekStart: ""
+        gnetId: 16060
