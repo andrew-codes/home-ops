@@ -14,22 +14,6 @@ spec:
       version: 0.44.0
   interval: 1m0s
 ---
-apiVersion: helm.toolkit.fluxcd.io/v2
-kind: HelmRelease
-metadata:
-  name: vmcluster
-  namespace: default
-spec:
-  chart:
-    spec:
-      chart: victoria-metrics-cluster
-      sourceRef:
-        kind: HelmRepository
-        name: vm
-      version: 0.20.0
-  interval: 1m0s
-  values: {}
----
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMCluster
 metadata:
