@@ -11,7 +11,7 @@ data:
       - hostname: "staging-ha.smith-simms.family"
         service: "http://home-assistant:8123"
       - hostname: "staging-games.smith-simms.family"
-        service: "http://playnite-web-app:3000"
+        service: "http://playnite-web:3000"
       - hostname: "staging-grafana.smith-simms.family"
         service: "http://grafana"
       - hostname: "staging-docs.smith-simms.family"
