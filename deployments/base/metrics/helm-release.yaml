@@ -47,7 +47,7 @@ spec:
     replicaCount: 1
     image:
       repository: victoriametrics/vmstorage
-      tag: v1.112.0-cluster
+      tag: v1.115.0-cluster
     volumeMounts:
       - name: vmstorage-data
         mountPath: /vmstorage-data
@@ -84,7 +84,7 @@ spec:
     replicaCount: 1
     image:
       repository: victoriametrics/vmselect
-      tag: v1.115.0
+      tag: v1.115.0-cluster
 
   vminsert:
     podMetadata:
@@ -94,7 +94,7 @@ spec:
     replicaCount: 1
     image:
       repository: victoriametrics/vminsert
-      tag: v1.115.0
+      tag: v1.115.0-cluster
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
