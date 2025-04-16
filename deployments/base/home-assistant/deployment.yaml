@@ -4,161 +4,173 @@ kind: Deployment
 metadata:
   name: home-assistant
   namespace: default
-  labels:
-    name: home-assistant
 spec:
-  imagePullSecrets:
-    - name: regcred
-  volumes:
-    - name: home-assistant-config
-      persistentVolumeClaim:
-        claimName: home-assistant-config
-  containers:
-    - name: home-assistant
-      image: homeassistant/home-assistant:2025.4.1
-      ports:
-        - name: http
-          containerPort: 8123
-          protocol: TCP
-      env:
-        - name: PORT
-          value: "8123"
-      volumeMounts:
+  selector:
+    matchLabels:
+      name: home-assistant
+  template:
+    metadata:
+      labels:
+        name: home-assistant
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      volumes:
         - name: home-assistant-config
-          mountPath: /config
-      livenessProbe:
-        httpGet:
-          path: /
-          port: http
-          scheme: HTTP
-        initialDelaySeconds: 60
-        timeoutSeconds: 10
-        periodSeconds: 10
-        successThreshold: 1
-        failureThreshold: 5
-      readinessProbe:
-        httpGet:
-          path: /
-          port: http
-          scheme: HTTP
-        initialDelaySeconds: 60
-        timeoutSeconds: 10
-        periodSeconds: 10
-        successThreshold: 1
-        failureThreshold: 5
-      startupProbe:
-        httpGet:
-          path: /
-          port: http
-          scheme: HTTP
-        timeoutSeconds: 1
-        periodSeconds: 10
-        successThreshold: 1
-        failureThreshold: 30
-      terminationMessagePath: /dev/termination-log
-      terminationMessagePolicy: File
-      imagePullPolicy: Always
-      securityContext:
-        privileged: true
-        allowPrivilegeEscalation: true
+          persistentVolumeClaim:
+            claimName: home-assistant-config
+      containers:
+        - name: home-assistant
+          image: homeassistant/home-assistant:2025.4.1
+          ports:
+            - name: http
+              containerPort: 8123
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "8123"
+          volumeMounts:
+            - name: home-assistant-config
+              mountPath: /config
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 30
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+            allowPrivilegeEscalation: true
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: home-assistant-app-daemon
   namespace: default
-  labels:
-    name: home-assistant
 spec:
-  imagePullSecrets:
-    - name: regcred
-  volumes:
-    - name: home-assistant-config
-      persistentVolumeClaim:
-        claimName: home-assistant-config  
-    - name: home-assistant-app-daemon-config
-      persistentVolumeClaim:
-        claimName: home-assistant-app-daemon-config
-  initContainers:
-    - name: home-assistant-app-daemon-apps
-      image: >-
-        ghcr.io/andrew-codes/home-assistant-app-daemon:latest
-      command:
-        - sh
-      args:
-        - '-c'
-        - rsync -tr --delete /opt/apps /conf
-      volumeMounts:
-        - name: home-assistant-app-daemon-config
-          mountPath: /conf
-      imagePullPolicy: Always
-  containers:
-    - name: home-assistant-app-daemon
-      image: acockburn/appdaemon:4.4.2
-      ports:
-        - name: http
-          containerPort: 5050
-          protocol: TCP
-      env:
-        - name: PORT
-          value: "5050"
-        - name: DEBUG
-        - name: MQTT_HOST
-          value: mqtt
-        - name: MQTT_PORT
-          value: "1883"
-        - name: MQTT_USER
-          valueFrom:
-            secretKeyRef:
-              name: mqtt-credentials
-              key: username
-        - name: MQTT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mqtt-credentials
-              key: password
-        - name: TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: home-assistant-token
-              key: token
-        - name: HA_URL
-          value: https://ha.smith-simms.family
-      volumeMounts:
-        - name: home-assistant-app-daemon-config
-          mountPath: /conf
+  selector:
+    matchLabels:
+      name: home-assistant-app-daemon
+  template:
+    metadata:
+      labels:
+        name: home-assistant-app-daemon
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      volumes:
         - name: home-assistant-config
-          mountPath: /config
-      livenessProbe:
-        httpGet:
-          path: /
-          port: http
-          scheme: HTTP
-        initialDelaySeconds: 60
-        timeoutSeconds: 10
-        periodSeconds: 10
-        successThreshold: 1
-        failureThreshold: 5
-      readinessProbe:
-        httpGet:
-          path: /
-          port: http
-          scheme: HTTP
-        initialDelaySeconds: 60
-        timeoutSeconds: 10
-        periodSeconds: 10
-        successThreshold: 1
-        failureThreshold: 5
-      startupProbe:
-        httpGet:
-          path: /
-          port: http
-          scheme: HTTP
-        timeoutSeconds: 1
-        periodSeconds: 10
-        successThreshold: 1
-        failureThreshold: 30
-      terminationMessagePath: /dev/termination-log
-      terminationMessagePolicy: File
-      imagePullPolicy: Always
-  restartPolicy: Always
+          persistentVolumeClaim:
+            claimName: home-assistant-config  
+        - name: home-assistant-app-daemon-config
+          persistentVolumeClaim:
+            claimName: home-assistant-app-daemon-config
+      initContainers:
+        - name: home-assistant-app-daemon-apps
+          image: >-
+            ghcr.io/andrew-codes/home-assistant-app-daemon:latest
+          command:
+            - sh
+          args:
+            - '-c'
+            - rsync -tr --delete /opt/apps /conf
+          volumeMounts:
+            - name: home-assistant-app-daemon-config
+              mountPath: /conf
+          imagePullPolicy: Always
+      containers:
+        - name: home-assistant-app-daemon
+          image: acockburn/appdaemon:4.4.2
+          ports:
+            - name: http
+              containerPort: 5050
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "5050"
+            - name: DEBUG
+            - name: MQTT_HOST
+              value: mqtt
+            - name: MQTT_PORT
+              value: "1883"
+            - name: MQTT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mqtt-credentials
+                  key: username
+            - name: MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mqtt-credentials
+                  key: password
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: home-assistant-token
+                  key: token
+            - name: HA_URL
+              value: https://ha.smith-simms.family
+          volumeMounts:
+            - name: home-assistant-app-daemon-config
+              mountPath: /conf
+            - name: home-assistant-config
+              mountPath: /config
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 30
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+      restartPolicy: Always
