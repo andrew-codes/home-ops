@@ -7,7 +7,7 @@ metadata:
 spec:
   chart:
     spec:
-      chart: vm/victoria-metrics-operator
+      chart: victoria-metrics-operator
       sourceRef:
         kind: HelmRepository
         name: vm
@@ -22,7 +22,7 @@ metadata:
 spec:
   chart:
     spec:
-      chart: vm/victoria-metrics-cluster
+      chart: victoria-metrics-cluster
       sourceRef:
         kind: HelmRepository
         name: vm
@@ -81,7 +81,7 @@ metadata:
 spec:
   chart:
     spec:
-      chart: vm/victoria-metrics-agent
+      chart: victoria-metrics-agent
       sourceRef:
         kind: HelmRepository
         name: vm
