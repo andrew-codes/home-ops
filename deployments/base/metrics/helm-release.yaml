@@ -47,7 +47,7 @@ spec:
     replicaCount: 1
     image:
       repository: victoriametrics/vmstorage
-      tag: v1.115.0
+      tag: v1.112.0
     volumeMounts:
       - name: vmstorage-data
         mountPath: /vmstorage-data
