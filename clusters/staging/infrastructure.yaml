@@ -60,6 +60,7 @@ spec:
   timeout: 5m
   dependsOn:
     - name: sealed-secrets
+    - name: secrets
   sourceRef:
     kind: GitRepository
     name: default

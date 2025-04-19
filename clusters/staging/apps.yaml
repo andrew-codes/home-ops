@@ -40,6 +40,8 @@ metadata:
   namespace: default
 spec:
   dependsOn:
+    - name: sealed-secrets
+    - name: secrets
     - name: metrics
   interval: 10m0s
   sourceRef:
@@ -60,6 +62,7 @@ spec:
   dependsOn:
     - name: nfs-provisioner
     - name: sealed-secrets
+    - name: secrets
     - name: regcred
   interval: 10m0s
   sourceRef:
@@ -96,6 +99,7 @@ spec:
   dependsOn:
     - name: nfs-provisioner
     - name: sealed-secrets
+    - name: secrets
   interval: 10m0s
   sourceRef:
     kind: GitRepository
@@ -114,6 +118,7 @@ spec:
   dependsOn:
     - name: nfs-provisioner
     - name: sealed-secrets
+    - name: secrets
     - name: mqtt
   interval: 10m0s
   sourceRef:
@@ -133,6 +138,7 @@ spec:
   dependsOn:
     - name: nfs-provisioner
     - name: sealed-secrets
+    - name: secrets
     - name: mqtt
   interval: 10m0s
   sourceRef:
