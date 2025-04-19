@@ -22,7 +22,6 @@ const createEnvConfigurationApi = <TSecretNames extends ReadonlyArray<string>>(
 }
 
 const provisionedSecretNames = [
-  "code-cov/token",
   "dev/ssh-key/public",
   "env",
   "github/username",
@@ -45,13 +44,24 @@ const provisionedSecretNames = [
   "tailscale/ip",
   "tailscale/subnet-routes",
   "unifi/ip",
-  "unifi/ip",
 ] as const
 const provisionedEnvConfiguration = createEnvConfigurationApi(
   provisionedSecretNames,
 )
 
-const sealedSecretNames = ["test"] as const
+const sealedSecretNames = [
+  "mqtt-credentials/username",
+  "mqtt-credentials/password",
+  "grafana-admin/admin",
+  "grafana-admin/admin-password",
+  "mqtt-passwd/mqtt_passwd",
+  "tunnel-credentials/credentials.json",
+  "home-assistant-token/token",
+  "playnite-web-credentials/username",
+  "playnite-web-credentials/password",
+  "psn-accounts/accounts",
+  "regcred/.dockerconfigjson",
+] as const
 const sealedSecretEnvConfiguration =
   createEnvConfigurationApi(sealedSecretNames)
 
