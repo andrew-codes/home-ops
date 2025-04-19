@@ -55,7 +55,7 @@ const sealedSecretNames = [
   "home-assistant-token/token",
   "mqtt-credentials/password",
   "mqtt-credentials/username",
-  "mqtt-passwd/mqtt_passwd",
+  "mqtt-passwd/passwd",
   "playnite-web-credentials/password",
   "playnite-web-credentials/username",
   "psn-accounts/accounts",
