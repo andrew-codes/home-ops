@@ -4,24 +4,25 @@ import type { Configuration } from "@ha/configuration-workspace"
 import { logger } from "@ha/logger"
 import * as terraform from "@ha/terraform"
 import path from "path"
+import { v4 as uuid } from "uuid"
 import deploy from "./deploy"
 
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
 ): Promise<void> => {
   logger.info("Provisioning Pi-hole")
-  const ip1 = (await configurationApi.get("tailscale/ip")).value
-  const gateway = (await configurationApi.get("unifi/ip")).value
-  const pveHost = (await configurationApi.get("proxmox/host/pve")).value
-  const pmUsername = (await configurationApi.get("proxmox/username")).value
-  const pmPassword = (await configurationApi.get("proxmox/password")).value
-  const hostname = (await configurationApi.get("tailscale/hostname")).value
-  const nameserver = (await configurationApi.get("proxmox/nameserver")).value
-  const proxmoxSshKey = (await configurationApi.get("proxmox/ssh-key/public"))
-    .value
-  const devSshKey = (await configurationApi.get("dev/ssh-key/public")).value
-  const haSshKey = (await configurationApi.get("home-assistant/ssh-key/public"))
-    .value
+  const ip1 = await configurationApi.get("tailscale/ip")
+  const gateway = await configurationApi.get("unifi/ip")
+  const pveHost = await configurationApi.get("proxmox/host/pve")
+  const pmUsername = await configurationApi.get("proxmox/username")
+  const pmPassword = await configurationApi.get("proxmox/password")
+  const hostname = `tailscale-${uuid()}`
+  const nameserver = await configurationApi.get("proxmox/nameserver")
+
+  const proxmoxSshKey = await configurationApi.get("proxmox/ssh-key/public")
+  const devSshKey = await configurationApi.get("dev/ssh-key/public")
+  const haSshKey = await configurationApi.get("home-assistant/ssh-key/public")
+
   const sshKey = [proxmoxSshKey, devSshKey, haSshKey].join("\n")
 
   const vmId = ip1.split(".").slice(1).join("")
@@ -33,8 +34,8 @@ const run = async (
     pmUsername,
     pmPassword,
     sshKey,
-    hostname: hostname,
-    nameserver: nameserver,
+    hostname,
+    nameserver,
     vmId,
   }
 
@@ -44,7 +45,7 @@ const run = async (
     path.join(__dirname, "..", ".terraform"),
   )
 
-  const proxmoxIp = (await configurationApi.get("proxmox/ip")).value
+  const proxmoxIp = await configurationApi.get("proxmox/ip")
   await runPlaybook(
     path.join(__dirname, "..", "src", "provision", "provision.yml"),
     [proxmoxIp],

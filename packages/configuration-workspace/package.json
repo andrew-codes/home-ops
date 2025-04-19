@@ -5,7 +5,7 @@
   "license": "MIT",
   "main": "src/index.ts",
   "dependencies": {
-    "@ha/configuration-1password-cli": "workspace:^0.0.1",
+    "@ha/configuration-aggregate": "workspace:^0.0.1",
     "@ha/configuration-api": "workspace:^0.0.1",
     "@ha/configuration-env-secrets": "workspace:^0.0.1",
     "@ha/logger": "workspace:^0.0.1",

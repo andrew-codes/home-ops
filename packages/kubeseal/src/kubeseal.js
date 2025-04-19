@@ -13,10 +13,9 @@ const kubeseal = (env, { namespace, name, secrets, savePath }) => {
     `../../resources/k8s/._secrets/${env}/.kube/config`,
   )
 
-  shell.env.KUBECONFIG = KUBECONFIG
   const { code, stdout, stderr } = shell.exec(
     `kubectl -n ${namespace ?? "default"} create secret generic ${name} ${secrets.join(" ")} --dry-run=client -o yaml`,
-    { silent: true },
+    { silent: true , env: { KUBECONFIG } },
   )
 
   if (code !== 0) {
@@ -28,7 +27,7 @@ const kubeseal = (env, { namespace, name, secrets, savePath }) => {
   )
   const kubesealOutput = shell.exec(
     `echo -n "${stdout.toString()}" | kubeseal --format=yaml --cert=${path.join(__dirname, `../../../resources/sealed-secrets/keys/${env}.pub`)}`,
-    { silent: false },
+    { silent: false, env: { KUBECONFIG } },
   )
 
   if (kubesealOutput.code !== 0) {

@@ -1,64 +1,25 @@
-import { createConfigApi as createOnePasswordCliConfiguration } from "@ha/configuration-1password-cli"
-import type { ConfigurationApi } from "@ha/configuration-api"
-import { configurationApi as envConfiguration } from "@ha/configuration-env-secrets"
-import { logger } from "@ha/logger"
-import { uniq } from "lodash"
-import type { Configuration } from "./Configuration.types"
+import { createConfigurationApi } from "@ha/configuration-aggregate"
+import {
+  provisionedEnvConfiguration,
+  sealedSecretEnvConfiguration,
+} from "@ha/configuration-env-secrets"
 
-const createConfigurationApi = async (
-  providers: ConfigurationApi<any>[] = [envConfiguration],
-): Promise<ConfigurationApi<Configuration>> => {
-  const configurationProviders = providers
+const configurationApi = createConfigurationApi([
+  provisionedEnvConfiguration,
+  sealedSecretEnvConfiguration,
+])
 
-  try {
-    const vaultId = await envConfiguration.get(`onepassword/vault-id`)
-    if (vaultId) {
-      configurationProviders.push(
-        await createOnePasswordCliConfiguration(vaultId),
-      )
-    }
-  } catch (error) {}
+type ConfigurationKeys =
+  (typeof configurationApi)["getNames"] extends () => infer T
+    ? T extends ReadonlyArray<infer TSecretName>
+      ? TSecretName extends infer TSecretNameString
+        ? TSecretNameString extends string
+          ? TSecretNameString
+          : never
+        : never
+      : never
+    : never
+type Configuration = Record<ConfigurationKeys, string>
 
-  return {
-    get: async (name) => {
-      for (const configurationProvider of configurationProviders) {
-        try {
-          const value = await configurationProvider.get(name)
-
-          return value
-        } catch (error) {}
-      }
-      throw new Error(`Configuration value not found, ${String(name)}.`)
-    },
-    getNames: () => {
-      const allConfiguration = configurationProviders.reduce<
-        ReadonlyArray<string>
-      >(
-        (acc, provider) =>
-          acc.concat(provider.getNames() as ReadonlyArray<string>),
-        [],
-      )
-
-      return uniq(allConfiguration) as (keyof Configuration)[]
-    },
-    set: async (name, value) => {
-      const providers = configurationProviders.filter((provider) => {
-        return provider.getNames().includes(name)
-      })
-
-      for (const configurationProvider of providers) {
-        try {
-          await configurationProvider.set(name, value)
-        } catch (error) {
-          logger.debug(
-            `Configuration: Error setting value for ${String(name)}. ConfigurationApi index: ${providers.indexOf(configurationProvider)}.
-Error: ${String(error)}`,
-          )
-        }
-      }
-    },
-  }
-}
-
-export { createConfigurationApi }
+export default configurationApi
 export type { Configuration }

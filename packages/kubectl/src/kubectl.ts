@@ -1,6 +1,5 @@
-import { logger } from "@ha/logger"
+import { provisionedEnvConfiguration } from "@ha/configuration-env-secrets"
 import { throwIfError } from "@ha/shell-utils"
-import { writeFileSync } from "fs"
 import fs from "fs/promises"
 import path from "path"
 import sh from "shelljs"
@@ -11,31 +10,28 @@ type DeploymentOptions = {
 }
 type DeploymentCommand = "restart"
 
-const kubectl = (kubeConfig: string) => {
-  let kubeConfigPath = path.join(__dirname, "..", ".secrets")
-  sh.mkdir("-p", kubeConfigPath)
-  kubeConfigPath = path.join(kubeConfigPath, "config")
-  writeFileSync(kubeConfigPath, kubeConfig.replace(/\\n/g, "\n"), {
-    encoding: "utf8",
-    mode: 0o600,
-  })
-
+const kubectl = () => {
   return {
     applyToCluster: async (content: string): Promise<void> => {
+      const env = await provisionedEnvConfiguration.get("env")
+      let kubeConfigPath = path.join(
+        __dirname,
+        `../../../resources/k8s/._secrets/${env}/.kube/config`,
+      )
       const fileName = uuidv4()
       try {
         await fs.mkdir("/tmp")
       } catch (e) {}
       await fs.writeFile(path.join("/tmp", fileName), content)
-      sh.env["KUBECONFIG"] = kubeConfigPath
       await throwIfError(
-        sh.exec(
-          `KUBECONFIG=${kubeConfigPath} kubectl apply --namespace default -f /tmp/${fileName};`,
-          {
-            shell: "/bin/bash",
-            silent: false,
+        sh.exec(`kubectl apply --namespace default -f /tmp/${fileName};`, {
+          shell: "/bin/bash",
+          silent: false,
+          env: {
+            ...process.env,
+            KUBECONFIG: kubeConfigPath,
           },
-        ),
+        }),
       )
       await fs.unlink(path.join("/tmp", fileName))
     },
@@ -45,13 +41,21 @@ const kubectl = (kubeConfig: string) => {
       namespace: string,
       content: string,
     ): Promise<void> => {
-      sh.env["KUBECONFIG"] = kubeConfigPath
+      const env = await provisionedEnvConfiguration.get("env")
+      let kubeConfigPath = path.join(
+        __dirname,
+        `../../../resources/k8s/._secrets/${env}/.kube/config`,
+      )
       await throwIfError(
         sh.exec(
-          `KUBECONFIG=${kubeConfigPath} kubectl patch ${resourceType} --namespace ${namespace} ${name} --patch="$(echo -n '${content}' | sed 's/"/\\"/g')";`,
+          `kubectl patch ${resourceType} --namespace ${namespace} ${name} --patch="$(echo -n '${content}' | sed 's/"/\\"/g')";`,
           {
             shell: "/bin/bash",
             silent: true,
+            env: {
+              ...process.env,
+              KUBECONFIG: kubeConfigPath,
+            },
           },
         ),
       )
@@ -61,27 +65,41 @@ const kubectl = (kubeConfig: string) => {
       deploymentName: string,
       options: DeploymentOptions = { namespace: "default" },
     ): Promise<void> => {
-      sh.env["KUBECONFIG"] = kubeConfigPath
+      const env = await provisionedEnvConfiguration.get("env")
+      let kubeConfigPath = path.join(
+        __dirname,
+        `../../../resources/k8s/._secrets/${env}/.kube/config`,
+      )
       await throwIfError(
         sh.exec(
-          `KUBECONFIG=${kubeConfigPath} kubectl -n ${options.namespace} rollout ${command} deployment ${deploymentName};`,
-          { shell: "/bin/bash", silent: true },
+          `kubectl -n ${options.namespace} rollout ${command} deployment ${deploymentName};`,
+          {
+            shell: "/bin/bash",
+            silent: true,
+            env: {
+              ...process.env,
+              KUBECONFIG: kubeConfigPath,
+            },
+          },
         ),
       )
     },
     exec: async (command: string): Promise<string> => {
-      sh.env["KUBECONFIG"] = kubeConfigPath
+      const env = await provisionedEnvConfiguration.get("env")
+      let kubeConfigPath = path.join(
+        __dirname,
+        `../../../resources/k8s/._secrets/${env}/.kube/config`,
+      )
       return throwIfError(
-        sh.exec(`KUBECONFIG=${kubeConfigPath} ${command}`, {
+        sh.exec(`${command}`, {
           shell: "/bin/bash",
           silent: true,
+          env: {
+            ...process.env,
+            KUBECONFIG: kubeConfigPath,
+          },
         }),
       )
-    },
-    [Symbol.dispose]: () => {
-      logger.debug(`Cleaning up kubeconfig`)
-      sh.rm(kubeConfigPath)
-      sh.env["KUBECONFIG"] = ""
     },
   }
 }

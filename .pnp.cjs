@@ -51,10 +51,6 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/gpu-scheduler"\
     },\
     {\
-      "name": "@ha/grafana",\
-      "reference": "workspace:apps/grafana"\
-    },\
-    {\
       "name": "@ha/guest-db",\
       "reference": "workspace:apps/guest-db"\
     },\
@@ -77,10 +73,6 @@ const RAW_RUNTIME_STATE =
     {\
       "name": "@ha/manual-deployment",\
       "reference": "workspace:apps/manual-deployment"\
-    },\
-    {\
-      "name": "@ha/metrics",\
-      "reference": "workspace:apps/metrics"\
     },\
     {\
       "name": "@ha/resource-pihole",\
@@ -115,8 +107,8 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:packages/cli-utils"\
     },\
     {\
-      "name": "@ha/configuration-1password-cli",\
-      "reference": "workspace:packages/configuration-1password-cli"\
+      "name": "@ha/configuration-aggregate",\
+      "reference": "workspace:packages/configuration-aggregate"\
     },\
     {\
       "name": "@ha/configuration-api",\
@@ -250,7 +242,7 @@ const RAW_RUNTIME_STATE =
     ["@ha/captive-portal", ["workspace:apps/captive-portal"]],\
     ["@ha/cli-utils", ["workspace:packages/cli-utils"]],\
     ["@ha/coder", ["workspace:apps/coder"]],\
-    ["@ha/configuration-1password-cli", ["workspace:packages/configuration-1password-cli"]],\
+    ["@ha/configuration-aggregate", ["workspace:packages/configuration-aggregate"]],\
     ["@ha/configuration-api", ["workspace:packages/configuration-api"]],\
     ["@ha/configuration-env-secrets", ["workspace:packages/configuration-env-secrets"]],\
     ["@ha/configuration-workspace", ["workspace:packages/configuration-workspace"]],\
@@ -265,7 +257,6 @@ const RAW_RUNTIME_STATE =
     ["@ha/github-action-runners", ["workspace:apps/github-action-runners"]],\
     ["@ha/github-secrets", ["workspace:packages/github-secrets"]],\
     ["@ha/gpu-scheduler", ["workspace:apps/gpu-scheduler"]],\
-    ["@ha/grafana", ["workspace:apps/grafana"]],\
     ["@ha/guest-db", ["workspace:apps/guest-db"]],\
     ["@ha/guest-pin-codes", ["workspace:apps/guest-pin-codes"]],\
     ["@ha/guest-wifi-registrar", ["workspace:apps/guest-wifi-registrar"]],\
@@ -280,7 +271,6 @@ const RAW_RUNTIME_STATE =
     ["@ha/kubeseal", ["workspace:packages/kubeseal"]],\
     ["@ha/logger", ["workspace:packages/logger"]],\
     ["@ha/manual-deployment", ["workspace:apps/manual-deployment"]],\
-    ["@ha/metrics", ["workspace:apps/metrics"]],\
     ["@ha/mqtt-client", ["virtual:9fac141d185268f36972525af283566cd75e494de29fde8754899f2ceff7d0843bff93829a18050e0bee8e312aa154cd4170d0fca8c0c1abe17a6a8ca52e2210#workspace:packages/mqtt-client", "workspace:packages/mqtt-client"]],\
     ["@ha/mqtt-heartbeat", ["workspace:packages/mqtt-heartbeat"]],\
     ["@ha/nx-executors", ["workspace:packages/nx-executors"]],\
@@ -334,20 +324,6 @@ const RAW_RUNTIME_STATE =
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
         ],\
         "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@1password/connect", [\
-      ["npm:1.4.1", {\
-        "packageLocation": "./.yarn/cache/@1password-connect-npm-1.4.1-89664c7998-e634055b51.zip/node_modules/@1password/connect/",\
-        "packageDependencies": [\
-          ["@1password/connect", "npm:1.4.1"],\
-          ["axios", "npm:1.8.1"],\
-          ["debug", "virtual:5dc40fea712494f06495996e8631fe3d962d9b85eec49908b9f35dc6ec9523d9b63e829ac878a2fa2414a0d111083466b19302a37186a46f0da9795af68d1f4c#npm:4.4.0"],\
-          ["lodash.clonedeep", "npm:4.5.0"],\
-          ["slugify", "npm:1.6.6"],\
-          ["uuid", "npm:9.0.1"]\
-        ],\
-        "linkType": "HARD"\
       }]\
     ]],\
     ["@algolia/cache-browser-local-storage", [\
@@ -6726,27 +6702,23 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/configuration-1password-cli", [\
-      ["workspace:packages/configuration-1password-cli", {\
-        "packageLocation": "./packages/configuration-1password-cli/",\
+    ["@ha/configuration-aggregate", [\
+      ["workspace:packages/configuration-aggregate", {\
+        "packageLocation": "./packages/configuration-aggregate/",\
         "packageDependencies": [\
-          ["@ha/configuration-1password-cli", "workspace:packages/configuration-1password-cli"],\
-          ["@1password/connect", "npm:1.4.1"],\
+          ["@ha/configuration-aggregate", "workspace:packages/configuration-aggregate"],\
           ["@ha/configuration-api", "workspace:packages/configuration-api"],\
           ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
           ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
           ["@ha/logger", "workspace:packages/logger"],\
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/secret-utils", "workspace:packages/secret-utils"],\
           ["@types/jest", "npm:29.5.14"],\
           ["@types/lodash", "npm:4.17.15"],\
           ["@types/node", "npm:18.19.76"],\
-          ["@types/shelljs", "npm:0.8.15"],\
           ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
           ["jest-when", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:3.7.0"],\
           ["lodash", "npm:4.17.21"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["shelljs", "npm:0.8.5"],\
           ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
         ],\
@@ -6774,7 +6746,6 @@ const RAW_RUNTIME_STATE =
           ["@ha/secret-utils", "workspace:packages/secret-utils"],\
           ["@types/jest", "npm:29.5.14"],\
           ["@types/node", "npm:18.19.76"],\
-          ["dotenv", "npm:16.4.7"],\
           ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
           ["jest-when", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:3.7.0"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
@@ -6789,7 +6760,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./packages/configuration-workspace/",\
         "packageDependencies": [\
           ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/configuration-1password-cli", "workspace:packages/configuration-1password-cli"],\
+          ["@ha/configuration-aggregate", "workspace:packages/configuration-aggregate"],\
           ["@ha/configuration-api", "workspace:packages/configuration-api"],\
           ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
           ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
@@ -7119,25 +7090,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/grafana", [\
-      ["workspace:apps/grafana", {\
-        "packageLocation": "./apps/grafana/",\
-        "packageDependencies": [\
-          ["@ha/grafana", "workspace:apps/grafana"],\
-          ["@ha/ansible", "workspace:packages/ansible"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["shelljs", "npm:0.8.5"],\
-          ["yaml", "npm:2.7.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/guest-db", [\
       ["workspace:apps/guest-db", {\
         "packageLocation": "./apps/guest-db/",\
@@ -7388,6 +7340,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@ha/kubectl", "workspace:packages/kubectl"],\
           ["@ha/cli-utils", "workspace:packages/cli-utils"],\
+          ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
           ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
           ["@ha/logger", "workspace:packages/logger"],\
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
@@ -7455,24 +7408,6 @@ const RAW_RUNTIME_STATE =
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
           ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/metrics", [\
-      ["workspace:apps/metrics", {\
-        "packageLocation": "./apps/metrics/",\
-        "packageDependencies": [\
-          ["@ha/metrics", "workspace:apps/metrics"],\
-          ["@ha/ansible", "workspace:packages/ansible"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["yaml", "npm:2.7.0"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -7554,6 +7489,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@ha/build-ts", "workspace:packages/build-ts"],\
           ["@ha/configuration-api", "workspace:packages/configuration-api"],\
+          ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
           ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
           ["@ha/configure-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#workspace:packages/configure-jest"],\
           ["@ha/env-utils", "workspace:packages/env-utils"],\
@@ -7646,7 +7582,8 @@ const RAW_RUNTIME_STATE =
           ["@ha/terraform", "workspace:packages/terraform"],\
           ["lodash", "npm:4.17.21"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["shelljs", "npm:0.8.5"]\
+          ["shelljs", "npm:0.8.5"],\
+          ["uuid", "npm:11.1.0"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -7762,7 +7699,8 @@ const RAW_RUNTIME_STATE =
           ["@ha/shell-utils", "workspace:packages/shell-utils"],\
           ["@ha/terraform", "workspace:packages/terraform"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["shelljs", "npm:0.8.5"]\
+          ["shelljs", "npm:0.8.5"],\
+          ["uuid", "npm:11.1.0"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -13810,16 +13748,6 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["axios", [\
-      ["npm:1.8.1", {\
-        "packageLocation": "./.yarn/cache/axios-npm-1.8.1-8a5eaf948f-5a09a2b39e.zip/node_modules/axios/",\
-        "packageDependencies": [\
-          ["axios", "npm:1.8.1"],\
-          ["follow-redirects", "virtual:8cf735eb2b9f70962d771e00a864e9e0536f45b1a3899af224ac07f4fa06f6303e4a41f37b803333808763ece4c23df875efb5ad0daa70f6856aaaee39943a11#npm:1.15.9"],\
-          ["form-data", "npm:4.0.2"],\
-          ["proxy-from-env", "npm:1.1.0"]\
-        ],\
-        "linkType": "HARD"\
-      }],\
       ["npm:1.8.2", {\
         "packageLocation": "./.yarn/cache/axios-npm-1.8.2-55671cda10-d432875812.zip/node_modules/axios/",\
         "packageDependencies": [\
@@ -37811,6 +37739,13 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["uuid", [\
+      ["npm:11.1.0", {\
+        "packageLocation": "./.yarn/cache/uuid-npm-11.1.0-61d0d08928-d2da43b49b.zip/node_modules/uuid/",\
+        "packageDependencies": [\
+          ["uuid", "npm:11.1.0"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
       ["npm:8.3.2", {\
         "packageLocation": "./.yarn/cache/uuid-npm-8.3.2-eca0baba53-9a5f7aa1d6.zip/node_modules/uuid/",\
         "packageDependencies": [\

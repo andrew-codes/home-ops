@@ -10,7 +10,7 @@ const run = async (
 ): Promise<void> => {
   const env = await configurationApi.get("env")
   const kubeConfig = (await configurationApi.get("k8s/config")).value
-  const kube = kubectl(kubeConfig)
+  const kube = kubectl()
 
   const publicKey = await kube.exec(`kubeseal --fetch-cert \
 --controller-name=sealed-secrets-controller \

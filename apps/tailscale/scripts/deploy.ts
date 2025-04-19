@@ -8,16 +8,15 @@ const run = async (
   configurationApi: ConfigurationApi<Configuration>,
 ): Promise<void> => {
   logger.info("Deploying Tailscale")
-  const ip = (await configurationApi.get("tailscale/ip")).value
-  const hostname = (await configurationApi.get("tailscale/hostname")).value
-  const authKey = (await configurationApi.get("tailscale/auth-key")).value
+  const ip = await configurationApi.get("tailscale/ip")
+  const authKey = await configurationApi.get("tailscale/auth-key")
   const subnetRoutes = (
     await configurationApi.get("tailscale/subnet-routes")
-  ).value.split(",")
+  ).split(",")
 
   const deploymentPath = path.join(__dirname, "..", "src", "deployment")
   await runPlaybook(path.join(deploymentPath, "index.yml"), [ip], {
-    hostname,
+    hostname: "tailscale",
     subnetRoutes: subnetRoutes.join(","),
     authKey,
   })

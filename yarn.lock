@@ -5,19 +5,6 @@ __metadata:
   version: 8
   cacheKey: 10
 
-"@1password/connect@npm:^1.4.1":
-  version: 1.4.1
-  resolution: "@1password/connect@npm:1.4.1"
-  dependencies:
-    axios: "npm:^1.6.2"
-    debug: "npm:^4.3.4"
-    lodash.clonedeep: "npm:^4.5.0"
-    slugify: "npm:^1.6.6"
-    uuid: "npm:^9.0.1"
-  checksum: 10/e634055b51a564367d8ddffaa89f496ed019713781cc8a57db3ec6b3a3cfb1edd734a8e268e2071269811d0748da01d65e15fe1eab05075d83dd0e0197d9526c
-  languageName: node
-  linkType: hard
-
 "@algolia/cache-browser-local-storage@npm:4.24.0":
   version: 4.24.0
   resolution: "@algolia/cache-browser-local-storage@npm:4.24.0"
@@ -4033,26 +4020,22 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/configuration-1password-cli@workspace:^0.0.1, @ha/configuration-1password-cli@workspace:packages/configuration-1password-cli":
+"@ha/configuration-aggregate@workspace:^0.0.1, @ha/configuration-aggregate@workspace:packages/configuration-aggregate":
   version: 0.0.0-use.local
-  resolution: "@ha/configuration-1password-cli@workspace:packages/configuration-1password-cli"
+  resolution: "@ha/configuration-aggregate@workspace:packages/configuration-aggregate"
   dependencies:
-    "@1password/connect": "npm:^1.4.1"
     "@ha/configuration-api": "workspace:^0.0.1"
     "@ha/configuration-env-secrets": "workspace:^0.0.1"
     "@ha/configure-jest": "workspace:^0.0.1"
     "@ha/logger": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/secret-utils": "workspace:^0.0.1"
     "@types/jest": "npm:^29.5.14"
     "@types/lodash": "npm:^4.17.15"
     "@types/node": "npm:^18.19.76"
-    "@types/shelljs": "npm:^0.8.15"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     lodash: "npm:^4.17.21"
     nx: "npm:^20.7.0"
-    shelljs: "npm:^0.8.5"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
@@ -4077,7 +4060,6 @@ __metadata:
     "@ha/secret-utils": "workspace:^0.0.1"
     "@types/jest": "npm:^29.5.14"
     "@types/node": "npm:^18.19.76"
-    dotenv: "npm:^16.4.7"
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     nx: "npm:^20.7.0"
@@ -4090,7 +4072,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ha/configuration-workspace@workspace:packages/configuration-workspace"
   dependencies:
-    "@ha/configuration-1password-cli": "workspace:^0.0.1"
+    "@ha/configuration-aggregate": "workspace:^0.0.1"
     "@ha/configuration-api": "workspace:^0.0.1"
     "@ha/configuration-env-secrets": "workspace:^0.0.1"
     "@ha/configure-jest": "workspace:^0.0.1"
@@ -4351,23 +4333,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/grafana@workspace:apps/grafana":
-  version: 0.0.0-use.local
-  resolution: "@ha/grafana@workspace:apps/grafana"
-  dependencies:
-    "@ha/ansible": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.7.0"
-    shelljs: "npm:^0.8.5"
-    yaml: "npm:^2.7.0"
-  languageName: unknown
-  linkType: soft
-
 "@ha/guest-db@workspace:apps/guest-db":
   version: 0.0.0-use.local
   resolution: "@ha/guest-db@workspace:apps/guest-db"
@@ -4597,6 +4562,7 @@ __metadata:
   resolution: "@ha/kubectl@workspace:packages/kubectl"
   dependencies:
     "@ha/cli-utils": "workspace:^0.0.1"
+    "@ha/configuration-env-secrets": "workspace:^0.0.1"
     "@ha/configure-jest": "workspace:^0.0.1"
     "@ha/logger": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
@@ -4663,22 +4629,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/metrics@workspace:apps/metrics":
-  version: 0.0.0-use.local
-  resolution: "@ha/metrics@workspace:apps/metrics"
-  dependencies:
-    "@ha/ansible": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^20.7.0"
-    yaml: "npm:^2.7.0"
-  languageName: unknown
-  linkType: soft
-
 "@ha/mqtt-client@workspace:^0.0.1, @ha/mqtt-client@workspace:packages/mqtt-client":
   version: 0.0.0-use.local
   resolution: "@ha/mqtt-client@workspace:packages/mqtt-client"
@@ -4732,6 +4682,7 @@ __metadata:
   dependencies:
     "@ha/build-ts": "workspace:^1.0.0"
     "@ha/configuration-api": "workspace:^0.0.1"
+    "@ha/configuration-env-secrets": "workspace:^0.0.1"
     "@ha/configuration-workspace": "workspace:^0.0.1"
     "@ha/configure-jest": "workspace:^0.0.1"
     "@ha/env-utils": "workspace:^0.0.1"
@@ -4817,6 +4768,7 @@ __metadata:
     lodash: "npm:^4.17.21"
     nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
+    uuid: "npm:^11.1.0"
   languageName: unknown
   linkType: soft
 
@@ -4921,6 +4873,7 @@ __metadata:
     "@ha/terraform": "workspace:^0.0.1"
     nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
+    uuid: "npm:11.1.0"
   languageName: unknown
   linkType: soft
 
@@ -9610,17 +9563,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.6.2":
-  version: 1.8.1
-  resolution: "axios@npm:1.8.1"
-  dependencies:
-    follow-redirects: "npm:^1.15.6"
-    form-data: "npm:^4.0.0"
-    proxy-from-env: "npm:^1.1.0"
-  checksum: 10/5a09a2b39e724e018bc94d0424bb1a6042e71864039fbcc8c8d9dd50f3acd9d01f81b895994c9b46bc82c026afa3dfd1ec343a27bfe4723b70841f3b3dd6edfa
-  languageName: node
-  linkType: hard
-
 "axios@npm:^1.6.4":
   version: 1.8.2
   resolution: "axios@npm:1.8.2"
@@ -13059,7 +13001,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv@npm:^16.0.0, dotenv@npm:^16.4.5, dotenv@npm:^16.4.7, dotenv@npm:~16.4.5":
+"dotenv@npm:^16.0.0, dotenv@npm:^16.4.5, dotenv@npm:~16.4.5":
   version: 16.4.7
   resolution: "dotenv@npm:16.4.7"
   checksum: 10/f13bfe97db88f0df4ec505eeffb8925ec51f2d56a3d0b6d916964d8b4af494e6fb1633ba5d09089b552e77ab2a25de58d70259b2c5ed45ec148221835fc99a0c
@@ -20095,7 +20037,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.clonedeep@npm:4.5.0, lodash.clonedeep@npm:^4.5.0":
+"lodash.clonedeep@npm:4.5.0":
   version: 4.5.0
   resolution: "lodash.clonedeep@npm:4.5.0"
   checksum: 10/957ed243f84ba6791d4992d5c222ffffca339a3b79dbe81d2eaf0c90504160b500641c5a0f56e27630030b18b8e971ea10b44f928a977d5ced3c8948841b555f
@@ -30130,6 +30072,15 @@ __metadata:
   version: 1.0.1
   resolution: "utils-merge@npm:1.0.1"
   checksum: 10/5d6949693d58cb2e636a84f3ee1c6e7b2f9c16cb1d42d0ecb386d8c025c69e327205aa1c69e2868cc06a01e5e20681fbba55a4e0ed0cce913d60334024eae798
+  languageName: node
+  linkType: hard
+
+"uuid@npm:11.1.0, uuid@npm:^11.1.0":
+  version: 11.1.0
+  resolution: "uuid@npm:11.1.0"
+  bin:
+    uuid: dist/esm/bin/uuid
+  checksum: 10/d2da43b49b154d154574891ced66d0c83fc70caaad87e043400cf644423b067542d6f3eb641b7c819224a7cd3b4c2f21906acbedd6ec9c6a05887aa9115a9cf5
   languageName: node
   linkType: hard
 

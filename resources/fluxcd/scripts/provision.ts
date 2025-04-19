@@ -4,11 +4,9 @@ import createFluxCd from "@ha/fluxcd"
 
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
-  context,
 ): Promise<void> => {
   const env = await configurationApi.get("env")
-  const kubeConfig = (await configurationApi.get("k8s/config")).value
-  const flux = createFluxCd(kubeConfig, configurationApi)
+  const flux = createFluxCd(configurationApi)
 
   await flux.exec(`flux bootstrap github \
   --owner=andrew-codes \

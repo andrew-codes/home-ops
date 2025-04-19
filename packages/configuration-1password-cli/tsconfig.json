@@ -1,9 +1,0 @@
-{
-    "extends": "../../tsconfig.base.json",
-    "compileOptions": {
-        "types": [
-            "node",
-            "shelljs"
-        ]
-    }
-}

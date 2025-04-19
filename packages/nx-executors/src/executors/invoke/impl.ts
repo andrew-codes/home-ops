@@ -1,4 +1,4 @@
-import { createConfigurationApi } from "@ha/configuration-workspace"
+import workspaceConfigurationApi from "@ha/configuration-workspace"
 import { logger } from "@ha/logger"
 import type { ExecutorContext } from "@nx/devkit"
 import { register } from "esbuild-register/dist/node"
@@ -22,10 +22,8 @@ async function executor(
       currentDir = path.resolve(context.root, cwd)
     }
     process.chdir(currentDir)
-    const configApi = await createConfigurationApi()
-
     const loadedModule = require(path.resolve(currentDir, module))
-    await loadedModule.default(configApi, context, options)
+    await loadedModule.default(workspaceConfigurationApi, context, options)
   } catch (error) {
     if (error instanceof Error) {
       logger.error((error as Error).message)

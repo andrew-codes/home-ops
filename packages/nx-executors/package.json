@@ -6,6 +6,7 @@
   "license": "MIT",
   "executors": "./executors.json",
   "dependencies": {
+    "@ha/configuration-env-secrets": "workspace:^0.0.1",
     "@ha/logger": "workspace:^0.0.1",
     "@nx/devkit": "^20.7.0",
     "esbuild": "^0.25.0",

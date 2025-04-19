@@ -1,5 +1,5 @@
 {
-  "name": "configuration-1password-cli",
+  "name": "configuration-aggregate",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "{projectRoot}/src",
   "projectType": "library",
