@@ -58,6 +58,7 @@ const sealedSecretNames = [
   "mqtt-passwd/passwd",
   "playnite-web-credentials/password",
   "playnite-web-credentials/username",
+  "playnite-web-credentials/secret",
   "psn-accounts/accounts",
   "regcred/email",
   "regcred/password",
