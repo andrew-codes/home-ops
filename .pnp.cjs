@@ -83,10 +83,6 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/pihole-service"\
     },\
     {\
-      "name": "@ha/secrets",\
-      "reference": "workspace:apps/secrets"\
-    },\
-    {\
       "name": "@ha/tailscale",\
       "reference": "workspace:apps/tailscale"\
     },\
@@ -227,7 +223,7 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:resources/sealed-secrets"\
     },\
     {\
-      "name": "@ha/secrets-cli",\
+      "name": "@ha/secrets",\
       "reference": "workspace:tools/nx-secrets-generators"\
     }\
   ],\
@@ -279,8 +275,7 @@ const RAW_RUNTIME_STATE =
     ["@ha/resource-pihole", ["workspace:apps/pihole"]],\
     ["@ha/sealed-secrets", ["workspace:resources/sealed-secrets"]],\
     ["@ha/secret-utils", ["workspace:packages/secret-utils"]],\
-    ["@ha/secrets", ["workspace:apps/secrets"]],\
-    ["@ha/secrets-cli", ["workspace:tools/nx-secrets-generators"]],\
+    ["@ha/secrets", ["workspace:tools/nx-secrets-generators"]],\
     ["@ha/shell-utils", ["workspace:packages/shell-utils"]],\
     ["@ha/string-utils", ["workspace:packages/string-utils"]],\
     ["@ha/tailscale", ["workspace:apps/tailscale"]],\
@@ -8128,7 +8123,7 @@ const RAW_RUNTIME_STATE =
           ["@ha/logger", "workspace:packages/logger"],\
           ["@ha/mqtt-client", "virtual:9fac141d185268f36972525af283566cd75e494de29fde8754899f2ceff7d0843bff93829a18050e0bee8e312aa154cd4170d0fca8c0c1abe17a6a8ca52e2210#workspace:packages/mqtt-client"],\
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/secrets", "workspace:apps/secrets"],\
+          ["@ha/secrets", "workspace:tools/nx-secrets-generators"],\
           ["@ha/shell-utils", "workspace:packages/shell-utils"],\
           ["@ha/themes-slate", "workspace:packages/themes/slate"],\
           ["@ha/unifi-client", "workspace:packages/unifi-client"],\
@@ -9109,34 +9104,10 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["@ha/secrets", [\
-      ["workspace:apps/secrets", {\
-        "packageLocation": "./apps/secrets/",\
-        "packageDependencies": [\
-          ["@ha/secrets", "workspace:apps/secrets"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/secret-utils", "workspace:packages/secret-utils"],\
-          ["@types/jest", "npm:29.5.14"],\
-          ["@types/node", "npm:18.19.76"],\
-          ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
-          ["jest-when", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:3.7.0"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
-          ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/secrets-cli", [\
       ["workspace:tools/nx-secrets-generators", {\
         "packageLocation": "./tools/nx-secrets-generators/",\
         "packageDependencies": [\
-          ["@ha/secrets-cli", "workspace:tools/nx-secrets-generators"],\
+          ["@ha/secrets", "workspace:tools/nx-secrets-generators"],\
           ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
           ["@ha/kubectl", "workspace:packages/kubectl"],\
           ["@ha/secret-utils", "workspace:packages/secret-utils"],\

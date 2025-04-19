@@ -5074,9 +5074,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/secrets-cli@workspace:tools/nx-secrets-generators":
+"@ha/secrets@workspace:^0.0.1, @ha/secrets@workspace:tools/nx-secrets-generators":
   version: 0.0.0-use.local
-  resolution: "@ha/secrets-cli@workspace:tools/nx-secrets-generators"
+  resolution: "@ha/secrets@workspace:tools/nx-secrets-generators"
   dependencies:
     "@ha/configuration-env-secrets": "npm:^0.0.1"
     "@ha/kubectl": "npm:^1.0.0"
@@ -5090,28 +5090,6 @@ __metadata:
     lodash: "npm:4.17.21"
     ts-jest: "npm:^29.2.5"
     tslib: "npm:^2.3.0"
-    typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@ha/secrets@workspace:^0.0.1, @ha/secrets@workspace:apps/secrets":
-  version: 0.0.0-use.local
-  resolution: "@ha/secrets@workspace:apps/secrets"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/configure-jest": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/secret-utils": "workspace:^0.0.1"
-    "@types/jest": "npm:^29.5.14"
-    "@types/node": "npm:^18.19.76"
-    jest: "npm:^29.7.0"
-    jest-when: "npm:^3.7.0"
-    nx: "npm:^20.7.0"
-    ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
