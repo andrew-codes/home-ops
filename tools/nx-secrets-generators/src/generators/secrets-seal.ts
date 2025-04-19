@@ -46,18 +46,34 @@ export async function secretsSealGenerator(
   const kube = kubectl()
   for (const [k8sName, kv] of Object.entries(secrets)) {
     try {
-      const values = Object.entries(kv)
-        .map(([k, v]) => `--from-literal='${k}=${v.replace(/\\n/g, "\n")}'`)
-        .join(" ")
-
-      if (isEmpty(values)) {
+      if (isEmpty(Object.keys(kv))) {
         console.debug(`No values found for ${k8sName}`)
         continue
       }
 
-      const k8sSecret = await kube.exec(
-        `kubectl create secret generic ${k8sName} ${values} --dry-run=client -o yaml`,
-      )
+      let k8sSecret: string | null = null
+      if (k8sName === "regcred") {
+        k8sSecret = await kube.exec(
+          `kubectl create secret docker-registry ${k8sName} --docker-server=${kv.server} --docker-username=${kv.username} --docker-email=${kv.email} --docker-password=${kv.password} --dry-run=client -o yaml`,
+        )
+      } else {
+        const values = Object.entries(kv)
+          .map(([k, v]) => `--from-literal='${k}=${v.replace(/\\n/g, "\n")}'`)
+          .join(" ")
+
+        if (isEmpty(values)) {
+          console.debug(`No values found for ${k8sName}`)
+          continue
+        }
+        k8sSecret = await kube.exec(
+          `kubectl create secret generic ${k8sName} ${values} --dry-run=client -o yaml`,
+        )
+      }
+
+      if (!k8sSecret) {
+        console.debug(`No secret found for ${k8sName}`)
+        continue
+      }
       const sealedSecret = await kube.exec(
         `echo -n '${k8sSecret}' | kubeseal --format=yaml --cert=${path.join(__dirname, `../../../../resources/sealed-secrets/keys/${options.env}.pub`)}`,
       )

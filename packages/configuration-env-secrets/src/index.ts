@@ -59,6 +59,10 @@ const sealedSecretNames = [
   "playnite-web-credentials/password",
   "playnite-web-credentials/username",
   "psn-accounts/accounts",
+  "regcred/email",
+  "regcred/password",
+  "regcred/server",
+  "regcred/username",
   "tunnel-credentials/credentials.json",
 ] as const
 const sealedSecretEnvConfiguration =
