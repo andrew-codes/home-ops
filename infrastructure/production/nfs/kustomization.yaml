@@ -1,0 +1,15 @@
+namespace: nfs-provisioner
+resources:
+  - ../../base/nfs
+bases:
+  - github.com/kubernetes-sigs/nfs-subdir-external-provisioner/deploy
+patchesStrategicMerge:
+  - ./deployment-patch.yaml
+patches:
+  - target:
+      kind: StorageClass
+      name: nfs-client
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: nfs

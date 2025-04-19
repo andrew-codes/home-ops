@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: default
+data:
+  config.yaml: |-
+    tunnel: "5fdd6db9-446b-40d8-9f8b-a7b6ffe18c92"
+    credentials-file: "/etc/cloudflared/creds/credentials.json"
+    ingress:
+      - hostname: "ha.smith-simms.family"
+        service: "http://home-assistant:8123"
+      - hostname: "games.smith-simms.family"
+        service: "http://playnite-web-app:3000"
+      - hostname: "games-staging.smith-simms.family"
+        service: "http://playnite-web-app-staging:3000"
+      - hostname: "grafana.smith-simms.family"
+        service: "http://grafana"
+      - hostname: "zwave.smith-simms.family"
+        service: "http://zwavejs:8091"
+      - hostname: "ps.smith-simms.family"
+        service: "http://ps5:8080"
+      - hostname: "nas.smith-simms.family"
+        service: "http://nas:5000"
+      - hostname: "docs.smith-simms.family"
+        service: "http://docs:80"
+      - hostname: "adr.smith-simms.family"
+        service: "http://home-ops-docs-adr:80"
+      - service: "http_status:404"

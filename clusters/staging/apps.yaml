@@ -7,7 +7,7 @@ metadata:
 spec:
   interval: 10m0s
   dependsOn:
-    - name: regcred
+    - name: secrets
   sourceRef:
     kind: GitRepository
     name: default
@@ -24,7 +24,7 @@ metadata:
 spec:
   interval: 10m0s
   dependsOn:
-    - name: regcred
+    - name: secrets
   sourceRef:
     kind: GitRepository
     name: default
@@ -52,7 +52,6 @@ spec:
   wait: true
   timeout: 5m0s
 ---
-
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -63,7 +62,6 @@ spec:
     - name: nfs-provisioner
     - name: sealed-secrets
     - name: secrets
-    - name: regcred
   interval: 10m0s
   sourceRef:
     kind: GitRepository

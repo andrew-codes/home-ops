@@ -1,96 +1,167 @@
-# ---
-# apiVersion: kustomize.toolkit.fluxcd.io/v1
-# kind: Kustomization
-# metadata:
-#   name: mqtt
-#   namespace: flux-system
-# spec:
-#   dependsOn:
-#     - name: nfs-provisioner
-#     - name: kubeseal
-#   interval: 10m0s
-#   sourceRef:
-#     kind: GitRepository
-#     name: flux-system
-#   path: ./deployments/production/mqtt
-#   prune: true
-#   wait: true
-#   timeout: 5m0s
-# ---
-# apiVersion: kustomize.toolkit.fluxcd.io/v1
-# kind: Kustomization
-# metadata:
-#   name: playnite-web
-#   namespace: flux-system
-# spec:
-#   dependsOn:
-#     - name: nfs-provisioner
-#     - name: kubeseal
-#     - name: mqtt
-#     - name: ghcr.io-regcred
-#     - name: cloudflared
-#   interval: 10m0s
-#   sourceRef:
-#     kind: GitRepository
-#     name: flux-system
-#   path: ./deployments/production/playnite-web
-#   prune: true
-#   wait: true
-#   timeout: 5m0s
-# ---
-# apiVersion: kustomize.toolkit.fluxcd.io/v1
-# kind: Kustomization
-# metadata:
-#   name: docs
-#   namespace: flux-system
-# spec:
-#   dependsOn:
-#     - name: ghcr.io-regcred
-#     - name: cloudflared
-#   interval: 10m0s
-#   sourceRef:
-#     kind: GitRepository
-#     name: flux-system
-#   path: ./deployments/production/docs
-#   prune: true
-#   wait: true
-#   timeout: 5m0s
-# ---
-# apiVersion: kustomize.toolkit.fluxcd.io/v1
-# kind: Kustomization
-# metadata:
-#   name: docs-adr
-#   namespace: flux-system
-# spec:
-#   dependsOn:
-#     - name: ghcr.io-regcred
-#     - name: cloudflared
-#   interval: 10m0s
-#   sourceRef:
-#     kind: GitRepository
-#     name: flux-system
-#   path: ./deployments/production/docs-adr
-#   prune: true
-#   wait: true
-#   timeout: 5m0s
-# ---
-# apiVersion: kustomize.toolkit.fluxcd.io/v1
-# kind: Kustomization
-# metadata:
-#   name: docs
-#   namespace: flux-system
-# spec:
-#   dependsOn:
-#     - name: kubeseal
-#     - name: ghcr.io-regcred
-#     - name: cloudflared
-#   interval: 10m0s
-#   sourceRef:
-#     kind: GitRepository
-#     name: flux-system
-#   path: ./deployments/production/zwavejs
-#   prune: true
-#   wait: true
-#   timeout: 5m0s
-# ---
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: docs
+  namespace: default
+spec:
+  interval: 10m0s
+  dependsOn:
+    - name: secrets
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/docs
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: docs-adr
+  namespace: default
+spec:
+  interval: 10m0s
+  dependsOn:
+    - name: secrets
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/docs-adr
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: grafana
+  namespace: default
+spec:
+  dependsOn:
+    - name: sealed-secrets
+    - name: secrets
+    - name: metrics
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/grafana
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: home-assistant
+  namespace: default
+spec:
+  dependsOn:
+    - name: nfs-provisioner
+    - name: sealed-secrets
+    - name: secrets
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/home-assistant
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: metrics
+  namespace: default
+spec:
+  dependsOn:
+    - name: nfs-provisioner
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/metrics
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: mqtt
+  namespace: default
+spec:
+  dependsOn:
+    - name: nfs-provisioner
+    - name: sealed-secrets
+    - name: secrets
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/mqtt
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: playnite-web
+  namespace: default
+spec:
+  dependsOn:
+    - name: nfs-provisioner
+    - name: sealed-secrets
+    - name: secrets
+    - name: mqtt
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/playnite-web
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: ps5
+  namespace: default
+spec:
+  dependsOn:
+    - name: nfs-provisioner
+    - name: sealed-secrets
+    - name: secrets
+    - name: mqtt
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/ps5
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: zwavejs
+  namespace: default
+spec:
+  dependsOn:
+    - name: nfs-provisioner
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/zwavejs
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
 

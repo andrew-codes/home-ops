@@ -3,3 +3,7 @@ kind: Kustomization
 namespace: default
 resources:
   - ../../base/docs-adr
+
+images:
+  - name: ghcr.io/andrew-codes/home-ops-docs-adr
+    newTag: latest
