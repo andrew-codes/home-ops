@@ -9,7 +9,6 @@
       "factory": "./src/generators/secrets-deploying",
       "schema": "./src/generators/schema.json",
       "description": "Scaffold all secrets required for deployments."
-    }
     },
     "seal": {
       "factory": "./src/generators/secrets-seal",
