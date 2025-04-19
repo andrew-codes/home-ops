@@ -50,16 +50,16 @@ const provisionedEnvConfiguration = createEnvConfigurationApi(
 )
 
 const sealedSecretNames = [
-  "mqtt-credentials/username",
-  "mqtt-credentials/password",
-  "grafana-admin/admin",
   "grafana-admin/admin-password",
-  "mqtt-passwd/mqtt_passwd",
-  "tunnel-credentials/credentials.json",
+  "grafana-admin/admin",
   "home-assistant-token/token",
-  "playnite-web-credentials/username",
+  "mqtt-credentials/password",
+  "mqtt-credentials/username",
+  "mqtt-passwd/mqtt_passwd",
   "playnite-web-credentials/password",
+  "playnite-web-credentials/username",
   "psn-accounts/accounts",
+  "tunnel-credentials/credentials.json",
 ] as const
 const sealedSecretEnvConfiguration =
   createEnvConfigurationApi(sealedSecretNames)
