@@ -4843,7 +4843,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/kubectl@workspace:*, @ha/kubectl@workspace:^1.0.0, @ha/kubectl@workspace:packages/kubectl":
+"@ha/kubectl@npm:^1.0.0, @ha/kubectl@workspace:*, @ha/kubectl@workspace:^1.0.0, @ha/kubectl@workspace:packages/kubectl":
   version: 0.0.0-use.local
   resolution: "@ha/kubectl@workspace:packages/kubectl"
   dependencies:
@@ -4863,18 +4863,6 @@ __metadata:
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
     uuid: "npm:^9.0.1"
-  languageName: unknown
-  linkType: soft
-
-"@ha/kubeseal@workspace:packages/kubeseal":
-  version: 0.0.0-use.local
-  resolution: "@ha/kubeseal@workspace:packages/kubeseal"
-  dependencies:
-    lodash: "npm:^4.17.21"
-    shelljs: "npm:^0.8.5"
-    yargs: "npm:^17.7.2"
-  bin:
-    kubeseal: src/bin/kubeseal.js
   languageName: unknown
   linkType: soft
 
@@ -5091,6 +5079,7 @@ __metadata:
   resolution: "@ha/secrets-cli@workspace:tools/nx-secrets-generators"
   dependencies:
     "@ha/configuration-env-secrets": "npm:^0.0.1"
+    "@ha/kubectl": "npm:^1.0.0"
     "@ha/secret-utils": "npm:^0.0.1"
     "@nx/devkit": "npm:20.7.0"
     "@types/jest": "npm:^29.5.14"
@@ -5098,6 +5087,7 @@ __metadata:
     jest: "npm:^29.7.0"
     jest-when: "npm:^3.7.0"
     jsonc-eslint-parser: "npm:^2.4.0"
+    lodash: "npm:4.17.21"
     ts-jest: "npm:^29.2.5"
     tslib: "npm:^2.3.0"
     typescript: "npm:^5.7.3"
@@ -32912,7 +32902,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yargs@npm:^17.3.1, yargs@npm:^17.6.2, yargs@npm:^17.7.2":
+"yargs@npm:^17.3.1, yargs@npm:^17.6.2":
   version: 17.7.2
   resolution: "yargs@npm:17.7.2"
   dependencies:

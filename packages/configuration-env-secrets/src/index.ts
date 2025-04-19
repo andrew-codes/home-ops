@@ -60,7 +60,6 @@ const sealedSecretNames = [
   "playnite-web-credentials/username",
   "playnite-web-credentials/password",
   "psn-accounts/accounts",
-  "regcred/.dockerconfigjson",
 ] as const
 const sealedSecretEnvConfiguration =
   createEnvConfigurationApi(sealedSecretNames)

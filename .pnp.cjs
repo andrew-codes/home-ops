@@ -171,10 +171,6 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:packages/kubectl"\
     },\
     {\
-      "name": "@ha/kubeseal",\
-      "reference": "workspace:packages/kubeseal"\
-    },\
-    {\
       "name": "@ha/logger",\
       "reference": "workspace:packages/logger"\
     },\
@@ -272,7 +268,6 @@ const RAW_RUNTIME_STATE =
     ["@ha/jest-utils", ["workspace:packages/jest-utils"]],\
     ["@ha/jsonnet", ["workspace:packages/jsonnet"]],\
     ["@ha/kubectl", ["workspace:packages/kubectl"]],\
-    ["@ha/kubeseal", ["workspace:packages/kubeseal"]],\
     ["@ha/logger", ["workspace:packages/logger"]],\
     ["@ha/manual-deployment", ["workspace:apps/manual-deployment"]],\
     ["@ha/mqtt-client", ["virtual:9fac141d185268f36972525af283566cd75e494de29fde8754899f2ceff7d0843bff93829a18050e0bee8e312aa154cd4170d0fca8c0c1abe17a6a8ca52e2210#workspace:packages/mqtt-client", "workspace:packages/mqtt-client"]],\
@@ -8863,18 +8858,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/kubeseal", [\
-      ["workspace:packages/kubeseal", {\
-        "packageLocation": "./packages/kubeseal/",\
-        "packageDependencies": [\
-          ["@ha/kubeseal", "workspace:packages/kubeseal"],\
-          ["lodash", "npm:4.17.21"],\
-          ["shelljs", "npm:0.8.5"],\
-          ["yargs", "npm:17.7.2"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/logger", [\
       ["workspace:packages/logger", {\
         "packageLocation": "./packages/logger/",\
@@ -9155,6 +9138,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@ha/secrets-cli", "workspace:tools/nx-secrets-generators"],\
           ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
+          ["@ha/kubectl", "workspace:packages/kubectl"],\
           ["@ha/secret-utils", "workspace:packages/secret-utils"],\
           ["@nx/devkit", "virtual:45c6248e6cef9737d8c2b4c6c770b5c11f4a1611c4ac2c9f1a86f9e9029498f702ab121e18a864312b3c1ca5ecab90fe91426a1d3889727bd53cae9b2ce6985c#npm:20.7.0"],\
           ["@types/jest", "npm:29.5.14"],\
@@ -9162,6 +9146,7 @@ const RAW_RUNTIME_STATE =
           ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
           ["jest-when", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:3.7.0"],\
           ["jsonc-eslint-parser", "npm:2.4.0"],\
+          ["lodash", "npm:4.17.21"],\
           ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
           ["tslib", "npm:2.8.1"],\
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\

@@ -7,8 +7,10 @@
   "types": "./src/index.d.ts",
   "dependencies": {
     "@ha/configuration-env-secrets": "^0.0.1",
+    "@ha/kubectl": "^1.0.0",
     "@ha/secret-utils": "^0.0.1",
     "@nx/devkit": "20.7.0",
+    "lodash": "4.17.21",
     "tslib": "^2.3.0"
   },
   "devDependencies": {

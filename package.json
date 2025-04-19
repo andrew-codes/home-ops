@@ -35,8 +35,7 @@
     "seal-github-secret": "node packages/github-secrets/dist/seal.js",
     "test/coverage/report": "istanbul report --include .test-runs/unit/coverage.json --dir .test-runs/unit/report html",
     "test/coverage/affected": "nx affected --target=code-coverage --parallel=1",
-    "test/coverage/all": "nx run-many --target=code-coverage --all --parallel=1",
-    "seal": "yarn workspace @ha/kubeseal run kubeseal"
+    "test/coverage/all": "nx run-many --target=code-coverage --all --parallel=1"
   },
   "workspaces": {
     "packages": [

@@ -3,7 +3,7 @@ import { createTreeWithEmptyWorkspace } from "@nx/devkit/testing"
 import { SecretsGeneratorSchema } from "../schema"
 import { secretsDeployingGenerator } from "../secrets-deploying"
 
-describe("secrets-provisioning generator", () => {
+describe("secrets-deploying generator", () => {
   let tree: Tree
   const options: SecretsGeneratorSchema = { env: "test" }
 
