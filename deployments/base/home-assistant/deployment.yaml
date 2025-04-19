@@ -19,6 +19,7 @@ spec:
         - name: home-assistant-config
           persistentVolumeClaim:
             claimName: home-assistant-config
+      imagePullPolicy: IfNotPresent
       containers:
         - name: home-assistant
           image: homeassistant/home-assistant:2025.4.1
@@ -84,6 +85,7 @@ spec:
     spec:
       imagePullSecrets:
         - name: regcred
+      imagePullPolicy: Always
       volumes:
         - name: home-assistant-config
           persistentVolumeClaim:

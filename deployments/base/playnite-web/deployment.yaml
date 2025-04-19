@@ -15,7 +15,7 @@ spec:
       containers:
         - name: playnite-web-db
           image: mongo:focal
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: mongo
               containerPort: 27017
@@ -34,7 +34,7 @@ spec:
                           - k8s-main
         - name: playnite-web
           image: ghcr.io/andrew-codes/playnite-web-app:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 3000

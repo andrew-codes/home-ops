@@ -17,7 +17,7 @@ spec:
       containers:
         - name: docs-adr
           image: ghcr.io/andrew-codes/home-ops-docs-adr:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 80

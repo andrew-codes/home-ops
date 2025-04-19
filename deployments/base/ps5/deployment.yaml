@@ -15,7 +15,7 @@ spec:
       containers:
         - name: ps5
           image: ghcr.io/funkeyflo/ps5-mqtt/amd64:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command:
             - sh
           args:

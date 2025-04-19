@@ -15,7 +15,7 @@ spec:
       containers:
         - name: docs
           image: ghcr.io/andrew-codes/home-ops-docs:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 80

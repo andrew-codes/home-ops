@@ -15,7 +15,7 @@ spec:
       containers:
         - name: mqtt
           image: eclipse-mosquitto:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command:
             - sh
           args:
