@@ -10,5 +10,6 @@
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "files.associations": {
     "*.yaml": "home-assistant"
-  }
+  },
+  "eslint.validate": ["json"]
 }

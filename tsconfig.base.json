@@ -15,15 +15,11 @@
     "sourceMap": true,
     "strict": true,
     "target": "esnext",
-    "types": [
-      "node",
-      "jest"
-    ],
+    "types": ["node", "jest"],
     "paths": {
-      "*": [
-        ".yarn/__virtual__/*",
-        ".yarn/*",
-        "node_modules/*"
+      "*": [".yarn/__virtual__/*", ".yarn/*", "node_modules/*"],
+      "@andrew-codes/nx-secrets-generators": [
+        "tools/nx-secrets-generators/src/index.ts"
       ]
     }
   }

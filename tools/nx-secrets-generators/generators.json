@@ -1,0 +1,14 @@
+{
+  "generators": {
+    "provisioning": {
+      "factory": "./src/generators/secrets-provisioning",
+      "schema": "./src/generators/schema.json",
+      "description": "secrets-provisioning generator"
+    },
+    "deploying": {
+      "factory": "./src/generators/secrets-deploying",
+      "schema": "./src/generators/schema.json",
+      "description": "secrets-deploying generator"
+    }
+  }
+}
