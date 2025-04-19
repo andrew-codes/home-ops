@@ -1,7 +1,6 @@
 {
   "name": "nx-executors",
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/nx-executors/src",
+  "sourceRoot": "{projectRoot}/src",
   "projectType": "library",
   "targets": {
     "clean": {
@@ -9,7 +8,7 @@
       "outputs": ["{workspaceRoot}/.test-runs"],
       "options": {
         "command": "rm -rf dist .test-runs",
-        "cwd": "packages/nx-executors"
+        "cwd": "{projectRoot}"
       }
     },
     "compile": {
@@ -17,7 +16,7 @@
       "outputs": ["{projectRoot}/dist"],
       "options": {
         "command": "node -r esbuild-register scripts/compile.ts",
-        "cwd": "packages/nx-executors"
+        "cwd": "{projectRoot}"
       }
     },
     "test": {
@@ -25,13 +24,13 @@
       "outputs": ["{projectRoot}/.test-runs/unit"],
       "options": {
         "command": "jest",
-        "cwd": "packages/nx-executors"
+        "cwd": "{projectRoot}"
       }
     },
     "code-coverage": {
       "executor": "@ha/nx-executors:upload-codecov",
       "options": {
-        "coverageFilePath": "packages/nx-executors/.test-runs/unit/lcov.info"
+        "coverageFilePath": "{projectRoot}/.test-runs/unit/lcov.info"
       }
     },
     "prepare": {
@@ -39,7 +38,7 @@
       "outputs": ["{projectRoot}/dist"],
       "options": {
         "command": "node -r esbuild-register scripts/compile.ts",
-        "cwd": "packages/nx-executors"
+        "cwd": "{projectRoot}"
       }
     }
   },

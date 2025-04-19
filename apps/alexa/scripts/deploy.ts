@@ -9,7 +9,7 @@ const run = async (
 ): Promise<void> => {
   const registry = await configurationApi.get("docker-registry/hostname")
   const kubeConfig = (await configurationApi.get("k8s/config")).value
-  const kube = kubectl(kubeConfig)
+  const kube = kubectl()
 
   const secrets: Array<keyof Configuration> = []
   const resources = await jsonnet.eval(

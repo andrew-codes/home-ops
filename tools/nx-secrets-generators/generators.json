@@ -1,0 +1,19 @@
+{
+  "generators": {
+    "provisioning": {
+      "factory": "./src/generators/secrets-provisioning",
+      "schema": "./src/generators/schema.json",
+      "description": "Scaffold all secrets required for provisioning.",
+    },
+    "deploying": {
+      "factory": "./src/generators/secrets-deploying",
+      "schema": "./src/generators/schema.json",
+      "description": "Scaffold all secrets required for deployments."
+    },
+    "seal": {
+      "factory": "./src/generators/secrets-seal",
+      "schema": "./src/generators/schema.json",
+      "description": "Seal secrets to be committed to the repository."
+    }
+  }
+}

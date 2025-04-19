@@ -1,7 +1,7 @@
 {
   "name": "configuration-workspace",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/configuration-workspace/src",
+  "sourceRoot": "{projectRoot}/src",
   "projectType": "library",
   "targets": {
     "clean": {
@@ -9,7 +9,7 @@
       "outputs": ["{projectRoot}/.test-runs/unit"],
       "options": {
         "command": "rm -rf dist .test-runs",
-        "cwd": "packages/configuration-workspace"
+        "cwd": "{projectRoot}"
       }
     },
     "test": {
@@ -17,13 +17,13 @@
       "outputs": ["{projectRoot}/.test-runs/unit"],
       "options": {
         "command": "jest",
-        "cwd": "packages/configuration-workspace"
+        "cwd": "{projectRoot}"
       }
     },
     "code-coverage": {
       "executor": "@ha/nx-executors:upload-codecov",
       "options": {
-        "coverageFilePath": "packages/configuration-workspace/.test-runs/unit/lcov.info"
+        "coverageFilePath": "{projectRoot}/.test-runs/unit/lcov.info"
       }
     }
   },

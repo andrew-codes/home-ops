@@ -11,7 +11,7 @@ const run = async (
 ): Promise<void> => {
   const githubToken = await configurationApi.get("github/token")
   const kubeConfig = (await configurationApi.get("k8s/config")).value
-  const kube = kubectl(kubeConfig)
+  const kube = kubectl()
 
   await kube.exec(`kubectl create namespace actions-runner-system;`)
   await kube.exec(

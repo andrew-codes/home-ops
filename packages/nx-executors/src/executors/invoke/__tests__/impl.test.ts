@@ -1,11 +1,7 @@
 jest.mock("process", () => ({ chdir: jest.fn() }))
 jest.mock("esbuild-register/dist/node")
 jest.mock("@ha/configuration-workspace")
-import type { ConfigurationApi } from "@ha/configuration-api"
-import {
-  Configuration,
-  createConfigurationApi,
-} from "@ha/configuration-workspace"
+import workspaceConfigurationApi from "@ha/configuration-workspace"
 import { ExecutorContext } from "@nx/devkit"
 import { register } from "esbuild-register/dist/node"
 import path from "path"
@@ -65,9 +61,6 @@ test("Modules are resolved relative to the cwd option.", async () => {
   jest.doMock(path.join(__dirname, "..", "__mocks__", "deploy.ts"), () => ({
     default: deploy,
   }))
-  jest.mocked(createConfigurationApi).mockResolvedValue({
-    configuration: true,
-  } as unknown as ConfigurationApi<Configuration>)
 
   const { success } = await executor(
     {
@@ -85,9 +78,6 @@ test("Modules default exported function will be invoked with the configuration A
   jest.doMock(path.join(__dirname, "..", "__mocks__", "deploy.ts"), () => ({
     default: deploy,
   }))
-  jest.mocked(createConfigurationApi).mockResolvedValue({
-    configuration: true,
-  } as unknown as ConfigurationApi<Configuration>)
 
   const options = {
     module: "./deploy.ts",
@@ -111,6 +101,6 @@ test("Modules default exported function will be invoked with the configuration A
       "__mocks__",
     ),
   )
-  expect(deploy).toHaveBeenCalledWith({ configuration: true }, ctx, options)
+  expect(deploy).toHaveBeenCalledWith(workspaceConfigurationApi, ctx, options)
   expect(success).toEqual(true)
 })

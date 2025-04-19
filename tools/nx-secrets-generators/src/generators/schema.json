@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "$id": "SecretsDeploying",
+  "title": "",
+  "type": "object",
+  "properties": {
+    "env": {
+      "type": "string",
+      "description": "",
+      "$default": {
+        "$source": "argv",
+        "index": 0
+      },
+      "x-prompt": "What environment do you want to scaffold secrets for?"
+    }
+  },
+  "required": ["env"]
+}

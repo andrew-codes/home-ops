@@ -8,17 +8,28 @@ const apply = async (
   cwd?: string | undefined,
   dataDir?: string | undefined,
 ): Promise<void> => {
+  const env = {}
   for (const [key, value] of Object.entries(vars ?? {})) {
-    sh.env[`TF_VAR_${key}`] = value.toString()
+    env[`TF_VAR_${key}`] = value.toString()
   }
-  const terraformDataDir = path.resolve(dataDir)
-  sh.env["TF_DATA_DIR"] = path.join(terraformDataDir, ".terraform")
+  const terraformDataDir = path.resolve(
+    dataDir ?? path.join(process.cwd(), ".terraform"),
+  )
+  env["TF_DATA_DIR"] = path.join(terraformDataDir, ".terraform")
 
   logger.info("Applying terraform")
   await throwIfError(
     sh.exec(
       `terraform init --upgrade && terraform plan --out=terraform.plan && terraform apply "terraform.plan"`,
-      { async: true, silent: true, cwd: cwd ?? process.cwd() },
+      {
+        async: true,
+        silent: true,
+        cwd: cwd ?? process.cwd(),
+        env: {
+          ...process.env,
+          ...env,
+        },
+      },
     ),
   )
 }

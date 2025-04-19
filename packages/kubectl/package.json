@@ -5,6 +5,7 @@
   "license": "MIT",
   "main": "src/index.ts",
   "dependencies": {
+    "@ha/configuration-env-secrets": "workspace:^0.0.1",
     "@ha/logger": "workspace:^0.0.1",
     "shelljs": "^0.8.5"
   },

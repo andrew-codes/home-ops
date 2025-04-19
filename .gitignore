@@ -40,3 +40,5 @@ cookies.txt
 
 terraform.plan
 .nx
+
+!tools/**/generators/files/**/*.*

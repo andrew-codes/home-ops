@@ -5,8 +5,6 @@ import pkg from "../package.json"
 const entryPoints = [
   "./src/executors/docker-run/impl.ts",
   "./src/executors/invoke/impl.ts",
-  "./src/executors/telepresence/impl.ts",
-  "./src/executors/telepresence-local/impl.ts",
   "./src/executors/upload-codecov/impl.ts",
 ].map((ep) => path.join(__dirname, "..", ep))
 

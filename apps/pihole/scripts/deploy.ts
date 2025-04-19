@@ -8,12 +8,12 @@ const run = async (
   configurationApi: ConfigurationApi<Configuration>,
 ): Promise<void> => {
   logger.info("Deploying Pi-hole")
-  const ip = (await configurationApi.get("pihole/ip")).value
-  const ip2 = (await configurationApi.get("pihole2/ip")).value
-  const password = (await configurationApi.get("pihole/password")).value
-  const domain = (await configurationApi.get("pihole/domain")).value
-  const dhcpIp = (await configurationApi.get("unifi/ip")).value
-  const cidr = (await configurationApi.get("tailscale/subnet-routes")).value
+  const ip = await configurationApi.get("pihole/ip")
+  const ip2 = await configurationApi.get("pihole2/ip")
+  const password = await configurationApi.get("pihole/password")
+  const domain = await configurationApi.get("pihole/domain")
+  const dhcpIp = await configurationApi.get("unifi/ip")
+  const cidr = await configurationApi.get("tailscale/subnet-routes")
 
   const dnsEntries = []
 

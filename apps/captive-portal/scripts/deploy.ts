@@ -14,7 +14,7 @@ const run = async (
   const unifiIp = await configurationApi.get("unifi/ip")
   const host = await configurationApi.get("captive-portal/host")
   const kubeConfig = (await configurationApi.get("k8s/config")).value
-  const kube = kubectl(kubeConfig)
+  const kube = kubectl()
 
   const unifiCaptivePortal = `<!DOCTYPE html>
   <html>

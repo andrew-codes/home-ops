@@ -1,5 +1,5 @@
 import { ChildProcess } from "child_process"
-import fs from "fs"
+import { when } from "jest-when"
 import path from "path"
 import sh from "shelljs"
 import fluxcd from ".."
@@ -27,42 +27,41 @@ describe("fluxcd", () => {
   let configApi
   beforeEach(() => {
     configApi = {
-      get: jest.fn(async (key) => ({
-        value: key,
-      })),
+      get: jest.fn(),
     }
   })
 
   let flux
   beforeEach(() => {
-    flux = fluxcd("kubeconfig\\nvalue", configApi)
+    flux = fluxcd(configApi)
   })
 
   describe("exec", () => {
-    test(`saves kubeconfig to a file and sets its path as an environment variable`, () => {
-      const { exec } = flux
-      exec("echo hello")
+    test(`runs with the needed environment variables`, async () => {
+      when(configApi.get).calledWith("env").mockResolvedValue("staging")
+      when(configApi.get)
+        .calledWith("github/username")
+        .mockResolvedValue("github/username")
+      when(configApi.get)
+        .calledWith("github/token")
+        .mockResolvedValue("github/token")
 
-      const kubePath = path.resolve(__dirname, "../../._secrets/.kube")
-      expect(fs.mkdirSync).toHaveBeenCalledWith(kubePath, { recursive: true })
-      expect(fs.writeFileSync).toHaveBeenCalledWith(
-        path.join(kubePath, "config"),
-        `kubeconfig
-value`,
-        {
-          encoding: "utf8",
-          mode: 0o600,
-        },
+      await flux.exec("echo hello")
+
+      const kubePath = path.resolve(
+        __dirname,
+        "../../../../resources/k8s/._secrets/staging/.kube/config",
       )
-      expect(sh.env["KUBECONFIG"]).toBe(path.join(kubePath, "config"))
-    })
-
-    test(`runs with the GitHub environment variables`, () => {
-      const { exec } = flux
-      exec("echo hello")
-
-      expect(sh.env["GITHUB_USER"]).toBe("github/username")
-      expect(sh.env["GITHUB_TOKEN"]).toBe("github/token")
+      expect(sh.exec).toHaveBeenCalledWith(
+        "echo hello",
+        expect.objectContaining({
+          env: expect.objectContaining({
+            GITHUB_USER: "github/username",
+            GITHUB_TOKEN: "github/token",
+            KUBECONFIG: kubePath,
+          }),
+        }),
+      )
     })
   })
 })

@@ -1,28 +1,13 @@
-jest.mock("dotenv")
-import { config } from "dotenv"
-import path from "path"
-import { configurationApi } from "../"
+import { env } from "node:process"
 
 describe("configuration api module exports", () => {
-  test("Configuration gets values from .secrets.env env variables.", async () => {
-    jest
-      .mocked(config)
-      .mockReturnValue({ parsed: { ONEPASSWORD_TOKEN: "value" } })
+  test("Configuration gets values from environment variables.", async () => {
+    env["K8S_IP"] = "value"
+    const { provisionedEnvConfiguration } = await import(
+      "@ha/configuration-env-secrets"
+    )
 
-    const actual = await configurationApi.get("onepassword/token")
-    expect(config).toHaveBeenCalledWith({
-      path: path.join(__dirname, "..", "..", "..", "..", ".secrets.env"),
-    })
+    const actual = await provisionedEnvConfiguration.get("k8s/ip")
     expect(actual).toEqual("value")
-  })
-
-  test("Can get a list of all configuration names", () => {
-    const actual = configurationApi.getNames()
-    expect(actual).toEqual([
-      "env",
-      "onepassword/token",
-      "onepassword/vault-id",
-      "code-cov/token",
-    ])
   })
 })

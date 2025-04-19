@@ -1,8 +1,0 @@
-{
-  "name": "kubeseal",
-  "sourceRoot": "{projectRoot}/src",
-  "projectType": "library",
-  "targets": {},
-  "tags": [],
-  "implicitDependencies": []
-}
