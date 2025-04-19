@@ -78,10 +78,6 @@ RUN chmod +x /usr/local/bin/helm
 # go, jsonnet
 RUN curl -s https://dl.google.com/go/go1.18.1.linux-amd64.tar.gz | tar -xz -C /usr/local
 RUN ln -s /usr/local/go/bin/go /usr/local/bin
-RUN go install github.com/google/go-jsonnet/cmd/jsonnet@latest
-RUN go install -a github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb@latest
-RUN ln -s $(go env GOPATH)/bin/jsonnet /usr/local/bin
-RUN ln -s $(go env GOPATH)/bin/jb /usr/local/bin
 
 # codecov
 RUN curl -Os https://uploader.codecov.io/latest/linux/codecov
