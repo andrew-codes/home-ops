@@ -5,20 +5,23 @@ import { uniq } from "lodash"
 import { SecretsGeneratorSchema } from "../schema"
 import { secretsSealGenerator } from "../secrets-seal"
 
+//  These tests can only be run locally as they require a kubectl context.
 describe("secrets-seal generator", () => {
   let tree: Tree
   const options: SecretsGeneratorSchema = { env: "staging" }
 
   beforeEach(() => {
     tree = createTreeWithEmptyWorkspace()
+  })
+
+  test.skip("should create sealed k8s secret file for each k8s secret.", async () => {
     tree.write(
       `./._secrets.${options.env}.deploying.env`,
       "MQTT_CREDENTIALS_USERNAME=12345\nMQTT_CREDENTIALS_PASSWORD=67890\n",
     )
-  })
 
-  it("should create sealed k8s secret file for each k8s secret.", async () => {
     await secretsSealGenerator(tree, options)
+
     expect(
       tree.exists(`./infrastructure/${options.env}/secrets/kustomization.yaml`),
     ).toBe(true)

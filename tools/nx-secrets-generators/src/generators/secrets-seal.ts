@@ -15,9 +15,6 @@ export async function secretsSealGenerator(
 
   // Create the secrets directory if it doesn't exist
   const secretsDir = `./infrastructure/${options.env}/secrets`
-  if (!tree.exists(secretsDir)) {
-    tree.write(secretsDir, "")
-  }
 
   // Create the secrets file
   const secretsFile = `._secrets.${options.env}.deploying.env`
@@ -59,10 +56,10 @@ export async function secretsSealGenerator(
       }
 
       const k8sSecret = await kube.exec(
-        `kubectl create secret generic ${k8sName} ${values} --dry-run=client -o yaml `,
+        `kubectl create secret generic ${k8sName} ${values} --dry-run=client -o yaml`,
       )
       const sealedSecret = await kube.exec(
-        `echo -n "${k8sSecret}" | kubeseal --format=yaml --cert=${path.join(__dirname, `../../../../resources/sealed-secrets/keys/${options.env}.pub`)}`,
+        `echo -n '${k8sSecret}' | kubeseal --format=yaml --cert=${path.join(__dirname, `../../../../resources/sealed-secrets/keys/${options.env}.pub`)}`,
       )
 
       tree.write(path.join(secretsDir, `${k8sName}-sealed.yaml`), sealedSecret)
