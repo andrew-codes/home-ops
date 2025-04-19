@@ -47,7 +47,7 @@ export async function secretsSealGenerator(
   for (const [k8sName, kv] of Object.entries(secrets)) {
     try {
       const values = Object.entries(kv)
-        .map(([k, v]) => `--from-literal='${k}=${v}'`)
+        .map(([k, v]) => `--from-literal='${k}=${v.replace(/\\n/g, "\n")}'`)
         .join(" ")
 
       if (isEmpty(values)) {
