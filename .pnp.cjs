@@ -9112,6 +9112,7 @@ const RAW_RUNTIME_STATE =
           ["@ha/kubectl", "workspace:packages/kubectl"],\
           ["@ha/secret-utils", "workspace:packages/secret-utils"],\
           ["@nx/devkit", "virtual:45c6248e6cef9737d8c2b4c6c770b5c11f4a1611c4ac2c9f1a86f9e9029498f702ab121e18a864312b3c1ca5ecab90fe91426a1d3889727bd53cae9b2ce6985c#npm:20.7.0"],\
+          ["@nx/jest", "npm:20.8.0"],\
           ["@types/jest", "npm:29.5.14"],\
           ["@types/node", "npm:18.19.76"],\
           ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
@@ -11107,6 +11108,28 @@ const RAW_RUNTIME_STATE =
           ["@jest/test-result", "npm:29.7.0"],\
           ["@nx/devkit", "virtual:45c6248e6cef9737d8c2b4c6c770b5c11f4a1611c4ac2c9f1a86f9e9029498f702ab121e18a864312b3c1ca5ecab90fe91426a1d3889727bd53cae9b2ce6985c#npm:20.7.0"],\
           ["@nx/js", "virtual:45c6248e6cef9737d8c2b4c6c770b5c11f4a1611c4ac2c9f1a86f9e9029498f702ab121e18a864312b3c1ca5ecab90fe91426a1d3889727bd53cae9b2ce6985c#npm:20.7.0"],\
+          ["@phenomnomnominal/tsquery", "virtual:45c6248e6cef9737d8c2b4c6c770b5c11f4a1611c4ac2c9f1a86f9e9029498f702ab121e18a864312b3c1ca5ecab90fe91426a1d3889727bd53cae9b2ce6985c#npm:5.0.1"],\
+          ["identity-obj-proxy", "npm:3.0.0"],\
+          ["jest-config", "virtual:3a6a7b993b4c5b60edc037a265ed4617431cf4c75aee76d6fbd0f2ca65ea68cee61c092e9bd306baebd90cc377234b4a525791e6755ee4d2193076de2c2bdfed#npm:29.7.0"],\
+          ["jest-resolve", "npm:29.7.0"],\
+          ["jest-util", "npm:29.7.0"],\
+          ["minimatch", "npm:9.0.3"],\
+          ["picocolors", "npm:1.1.1"],\
+          ["resolve.exports", "npm:2.0.3"],\
+          ["semver", "npm:7.7.1"],\
+          ["tslib", "npm:2.8.1"],\
+          ["yargs-parser", "npm:21.1.1"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
+      ["npm:20.8.0", {\
+        "packageLocation": "./.yarn/cache/@nx-jest-npm-20.8.0-b9c4972200-81b655346c.zip/node_modules/@nx/jest/",\
+        "packageDependencies": [\
+          ["@nx/jest", "npm:20.8.0"],\
+          ["@jest/reporters", "virtual:95136e3b1b91cceec79dd9d53c92241cd08e7844c90d4e8a8371e410efe0e42925d8fc30798b9235b83943364b652ebb01eac4bca77d3b6d34c1e12cb4814f8a#npm:29.7.0"],\
+          ["@jest/test-result", "npm:29.7.0"],\
+          ["@nx/devkit", "virtual:bc263016f66dd3f8670645223beea71b912b9b81aa9bf11e015a0bf4603ea4acd989ab8d7fc4571cb917a0ba40604c8fb7e1971fff27c39b76eff2e3f994c1a2#npm:20.8.0"],\
+          ["@nx/js", "virtual:bc263016f66dd3f8670645223beea71b912b9b81aa9bf11e015a0bf4603ea4acd989ab8d7fc4571cb917a0ba40604c8fb7e1971fff27c39b76eff2e3f994c1a2#npm:20.8.0"],\
           ["@phenomnomnominal/tsquery", "virtual:45c6248e6cef9737d8c2b4c6c770b5c11f4a1611c4ac2c9f1a86f9e9029498f702ab121e18a864312b3c1ca5ecab90fe91426a1d3889727bd53cae9b2ce6985c#npm:5.0.1"],\
           ["identity-obj-proxy", "npm:3.0.0"],\
           ["jest-config", "virtual:3a6a7b993b4c5b60edc037a265ed4617431cf4c75aee76d6fbd0f2ca65ea68cee61c092e9bd306baebd90cc377234b4a525791e6755ee4d2193076de2c2bdfed#npm:29.7.0"],\
