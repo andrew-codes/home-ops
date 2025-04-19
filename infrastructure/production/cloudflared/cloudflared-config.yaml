@@ -25,5 +25,5 @@ data:
       - hostname: "docs.smith-simms.family"
         service: "http://docs:80"
       - hostname: "adr.smith-simms.family"
-        service: "http://home-ops-docs-adr:80"
+        service: "http://docs-adr:80"
       - service: "http_status:404"
