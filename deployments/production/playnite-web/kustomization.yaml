@@ -5,4 +5,4 @@ resources:
 
 images:
   - name: ghcr.io/andrew-codes/playnite-web-app
-    newTag: latest
+    newTag: 11.1.0
