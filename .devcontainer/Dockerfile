@@ -43,6 +43,7 @@ RUN curl -fL https://app.getambassador.io/download/tel2/linux/amd64/latest/telep
 RUN chmod a+x /usr/local/bin/telepresence
 
 # FluxCD
+RUN mkdir -p ~/.local/bin
 RUN curl -s https://fluxcd.io/install.sh | FLUX_VERSION=2.0.0 bash -s ~/.local/bin
 
 # Ansible
