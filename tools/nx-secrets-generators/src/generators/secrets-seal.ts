@@ -22,7 +22,10 @@ export async function secretsSealGenerator(
     (tree.read(secretsFile)?.toString().split("\n") || [])
       .map((line) => line.trim())
       .filter((line) => line.length > 0)
-      .map((line) => line.split("=")),
+      .map((line) => [
+        line.substring(0, line.indexOf("=")),
+        line.substring(line.indexOf("=") + 1),
+      ]),
   )
 
   const secrets = sealedSecretEnvConfiguration.getNames().reduce(
