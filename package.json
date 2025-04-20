@@ -68,6 +68,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^18.19.76",
     "@types/react": "^18.0.28",
+    "@typescript-eslint/parser": "^8.30.1",
     "emotion": "^11.0.0",
     "emotion-server": "^11.0.0",
     "eslint": "^9.8.0",
@@ -89,7 +90,7 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.19.0"
   },
-  "packageManager": "yarn@4.6.0",
+  "packageManager": "yarn@4.9.1+sha512.f95ce356460e05be48d66401c1ae64ef84d163dd689964962c6888a9810865e39097a5e9de748876c2e0bf89b232d583c33982773e9903ae7a76257270986538",
   "dependenciesMeta": {
     "binary-install@1.0.6": {
       "unplugged": true

@@ -11,5 +11,8 @@
   "files.associations": {
     "*.yaml": "home-assistant"
   },
-  "eslint.validate": ["json"]
+  "eslint.validate": [
+    "json"
+  ],
+  "eslint.nodePath": ".yarn/sdks"
 }

@@ -11,6 +11,7 @@
     "@ha/secret-utils": "^0.0.1",
     "@nx/devkit": "20.7.0",
     "lodash": "4.17.21",
+    "nx": "^20.8.0",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
