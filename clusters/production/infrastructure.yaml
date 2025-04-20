@@ -37,7 +37,7 @@ metadata:
   name: cloudflared
   namespace: default
 spec:
-  interval: 1h
+  interval: 10m0s
   retryInterval: 1m
   timeout: 5m
   dependsOn:
@@ -56,7 +56,7 @@ metadata:
   name: secrets
   namespace: default
 spec:
-  interval: 1h
+  interval: 10m0s
   retryInterval: 1m
   timeout: 5m
   dependsOn:
