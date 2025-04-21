@@ -88,16 +88,16 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: playnite-web
+  name: playnite-web-db
   namespace: default
 spec:
   selector:
     matchLabels:
-      app: playnite-web
+      app: playnite-web-db
   template:
     metadata:
       labels:
-        app: playnite-web
+        app: playnite-web-db
     spec:
       containers:
         - name: playnite-web-db
