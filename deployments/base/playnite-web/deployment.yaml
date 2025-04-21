@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,25 +14,6 @@ spec:
         app: playnite-web
     spec:
       containers:
-        - name: playnite-web-db
-          image: mongo:focal
-          imagePullPolicy: Always
-          ports:
-            - name: mongo
-              containerPort: 27017
-              protocol: TCP
-          volumeMounts:
-            - name: playnite-web-db
-              mountPath: /data/db
-          affinity:
-            nodeAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                nodeSelectorTerms:
-                  - matchExpressions:
-                      - key: kubernetes.io/hostname
-                        operator: In
-                        values:
-                          - k8s-main
         - name: playnite-web
           image: ghcr.io/andrew-codes/playnite-web-app:latest
           imagePullPolicy: Always
@@ -45,7 +27,7 @@ spec:
             - name: HOST
               value: games.smith-simms.family
             - name: DB_HOST
-              value: localhost
+              value: playnite-web-db
             - name: DEBUG
               value: "playnite*"
             - name: MQTT_HOST
@@ -102,6 +84,33 @@ spec:
         - name: playnite-web-assets
           persistentVolumeClaim:
             claimName: playnite-web-assets
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playnite-web
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: playnite-web
+  template:
+    metadata:
+      labels:
+        app: playnite-web
+    spec:
+      containers:
+        - name: playnite-web-db
+          image: mongo:focal
+          imagePullPolicy: Always
+          ports:
+            - name: mongo
+              containerPort: 27017
+              protocol: TCP
+          volumeMounts:
+            - name: playnite-web-db
+              mountPath: /data/db
+      volumes:
         - name: playnite-web-db
           persistentVolumeClaim:
             claimName: playnite-web-db

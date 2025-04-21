@@ -13,3 +13,19 @@ spec:
       targetPort: http
       protocol: TCP
   type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: playnite-web-db
+  namespace: default
+spec:
+  selector:
+    app: playnite-web-db
+  ports:
+    - name: mongo
+      port: 27017
+      targetPort: mongo
+      protocol: TCP
+  type: ClusterIP
+---
