@@ -24,7 +24,6 @@ export async function secretsSealGenerator(
       continue
     }
     const value = await sealedSecretEnvConfiguration.get(name)
-    console.debug(`Value for ${name}: ${value}`)
 
     secrets = merge({}, secrets, {
       [k8sSecretName]: {
