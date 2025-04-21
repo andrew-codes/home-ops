@@ -13,6 +13,4 @@ patches:
           - tunnel
           - --config
           - /etc/cloudflared/config/config.yaml
-          - --protocol
-          - tcp
           - run
