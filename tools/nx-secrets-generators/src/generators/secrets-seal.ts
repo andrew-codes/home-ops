@@ -1,7 +1,7 @@
 import { sealedSecretEnvConfiguration } from "@ha/configuration-env-secrets"
 import { kubectl } from "@ha/kubectl"
-import { toEnvName } from "@ha/secret-utils"
 import { Tree } from "@nx/devkit"
+import { configDotenv } from "dotenv"
 import { isEmpty, merge } from "lodash"
 import path from "node:path"
 import { env } from "node:process"
@@ -13,40 +13,28 @@ export async function secretsSealGenerator(
 ) {
   env.ENV = options.env
 
-  // Create the secrets directory if it doesn't exist
-  const secretsDir = `./infrastructure/${options.env}/secrets`
-
-  // Create the secrets file
   const secretsFile = `._secrets.${options.env}.deploying.env`
-  const secretsFromFile = Object.fromEntries(
-    (tree.read(secretsFile)?.toString().split("\n") || [])
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .map((line) => [
-        line.substring(0, line.indexOf("=")),
-        line.substring(line.indexOf("=") + 1),
-      ]),
-  )
+  configDotenv({ path: secretsFile })
 
-  const secrets = sealedSecretEnvConfiguration.getNames().reduce(
-    (acc, name) => {
-      const k8sSecretName = name.split("/").shift()
-      const k8sKeyName = name.split("/").pop()
-      if (!k8sSecretName || !k8sKeyName) {
-        return acc
-      }
-      const value = secretsFromFile[toEnvName(name)]
+  let secrets: Record<string, Record<string, string>> = {}
+  for (const name of sealedSecretEnvConfiguration.getNames()) {
+    const k8sSecretName = name.split("/").shift()
+    const k8sKeyName = name.split("/").pop()
+    if (!k8sSecretName || !k8sKeyName) {
+      continue
+    }
+    const value = await sealedSecretEnvConfiguration.get(name)
+    console.debug(`Value for ${name}: ${value}`)
 
-      return merge({}, acc, {
-        [k8sSecretName]: {
-          [k8sKeyName]: value,
-        },
-      })
-    },
-    {} as Record<string, Record<string, string>>,
-  )
+    secrets = merge({}, secrets, {
+      [k8sSecretName]: {
+        [k8sKeyName]: value,
+      },
+    })
+  }
 
   const kube = kubectl()
+  const secretsDir = `./infrastructure/${options.env}/secrets`
   for (const [k8sName, kv] of Object.entries(secrets)) {
     try {
       if (isEmpty(Object.keys(kv))) {

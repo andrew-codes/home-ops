@@ -9117,6 +9117,7 @@ const RAW_RUNTIME_STATE =
           ["@nx/jest", "npm:20.8.0"],\
           ["@types/jest", "npm:29.5.14"],\
           ["@types/node", "npm:18.19.76"],\
+          ["dotenv", "npm:16.5.0"],\
           ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
           ["jest-when", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:3.7.0"],\
           ["jsonc-eslint-parser", "npm:2.4.0"],\
@@ -20776,6 +20777,13 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/dotenv-npm-16.4.7-29680c94f8-f13bfe97db.zip/node_modules/dotenv/",\
         "packageDependencies": [\
           ["dotenv", "npm:16.4.7"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
+      ["npm:16.5.0", {\
+        "packageLocation": "./.yarn/cache/dotenv-npm-16.5.0-67343a179e-e68a16834f.zip/node_modules/dotenv/",\
+        "packageDependencies": [\
+          ["dotenv", "npm:16.5.0"]\
         ],\
         "linkType": "HARD"\
       }],\
