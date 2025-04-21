@@ -1,0 +1,12 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playnite-web
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - name: playnite-web
+          image: ghcr.io/andrew-codes/playnite-web-app:11.1.0
