@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guest-registrar-unifi
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: guest-registrar-unifi
+  template:
+    metadata:
+      labels:
+        app: guest-registrar-unifi
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: guest-registrar-unifi
+          image: ghcr.io/andrew-codes/guest-registrar-unifi:latest
+          imagePullPolicy: Always
+          env:
+            - name: MQTT_HOST
+              value: mqtt
+            - name: MQTT_PORT
+              value: "1883"
+            - name: MQTT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mqtt-credentials
+                  key: username
+            - name: MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mqtt-credentials
+                  key: password
+            - name: UNIFI_IP
+              valueFrom:
+                secretKeyRef:
+                  name: unifi
+                  key: ip
+            - name: UNIFI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: unifi
+                  key: password
+            - name: UNIFI_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: unifi
+                  key: username
+      restartPolicy: Always

@@ -1,0 +1,37 @@
+{
+  "name": "guest-registrar-unifi",
+  "sourceRoot": "{projectRoot}/src",
+  "projectType": "application",
+  "targets": {
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "yarn node --trace-warnings --require esbuild-register scripts/nodemon.ts",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "compile": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/compile.ts"
+      }
+    },
+    "package": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/package.ts"
+      }
+    },
+    "publish": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/publish.ts"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}

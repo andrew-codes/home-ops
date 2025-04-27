@@ -65,6 +65,9 @@ const sealedSecretNames = [
   "regcred/server",
   "regcred/username",
   "tunnel-credentials/credentials.json",
+  "unifi/ip",
+  "unifi/password",
+  "unifi/username",
 ] as const
 const sealedSecretEnvConfiguration =
   createEnvConfigurationApi(sealedSecretNames)
