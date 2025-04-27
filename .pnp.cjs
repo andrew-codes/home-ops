@@ -8848,6 +8848,7 @@ const RAW_RUNTIME_STATE =
           ["axios", "npm:1.8.4"],\
           ["esbuild", "npm:0.25.2"],\
           ["esbuild-register", "virtual:e370a72137b1fb4b925bbc4ae2a927fd6562b99d8423a23174372798ac976edde09806f75695187ad8387dc2b868a4d3604a3f1d2eb85b228a640d9ea51e0a47#npm:3.6.0"],\
+          ["lodash", "npm:4.17.21"],\
           ["nodemon", "npm:3.1.9"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
           ["ws", "virtual:e370a72137b1fb4b925bbc4ae2a927fd6562b99d8423a23174372798ac976edde09806f75695187ad8387dc2b868a4d3604a3f1d2eb85b228a640d9ea51e0a47#npm:8.18.1"]\

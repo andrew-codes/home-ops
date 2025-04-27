@@ -1,10 +1,17 @@
 import { logger } from "@ha/logger"
 import axios from "axios"
 import https from "https"
+import { isEmpty, throttle } from "lodash"
 import { env } from "node:process"
 import WebSocket from "ws"
 
-const connectWebSocket = async () => {
+interface IHandleWebSocketMessage {
+  (messageType: string, payload: any): void
+}
+
+const connectWebSocket = async (
+  messageHandlers: Array<IHandleWebSocketMessage>,
+) => {
   const { UNIFI_IP, UNIFI_USERNAME, UNIFI_PASSWORD } = env
   logger.debug(
     `Connecting to Unifi controller at ${UNIFI_IP} with username ${UNIFI_USERNAME}`,
@@ -68,13 +75,17 @@ const connectWebSocket = async () => {
 
   ws.on("message", (data) => {
     const event = JSON.parse(data)
-    // logger.debug(JSON.stringify(event, null, 2))
     if (event.data && event.meta && event.meta.message) {
       const msgType = event.meta.message
-      logger.debug("Received event:", msgType)
       switch (msgType) {
         case "sta:sync":
-          logger.debug(`Client update: ${JSON.stringify(event.data, null, 2)}`)
+          for (const handler of messageHandlers) {
+            try {
+              handler(msgType, event.data)
+            } catch (error) {
+              logger.error(`Error in message handler: ${error}`)
+            }
+          }
           break
         default:
           break
@@ -99,7 +110,43 @@ const connectWebSocket = async () => {
 
 const run = async () => {
   logger.info("Starting guest-registrar-unifi application...")
-  await connectWebSocket()
+  // const mqtt = await createMqtt()
+  const handleClientStat = throttle(
+    (type: string, payload: any) => {
+      if (type !== "sta:sync") {
+        return
+      }
+      logger.debug("Handling client stat")
+      const data = payload as Array<{
+        confidence?: number
+        dev_cat?: number
+        dev_family?: number
+        mac: string
+        name: string
+        hostname: string
+        network: string
+        os_name?: number
+        is_guest: boolean
+      }>
+      const guestDeviceTrackers = data
+        .filter((client) => client.is_guest)
+        .filter(
+          (client) =>
+            (((client.dev_cat === 1 || client.dev_family === 9) &&
+              client?.confidence) ??
+              0 >= 50) ||
+            /.*phone.*/i.test(client.hostname),
+        )
+      if (!isEmpty(guestDeviceTrackers)) {
+        console.debug(
+          `${guestDeviceTrackers.length} guest device trackers found: ${guestDeviceTrackers.map((client) => `[${client.hostname}, ${client.mac}]`).join(", ")}`,
+        )
+      }
+    },
+    { leading: true, trailing: false, wait: 60000 },
+  )
+  const handlers = [handleClientStat]
+  await connectWebSocket(handlers)
 }
 
 if (require.main === module) {

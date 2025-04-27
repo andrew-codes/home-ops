@@ -4872,6 +4872,7 @@ __metadata:
     axios: "npm:^1.8.4"
     esbuild: "npm:^0.25.2"
     esbuild-register: "npm:^3.6.0"
+    lodash: "npm:^4.17.21"
     nodemon: "npm:^3.1.9"
     nx: "npm:^20.7.0"
     ws: "npm:^8.18.1"
