@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "include": [
+      "src/**/*.ts",
+      "scripts/**/*.ts"
+    ],
+    "types": ["@types/node", "@types/jest", "@types/nodemon"]
+  }
+}

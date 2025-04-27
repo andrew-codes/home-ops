@@ -1,0 +1,25 @@
+{
+  "name": "@ha/guest-registrar-unifi",
+  "version": "0.0.1",
+  "description": "Register guests upon connecting phone devices to the Unifi guest network.",
+  "dependencies": {
+    "@ha/logger": "workspace:^0.0.1",
+    "@ha/mqtt-client": "workspace:^0.0.1",
+    "axios": "^1.8.4",
+    "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "@ha/build-ts": "workspace:^1.0.0",
+    "@ha/configuration-api": "workspace:^0.0.1",
+    "@ha/configuration-workspace": "workspace:^0.0.1",
+    "@ha/docker": "workspace:^0.0.1",
+    "@ha/nx-executors": "workspace:^0.1.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^18.19.76",
+    "@types/nodemon": "^3.1.1",
+    "esbuild": "^0.25.2",
+    "esbuild-register": "^3.6.0",
+    "nodemon": "^3.1.9",
+    "nx": "^20.7.0"
+  }
+}
