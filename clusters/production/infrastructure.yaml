@@ -67,3 +67,19 @@ spec:
   path: ./infrastructure/production/secrets
   prune: true
   wait: true
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: traffic-manager
+  namespace: default
+spec:
+  interval: 10m0s
+  retryInterval: 1m
+  timeout: 5m
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./infrastructure/staging/traffic-manager
+  prune: true
+  wait: true
