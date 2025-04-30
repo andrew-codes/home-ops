@@ -47,7 +47,8 @@ spec:
           - -c
           - |
             echo "🔍 Scanning for corrupted metadata.json files..."
-            apk add --no-cache jq findutils coreutils
+            ping -c 3 dl-cdn.alpinelinux.org
+            apk add --no-cache jq findutils util-linux
             find /vmstorage-data/data -type f -name metadata.json | while read f; do
               if ! jq empty "$f" >/dev/null 2>&1; then
                 echo "⚠️ Invalid JSON: $f"
