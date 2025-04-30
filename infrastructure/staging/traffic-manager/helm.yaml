@@ -1,0 +1,27 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: datawire
+  namespace: ambassador
+spec:
+  interval: 5m0s
+  url: https://app.getambassador.io
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: telepresence
+  namespace: ambassador
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: telepresence
+      version: 2.16.2  # Replace with desired version
+      sourceRef:
+        kind: HelmRepository
+        name: datawire
+  values:
+    trafficManager:
+      enabled: true
