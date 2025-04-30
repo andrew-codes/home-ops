@@ -18,7 +18,7 @@ spec:
   chart:
     spec:
       chart: telepresence
-      version: 2.16.2  # Replace with desired version
+      version: 2.22.4
       sourceRef:
         kind: HelmRepository
         name: datawire
