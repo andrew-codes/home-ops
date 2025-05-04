@@ -40,23 +40,28 @@ spec:
         persistentVolumeClaim:
           claimName: victoria-metrics
     initContainers:
-      - name: cleanup-broken-parts
-        image: alpine:3.19
+      - name: cleanup-data
+        image: busybox:1.36
         command:
-          - /bin/sh
+          - sh
           - -c
           - |
-            echo "🔍 Scanning for corrupted metadata.json files..."
-            apk add --no-cache jq findutils util-linux
-            find /vmstorage-data/data -type f -name "*.json" | while read f; do
-              echo "🔍 Checking JSON file: $(dirname '$f'), $f"
-              if ! jq empty "$f" >/dev/null 2>&1; then
-                echo "⚠️ Invalid JSON: $f"
-                echo "🧹 Deleting corrupted part: $(dirname "$f")"
-                rm -rf "$(dirname "$f")"
-              fi
-            done
-            echo "✅ Cleanup complete."
+            echo "Cleaning up invalid VMStorage state..."
+            find /vmstorage-data/data/small -name 'parts.json' -exec sh -c '
+              for f; do
+                dir=$(dirname "$f")
+                # Remove if any referenced part is missing
+                grep -oE '"'"'"[0-9A-F]+"'"'"' "$f" | while read part; do
+                  if [ ! -d "$dir/$part" ]; then
+                    echo "Removing corrupted $f (missing $part)"
+                    rm -f "$f"
+                    break
+                  fi
+                done
+              done
+            ' sh {} +
+            # Remove invalid partition dirs
+            find /vmstorage-data/data/small -mindepth 1 -maxdepth 1 -type d | grep -vE '/[0-9]{4}_[0-9]{2}$' | xargs rm -rf
         volumeMounts:
           - name: vmstorage-data
             mountPath: /vmstorage-data
