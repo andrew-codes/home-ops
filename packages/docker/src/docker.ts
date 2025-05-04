@@ -24,13 +24,13 @@ const createClient = async (
   return {
     build: async (name, options = {}) => {
       console.debug(
-        `docker buildx build --build-arg OWNER=${username} --build-arg REPO=${repo} --load --platform linux/amd64 -t ${registryScope}/${username}/${name} ${
+        `docker buildx build --build-arg OWNER=${username} --build-arg REPO=${repo} --platform linux/amd64,linux/arm64 -t ${registryScope}/${username}/${name} ${
           options.context ?? process.cwd()
         } -f ${options.dockerFile ?? "Dockerfile"};`,
       )
       await throwIfError(
         sh.exec(
-          `docker buildx build --build-arg OWNER=${username} --build-arg REPO=${repo} --load --platform linux/amd64 -t ${registryScope}/${username}/${name} ${
+          `docker buildx build --build-arg OWNER=${username} --build-arg REPO=${repo} --platform linux/amd64,linux/arm64 -t ${registryScope}/${username}/${name} ${
             options.context ?? process.cwd()
           } -f ${options.dockerFile ?? "Dockerfile"};`,
           { async: true, silent: false },
