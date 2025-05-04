@@ -18,6 +18,7 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^18.19.76",
     "@types/nodemon": "^3.1.1",
+    "async-mqtt": "^2.6.3",
     "esbuild": "^0.25.2",
     "esbuild-register": "^3.6.0",
     "nodemon": "^3.1.9",

@@ -4869,6 +4869,7 @@ __metadata:
     "@types/jest": "npm:^29.5.14"
     "@types/node": "npm:^18.19.76"
     "@types/nodemon": "npm:^3.1.1"
+    async-mqtt: "npm:^2.6.3"
     axios: "npm:^1.8.4"
     esbuild: "npm:^0.25.2"
     esbuild-register: "npm:^3.6.0"
