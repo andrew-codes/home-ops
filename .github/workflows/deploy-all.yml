@@ -71,3 +71,4 @@ jobs:
         env:
           GITHUB_USERNAME: ${{ github.actor }}
           NODE_ENV: production
+          CI: "true"

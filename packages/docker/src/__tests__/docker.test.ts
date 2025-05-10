@@ -37,7 +37,7 @@ describe("docker", () => {
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
-      expect.stringContaining("--platform linux/amd64,linux/arm64"),
+      expect.stringContaining("--platform linux/amd64"),
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
@@ -72,7 +72,7 @@ describe("docker", () => {
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
-      expect.stringContaining("--platform linux/amd64,linux/arm64"),
+      expect.stringContaining("--platform linux/amd64"),
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
@@ -107,7 +107,7 @@ describe("docker", () => {
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
-      expect.stringContaining("--platform linux/amd64,linux/arm64"),
+      expect.stringContaining("--platform linux/amd64"),
       expect.anything(),
     )
     expect(sh.exec).toHaveBeenCalledWith(
