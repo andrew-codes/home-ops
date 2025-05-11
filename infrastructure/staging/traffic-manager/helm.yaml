@@ -22,7 +22,7 @@ spec:
       chart: telepresence-oss
       version: 2.22.4
       sourceRef:
-        kind: HelmRepository
+        kind: OCIRepository
         name: telepresence-oss
         namespace: default
   values:
