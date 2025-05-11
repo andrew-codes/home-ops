@@ -10,7 +10,7 @@ const fluxcd = (configApi: typeof workspaceConfigurationApi) => {
       env?: Record<string, string>,
     ): Promise<string> => {
       const k8sEnv = await configApi.get("env")
-      let kubeConfigPath = path.join(
+      const kubeConfigPath = path.join(
         __dirname,
         `../../../resources/k8s/._secrets/${k8sEnv}/.kube/config`,
       )
