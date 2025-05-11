@@ -6,7 +6,7 @@ metadata:
   namespace: ambassador
 spec:
   interval: 5m0s
-  url: https://app.getambassador.io
+  url: oci://ghcr.io/telepresenceio/telepresence-oss
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -18,7 +18,7 @@ spec:
   chart:
     spec:
       chart: telepresence
-      version: 2.20.2
+      version: 2.22.4
       sourceRef:
         kind: HelmRepository
         name: datawire
