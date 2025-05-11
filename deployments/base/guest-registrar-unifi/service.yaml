@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guest-registrar-unifi
+  namespace: default
+spec:
+  selector:
+    app: guest-registrar-unifi
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  type: ClusterIP
+---
+

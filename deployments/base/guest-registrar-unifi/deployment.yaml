@@ -18,6 +18,10 @@ spec:
         - name: guest-registrar-unifi
           image: ghcr.io/andrew-codes/guest-registrar-unifi:latest
           imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
           env:
             - name: MQTT_HOST
               value: mqtt
