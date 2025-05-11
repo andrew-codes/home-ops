@@ -3,7 +3,7 @@ apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
 metadata:
   name: telepresence-oss
-  namespace: flux-system
+  namespace: ambassador
 spec:
   type: oci
   interval: 10m
