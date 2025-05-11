@@ -17,7 +17,7 @@ spec:
   interval: 5m
   chart:
     spec:
-      chart: telepresence-oss
+      chart: traffice-manager
       version: 2.22.4
       sourceRef:
         kind: HelmRepository
