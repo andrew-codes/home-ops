@@ -1,9 +1,16 @@
 import { logger } from "@ha/logger"
 import axios from "axios"
+import config from "dotenv"
+import http from "http"
 import https from "https"
 import { isEmpty, throttle } from "lodash"
 import { env } from "node:process"
+import path from "path"
 import WebSocket from "ws"
+
+config.config({
+  path: path.join(__dirname, "local.env"),
+})
 
 interface IHandleWebSocketMessage {
   (messageType: string, payload: any): void
@@ -149,8 +156,25 @@ const run = async () => {
   await connectWebSocket(handlers)
 }
 
+const healthServer = () => {
+  const server = http.createServer((req, res) => {
+    if (req.url === "/health") {
+      res.writeHead(200, { "Content-Type": "text/plain" })
+      res.end("OK")
+    } else {
+      res.writeHead(404)
+      res.end()
+    }
+  })
+
+  server.listen(3000, () => {
+    logger.info("Health server running on port 3000")
+  })
+}
+
 if (require.main === module) {
   run()
+  healthServer()
 }
 
 export default run

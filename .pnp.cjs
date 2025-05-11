@@ -8847,6 +8847,7 @@ const RAW_RUNTIME_STATE =
           ["@types/nodemon", "npm:3.1.1"],\
           ["async-mqtt", "npm:2.6.3"],\
           ["axios", "npm:1.8.4"],\
+          ["dotenv", "npm:16.5.0"],\
           ["esbuild", "npm:0.25.2"],\
           ["esbuild-register", "virtual:e370a72137b1fb4b925bbc4ae2a927fd6562b99d8423a23174372798ac976edde09806f75695187ad8387dc2b868a4d3604a3f1d2eb85b228a640d9ea51e0a47#npm:3.6.0"],\
           ["lodash", "npm:4.17.21"],\
