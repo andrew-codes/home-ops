@@ -5,9 +5,11 @@
   "dependencies": {
     "@ha/logger": "workspace:^0.0.1",
     "@ha/mqtt-client": "workspace:^0.0.1",
+    "@reduxjs/toolkit": "^2.8.1",
     "axios": "^1.8.4",
     "dotenv": "^16.5.0",
     "lodash": "^4.17.21",
+    "redux-saga": "^1.3.0",
     "ws": "^8.18.1"
   },
   "devDependencies": {
@@ -16,6 +18,7 @@
     "@ha/configuration-workspace": "workspace:^0.0.1",
     "@ha/docker": "workspace:^0.0.1",
     "@ha/nx-executors": "workspace:^0.1.0",
+    "@types/dotenv": "^8.2.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^18.19.76",
     "@types/nodemon": "^3.1.1",
