@@ -11,5 +11,5 @@ spec:
         - name: home-assistant-app-daemon
           env:
             - name: HA_URL
-              value: "https://staging-ha.smith-simms.family"
+              value: "http://home-assistant"
 ---
