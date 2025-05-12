@@ -3,6 +3,7 @@ apiVersion: v1
 kind: Deployment
 metadata:
   name: home-assistant-app-daemon
+  namespace: default
 spec:
   template:
     spec:
