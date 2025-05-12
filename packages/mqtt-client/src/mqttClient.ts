@@ -18,7 +18,7 @@ const createMqtt = async (
   password: string | undefined = MQTT_PASSWORD,
 ): Promise<AsyncMqttClient> => {
   if (!mqttClient) {
-    mqttClient = await connectAsync(`tcp://${MQTT_HOST}`, {
+    mqttClient = await connectAsync(`tcp://${host}`, {
       password,
       port,
       username,
@@ -31,7 +31,7 @@ const createMqtt = async (
 export { createMqtt }
 export type {
   AsyncMqttClient,
+  IClientPublishOptions,
   IPublishPacket,
   ISubscriptionGrant,
-  IClientPublishOptions,
 }

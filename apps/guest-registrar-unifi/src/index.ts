@@ -1,16 +1,23 @@
 import { logger } from "@ha/logger"
+import { AsyncMqttClient, createMqtt } from "@ha/mqtt-client"
 import axios from "axios"
-import config from "dotenv"
+import dotenv from "dotenv"
 import http from "http"
 import https from "https"
 import { isEmpty, throttle } from "lodash"
 import { env } from "node:process"
 import path from "path"
 import WebSocket from "ws"
+import { connected, loaded } from "./state/features/macAddresses"
+import { store } from "./state/store"
 
-config.config({
-  path: path.join(__dirname, "local.env"),
-})
+try {
+  dotenv.config({
+    path: path.join(__dirname, "../local.env"),
+  })
+} catch (error) {
+  logger.error("Error loading local.env file:", error)
+}
 
 interface IHandleWebSocketMessage {
   (messageType: string, payload: any): void
@@ -117,7 +124,26 @@ const connectWebSocket = async (
 
 const run = async () => {
   logger.info("Starting guest-registrar-unifi application...")
-  // const mqtt = await createMqtt()
+  let mqtt: AsyncMqttClient | null = null
+  try {
+    mqtt = await createMqtt(
+      process.env.MQTT_HOST,
+      parseInt(process.env.MQTT_PORT || "1883", 10),
+      process.env.MQTT_USERNAME,
+      process.env.MQTT_PASSWORD,
+    )
+  } catch (error) {
+    logger.error("Error creating MQTT client:", error)
+    return
+  }
+  await mqtt.subscribe("homeassistant/restart/guest-registrar-unifi")
+  mqtt.on("message", async (topic, message) => {
+    if (topic === "homeassistant/restart/guest-registrar-unifi") {
+      logger.info("Home Assistant restarted...")
+      store.dispatch(loaded(JSON.parse(message.toString())))
+    }
+  })
+
   const handleClientStat = throttle(
     (type: string, payload: any) => {
       if (type !== "sta:sync") {
@@ -147,6 +173,9 @@ const run = async () => {
       if (!isEmpty(guestDeviceTrackers)) {
         console.debug(
           `${guestDeviceTrackers.length} guest device trackers found: ${guestDeviceTrackers.map((client) => `[${client.hostname}, ${client.mac}]`).join(", ")}`,
+        )
+        store.dispatch(
+          connected(guestDeviceTrackers.map((client) => client.mac)),
         )
       }
     },
