@@ -4,11 +4,17 @@ kind: Deployment
 metadata:
   name: home-assistant-app-daemon
 spec:
+  selector:
+    matchLabels:
+      name: home-assistant-app-daemon
   template:
-    spec:
-      containers:
-        - name: home-assistant-app-daemon
-          env:
-            - name: HOME_ASSISTANT_URL
-              value: "https://staging-ha.smith-simms.family"
+    metadata:
+      labels:
+        name: home-assistant-app-daemon
+      spec:
+        containers:
+          - name: home-assistant-app-daemon
+            env:
+              - name: HA_URL
+                value: "https://staging-ha.smith-simms.family"
 ---
