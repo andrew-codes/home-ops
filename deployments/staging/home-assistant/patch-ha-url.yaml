@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: home-assistant-app-daemon
+spec:
+  template:
+    spec:
+      containers:
+        - name: home-assistant-app-daemon
+          env:
+            - name: HOME_ASSISTANT_URL
+              value: "https://staging-ha.smith-simms.family"
+---
