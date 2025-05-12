@@ -1,3 +1,6 @@
 rename_entities:
   module: rename_entities
   class: RenameDeviceEntities
+track_guests:
+  module: track_guests
+  class: TrackGuests
