@@ -42,3 +42,6 @@ terraform.plan
 .nx
 
 !tools/**/generators/files/**/*.*
+
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md

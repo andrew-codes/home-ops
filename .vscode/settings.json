@@ -14,5 +14,6 @@
   "eslint.validate": [
     "json"
   ],
-  "eslint.nodePath": ".yarn/sdks"
+  "eslint.nodePath": ".yarn/sdks",
+  "nxConsole.generateAiAgentRules": true
 }
