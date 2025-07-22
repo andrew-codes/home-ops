@@ -9,7 +9,7 @@
   "typescript.tsdk": ".yarn/sdks/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "files.associations": {
-    "*.yaml": "home-assistant"
+    "*.yaml": "yaml"
   },
   "eslint.validate": [
     "json"
