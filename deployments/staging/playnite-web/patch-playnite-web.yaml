@@ -1,0 +1,31 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playnite-web
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - name: playnite-web
+          image: ghcr.io/andrew-codes/playnite-web-app:12
+          env:
+            - name: PORT
+              value: "3000"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: playnite-web-credentials
+                  key: database-url
+            - name: DISABLE_CSP
+              value: "false"
+            - name: ADDITIONAL_ORIGINS
+              value: ""
+          volumeMounts:
+            - name: games-assets
+              mountPath: /opt/playnite-web-app/.next/static/media/game-assets
+      volumes:
+        - name: games-assets
+          persistentVolumeClaim:
+            claimName: playnite-web-assets
