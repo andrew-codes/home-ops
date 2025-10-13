@@ -37,7 +37,7 @@ spec:
                   name: playnite-web-credentials
                   key: secret
             - name: DISABLE_CSP
-              value: "false"
+              value: "true"
             - name: CSP_ORIGINS
               value: "*.cloudflareinsights.com,*.smith-simms.family"
             - name: ADDITIONAL_ORIGINS
