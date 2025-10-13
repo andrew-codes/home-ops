@@ -2,6 +2,21 @@
 apiVersion: v1
 kind: Service
 metadata:
+  name: playnite-web-db
+  namespace: default
+spec:
+  selector:
+    app: playnite-web-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: playnite-web
   namespace: default
 spec:
@@ -17,15 +32,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: playnite-web-db
+  name: playnite-web-game-assets-processor
   namespace: default
 spec:
   selector:
-    app: playnite-web-db
+    app: playnite-web-game-assets-processor
   ports:
-    - name: mongo
-      port: 27017
-      targetPort: mongo
+    - name: http
+      port: 3001
+      targetPort: http
       protocol: TCP
   type: ClusterIP
 ---

@@ -15,21 +15,33 @@ spec:
     spec:
       containers:
         - name: playnite-web
-          image: ghcr.io/andrew-codes/playnite-web-app:latest
+          image: ghcr.io/andrew-codes/playnite-web-app:12-latest
           imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 3000
               protocol: TCP
           env:
-            - name: CSP_ORIGINS
-              value: "*.cloudflareinsights.com,*.smith-simms.family"
+            - name: PORT
+              value: "3000"
             - name: HOST
               value: games.smith-simms.family
-            - name: DB_HOST
-              value: playnite-web-db
-            - name: DEBUG
-              value: "playnite*"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: playnite-web-credentials
+                  key: database-url
+            - name: SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: playnite-web-credentials
+                  key: secret
+            - name: DISABLE_CSP
+              value: "false"
+            - name: CSP_ORIGINS
+              value: "*.cloudflareinsights.com,*.smith-simms.family"
+            - name: ADDITIONAL_ORIGINS
+              value: ""
             - name: MQTT_HOST
               value: mqtt
             - name: MQTT_PORT
@@ -44,24 +56,9 @@ spec:
                 secretKeyRef:
                   name: mqtt-credentials
                   key: password
-            - name: USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: playnite-web-credentials
-                  key: username
-            - name: PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: playnite-web-credentials
-                  key: password
-            - name: SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: playnite-web-credentials
-                  key: secret
           volumeMounts:
-            - name: playnite-web-assets
-              mountPath: /opt/playnite-web-app/public/assets/asset-by-id
+            - name: games-assets
+              mountPath: /opt/playnite-web-app/.next/static/media/game-assets
           livenessProbe:
             httpGet:
               path: /
@@ -81,7 +78,7 @@ spec:
             failureThreshold: 30
             periodSeconds: 10
       volumes:
-        - name: playnite-web-assets
+        - name: games-assets
           persistentVolumeClaim:
             claimName: playnite-web-assets
 ---
@@ -100,17 +97,82 @@ spec:
         app: playnite-web-db
     spec:
       containers:
-        - name: playnite-web-db
-          image: mongo:focal
-          imagePullPolicy: Always
+        - name: postgres
+          image: postgres:13.22
+          imagePullPolicy: IfNotPresent
           ports:
-            - name: mongo
-              containerPort: 27017
+            - name: postgres
+              containerPort: 5432
               protocol: TCP
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: playnite-web-db-credentials
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: playnite-web-db-credentials
+                  key: password
+            - name: POSTGRES_DB
+              value: games
           volumeMounts:
             - name: playnite-web-db
-              mountPath: /data/db
+              mountPath: /var/lib/postgresql/data
       volumes:
         - name: playnite-web-db
           persistentVolumeClaim:
             claimName: playnite-web-db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playnite-web-game-assets-processor
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: playnite-web-game-assets-processor
+  template:
+    metadata:
+      labels:
+        app: playnite-web-game-assets-processor
+    spec:
+      containers:
+        - name: game-assets-processor
+          image: ghcr.io/andrew-codes/game-assets-processor:12-latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3001
+              protocol: TCP
+          env:
+            - name: MQTT_HOST
+              value: mqtt
+            - name: MQTT_PORT
+              value: "1883"
+            - name: MQTT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mqtt-credentials
+                  key: username
+            - name: MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mqtt-credentials
+                  key: password
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: playnite-web-credentials
+                  key: database-url-processor
+            - name: PORT
+              value: "3001"
+          volumeMounts:
+            - name: games-assets
+              mountPath: /opt/playnite-web/game-assets
+      volumes:
+        - name: games-assets
+          persistentVolumeClaim:
+            claimName: playnite-web-assets
