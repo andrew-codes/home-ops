@@ -166,7 +166,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: playnite-web-credentials
-                  key: database-url-processor
+                  key: database-url
             - name: PORT
               value: "3001"
           volumeMounts:
