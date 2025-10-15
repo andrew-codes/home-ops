@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: playnite-web
-          image: ghcr.io/andrew-codes/playnite-web-app:PR-833
+          image: ghcr.io/andrew-codes/playnite-web-app:12-latest
           imagePullPolicy: Always
           ports:
             - name: http
@@ -145,7 +145,7 @@ spec:
     spec:
       containers:
         - name: game-assets-processor
-          image: ghcr.io/andrew-codes/game-assets-processor:PR-833
+          image: ghcr.io/andrew-codes/game-assets-processor:12-latest
           imagePullPolicy: Always
           ports:
             - name: http
