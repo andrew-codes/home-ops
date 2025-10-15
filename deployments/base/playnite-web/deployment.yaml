@@ -22,6 +22,8 @@ spec:
               containerPort: 3000
               protocol: TCP
           env:
+            - name: LOGGING_LEVEL
+              value: debug
             - name: PORT
               value: "3000"
             - name: HOST
