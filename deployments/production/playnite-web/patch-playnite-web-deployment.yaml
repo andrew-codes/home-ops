@@ -9,4 +9,4 @@ spec:
     spec:
       containers:
         - name: playnite-web
-          image: ghcr.io/andrew-codes/playnite-web-app:PR-833
+          image: ghcr.io/andrew-codes/playnite-web-app:12-latest
