@@ -20,6 +20,8 @@ spec:
           persistentVolumeClaim:
             claimName: home-assistant-config
       imagePullPolicy: IfNotPresent
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: home-assistant
           image: homeassistant/home-assistant:2025.10.0
@@ -89,7 +91,7 @@ spec:
       volumes:
         - name: home-assistant-config
           persistentVolumeClaim:
-            claimName: home-assistant-config  
+            claimName: home-assistant-config
         - name: home-assistant-app-daemon-config
           persistentVolumeClaim:
             claimName: home-assistant-app-daemon-config
@@ -100,7 +102,7 @@ spec:
           command:
             - sh
           args:
-            - '-c'
+            - "-c"
             - rsync -tr --delete /opt/apps /conf
           volumeMounts:
             - name: home-assistant-app-daemon-config
