@@ -33,21 +33,3 @@ spec:
             - name: http
               containerPort: 80
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 80
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          startupProbe:
-            httpGet:
-              path: /
-              port: 80
-            failureThreshold: 30
-            periodSeconds: 10
