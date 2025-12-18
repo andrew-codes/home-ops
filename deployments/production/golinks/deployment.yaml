@@ -27,8 +27,8 @@ spec:
             - name: TS_AUTHKEY
               valueFrom:
                 secretKeyRef:
-                  name: ts-authkey
-                  key: ts-authkey
+                  name: tsauthkey
+                  key: tsauthkey
           ports:
             - name: http
               containerPort: 80

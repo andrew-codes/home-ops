@@ -65,7 +65,7 @@ const sealedSecretNames = [
   "regcred/password",
   "regcred/server",
   "regcred/username",
-  "ts-authkey",
+  "tsauthkey",
   "tunnel-credentials/credentials.json",
   "unifi/ip",
   "unifi/password",
