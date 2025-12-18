@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: golinks
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: golinks
+  template:
+    metadata:
+      labels:
+        app: golinks
+    spec:
+      volumes:
+        - name: golinks-data
+          persistentVolumeClaim:
+            claimName: golinks-data
+      containers:
+        - name: golinks
+          image: ghcr.io/tailscale/golink:main
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: golinks-data
+              mountPath: /home/nonroot
+          env:
+            - name: TS_AUTHKEY
+              valueFrom:
+                secretKeyRef:
+                  name: golinks-secrets
+                  key: ts-authkey
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /
+              port: 80
+            failureThreshold: 30
+            periodSeconds: 10
