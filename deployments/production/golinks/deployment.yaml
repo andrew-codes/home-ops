@@ -27,8 +27,8 @@ spec:
             - name: TS_AUTHKEY
               valueFrom:
                 secretKeyRef:
-                  name: golinks-secrets
-                  key: ts-authkey
+                  name: ts-authkey
+                  key: ts_authkey
           ports:
             - name: http
               containerPort: 80
