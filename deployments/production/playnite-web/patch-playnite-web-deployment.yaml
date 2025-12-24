@@ -20,5 +20,5 @@ spec:
   template:
     spec:
       containers:
-        - name: playnite-web-sync-library-processor
+        - name: sync-library-processor
           image: ghcr.io/andrew-codes/sync-library-processor:13-latest
