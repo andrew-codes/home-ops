@@ -4,3 +4,4 @@ resources:
   - ../../base/playnite-web
 patchesStrategicMerge:
   - patch-playnite-web-db-pv.yaml
+  - patch-playnite-web-deployment.yaml
