@@ -177,7 +177,7 @@ spec:
               value: "3001"
           volumeMounts:
             - name: games-assets
-              mountPath: /opt/playnite-web/game-assets
+              mountPath: /opt/playnite-web/game-assets/cover-art
       volumes:
         - name: games-assets
           persistentVolumeClaim:
