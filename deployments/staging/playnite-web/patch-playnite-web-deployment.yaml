@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
         - name: playnite-web
-          image: ghcr.io/andrew-codes/playnite-web-app:PR-919
+          image: ghcr.io/andrew-codes/playnite-web-app:dev
           env:
             - name: HOST
               value: staging-games.smith-simms.family
@@ -24,4 +24,4 @@ spec:
     spec:
       containers:
         - name: sync-library-processor
-          image: ghcr.io/andrew-codes/sync-library-processor:PR-919
+          image: ghcr.io/andrew-codes/sync-library-processor:dev
