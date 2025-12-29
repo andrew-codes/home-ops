@@ -50,7 +50,7 @@ spec:
 
             # Proxy & HTTPS Configuration
             - name: HBOX_OPTIONS_HOSTNAME
-              value: "https://homebox.smith-simms.family"
+              value: "homebox.smith-simms.family"
             - name: HBOX_OPTIONS_TRUST_PROXY
               value: "true"
 
