@@ -81,7 +81,7 @@ spec:
             - name: HBOX_OIDC_AUTO_REDIRECT
               value: "true"
             - name: HBOX_OIDC_VERIFY_EMAIL
-              value: "true"
+              value: "false"
           ports:
             - name: http
               containerPort: 7745
