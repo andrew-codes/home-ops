@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homebox
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: homebox
+  template:
+    metadata:
+      labels:
+        app: homebox
+    spec:
+      volumes:
+        - name: homebox-data
+          persistentVolumeClaim:
+            claimName: homebox-data
+      containers:
+        - name: homebox
+          image: ghcr.io/sysadminsmedia/homebox:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: homebox-data
+              mountPath: /data
+          env:
+            # Runtime Mode
+            - name: HBOX_MODE
+              value: "production"
+
+            # Web Server Configuration
+            - name: HBOX_WEB_PORT
+              value: "7745"
+            - name: HBOX_WEB_HOST
+              value: "0.0.0.0"
+            - name: HBOX_WEB_MAX_UPLOAD_SIZE
+              value: "10"
+
+            # Logging
+            - name: HBOX_LOG_LEVEL
+              value: "info"
+            - name: HBOX_LOG_FORMAT
+              value: "text"
+
+            # User Registration & Authentication
+            - name: HBOX_OPTIONS_ALLOW_REGISTRATION
+              value: "false"
+            - name: HBOX_OPTIONS_ALLOW_LOCAL_LOGIN
+              value: "true"
+
+            # Analytics
+            - name: HBOX_OPTIONS_ALLOW_ANALYTICS
+              value: "false"
+
+            # OIDC Configuration
+            - name: HBOX_OIDC_ENABLED
+              value: "true"
+            - name: HBOX_OIDC_ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: homebox-oidc
+                  key: issuer-url
+            - name: HBOX_OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: homebox-oidc
+                  key: client-id
+            - name: HBOX_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: homebox-oidc
+                  key: client-secret
+            - name: HBOX_OIDC_SCOPE
+              value: "openid profile email"
+            - name: HBOX_OIDC_AUTO_REDIRECT
+              value: "false"
+            - name: HBOX_OIDC_VERIFY_EMAIL
+              value: "true"
+          ports:
+            - name: http
+              containerPort: 7745
+              protocol: TCP

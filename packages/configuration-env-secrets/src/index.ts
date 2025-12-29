@@ -70,6 +70,9 @@ const sealedSecretNames = [
   "unifi/ip",
   "unifi/password",
   "unifi/username",
+  "homebox-oidc/client-secret",
+  "homebox-oidc/client-id",
+  "homebox-oidc/issuer-url",
 ] as const
 const sealedSecretEnvConfiguration =
   createEnvConfigurationApi(sealedSecretNames)

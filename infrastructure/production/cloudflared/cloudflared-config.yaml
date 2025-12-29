@@ -24,4 +24,6 @@ data:
         service: "http://docs:80"
       - hostname: "adr.smith-simms.family"
         service: "http://docs-adr:80"
+      - hostname: "homebox.smith-simms.family"
+        service: "http://homebox:7745"
       - service: "http_status:404"
