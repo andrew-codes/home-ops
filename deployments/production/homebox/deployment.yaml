@@ -18,7 +18,7 @@ spec:
             claimName: homebox-data
       containers:
         - name: homebox
-          image: ghcr.io/sysadminsmedia/homebox:latest
+          image: ghcr.io/sysadminsmedia/homebox:0.22
           imagePullPolicy: Always
           volumeMounts:
             - name: homebox-data
