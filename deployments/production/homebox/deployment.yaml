@@ -46,7 +46,7 @@ spec:
             - name: HBOX_OPTIONS_ALLOW_REGISTRATION
               value: "false"
             - name: HBOX_OPTIONS_ALLOW_LOCAL_LOGIN
-              value: "true"
+              value: "false"
 
             # Proxy & HTTPS Configuration
             - name: HBOX_OPTIONS_HOSTNAME
@@ -79,7 +79,7 @@ spec:
             - name: HBOX_OIDC_SCOPE
               value: "openid profile email"
             - name: HBOX_OIDC_AUTO_REDIRECT
-              value: "false"
+              value: "true"
             - name: HBOX_OIDC_VERIFY_EMAIL
               value: "true"
           ports:
