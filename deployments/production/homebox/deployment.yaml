@@ -48,6 +48,12 @@ spec:
             - name: HBOX_OPTIONS_ALLOW_LOCAL_LOGIN
               value: "true"
 
+            # Proxy & HTTPS Configuration
+            - name: HBOX_OPTIONS_HOSTNAME
+              value: "https://homebox.smith-simms.family"
+            - name: HBOX_OPTIONS_TRUST_PROXY
+              value: "true"
+
             # Analytics
             - name: HBOX_OPTIONS_ALLOW_ANALYTICS
               value: "false"
