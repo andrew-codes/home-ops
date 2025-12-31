@@ -15,14 +15,12 @@ spec:
       serviceAccountName: app
       imagePullSecrets:
         - name: regcred
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values: ["k8s-node-3"]
+      nodeSelector:
+        gpu: "true"
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
       volumes:
         - name: whisper-data
           persistentVolumeClaim:
@@ -31,7 +29,7 @@ spec:
         - name: whisper
           image: ghcr.io/andrew-codes/whisper:latest
           imagePullPolicy: Always
-          args: ["--model", "small.en", "--language", "en"]
+          args: ["--model", "small.en", "--language", "en", "--compute-type", "float16"]
           env:
             - name: TZ
               value: America/New_York
@@ -39,6 +37,11 @@ spec:
             - name: whisper
               containerPort: 10300
               protocol: TCP
+          resources:
+            requests:
+              nvidia.com/gpu: "1"
+            limits:
+              nvidia.com/gpu: "1"
           volumeMounts:
             - name: whisper-data
               mountPath: /data
