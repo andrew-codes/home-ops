@@ -23,6 +23,7 @@
           - lsb-release
           - apt-transport-https
           - software-properties-common
+          - nfs-common
         state: present
 
     - name: Disable swap
