@@ -29,7 +29,17 @@ spec:
         - name: whisper
           image: ghcr.io/andrew-codes/whisper:latest
           imagePullPolicy: Always
-          args: ["--model", "small.en", "--language", "en", "--compute-type", "float16", "--device", "cuda"]
+          args:
+            [
+              "--model",
+              "base.en",
+              "--language",
+              "en",
+              "--compute-type",
+              "float16",
+              "--device",
+              "cuda",
+            ]
           env:
             - name: TZ
               value: America/New_York
