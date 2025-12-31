@@ -148,7 +148,7 @@ spec:
             - name: nvidia-config
               mountPath: /etc/nvidia-device-plugin
             - name: nvidia-driver
-              mountPath: /driver-root
+              mountPath: /driver-root/usr/lib/x86_64-linux-gnu
               readOnly: true
       volumes:
         - name: device-plugin
