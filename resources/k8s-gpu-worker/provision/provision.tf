@@ -39,6 +39,9 @@ variable "gpu_pci" { type = string }
 variable "gpu_audio_pci" { type = string }
 
 resource "proxmox_vm_qemu" "gpu_worker" {
+  # QoL runtime settings
+  define_connection_info = false
+  agent_timeout         = 60
   vmid        = var.vm_id
   name        = var.hostname
   target_node = var.target_node
@@ -88,6 +91,7 @@ resource "proxmox_vm_qemu" "gpu_worker" {
   cicustom   = "user=local:snippets/${var.hostname}-user.yaml"
   ipconfig0  = "ip=${var.ip_cidr},gw=${var.gateway}"
   nameserver = var.nameserver
+  ciuser    = "ubuntu"
   sshkeys    = var.ssh_public_keys
 
   # Machine type for better PCIe support

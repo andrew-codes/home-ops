@@ -71,13 +71,13 @@
         state: restarted
         enabled: yes
 
-    # - name: Ensure Kubernetes apt keyring present
-    #   shell: |
-    #     install -m 0755 -d /etc/apt/keyrings
-    #     curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ kube_version }}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-    #     chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    - name: Ensure Kubernetes apt keyring present
+      shell: |
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ kube_version }}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
-    - name: Add Kubernetes apt repo
+    - name: Add Kubernetes apt repo (apt_repository with retries)
       apt_repository:
         repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ kube_version }}/deb/ /"
         filename: kubernetes
@@ -130,11 +130,11 @@
       wait_for_connection:
         timeout: 300
 
-    # - name: Prepare NVIDIA container toolkit apt keyring
-    #   shell: |
-    #     install -m 0755 -d /usr/share/keyrings
-    #     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-    #     chmod 644 /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    - name: Prepare NVIDIA container toolkit apt keyring
+      shell: |
+        install -m 0755 -d /usr/share/keyrings
+        curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+        chmod 644 /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 
     - name: Add NVIDIA container toolkit repo (primary for {{ ansible_distribution_release }})
       shell: |
@@ -159,7 +159,7 @@
       delay: 5
       until: add_nvidia_repo_fallback.rc == 0
 
-    - name: Install NVIDIA Container Toolkit
+    - name: Install NVIDIA Container Toolkit (generic stable/deb list)
       apt:
         name: nvidia-container-toolkit
         state: present
