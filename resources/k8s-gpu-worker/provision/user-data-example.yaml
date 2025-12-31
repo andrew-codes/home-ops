@@ -1,0 +1,38 @@
+#cloud-config
+# Ubuntu 24.04 (Noble) cloud-init user-data example for GPU worker
+# - Creates/uses the 'ubuntu' user
+# - Adds your SSH key
+# - Installs and enables qemu-guest-agent automatically
+# - You can add more packages or commands in the sections below
+
+hostname: k8s-gpu-worker
+manage_etc_hosts: true
+
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAA_REPLACE_WITH_YOUR_PUBLIC_KEY
+
+package_update: true
+package_upgrade: false
+packages:
+  - qemu-guest-agent
+
+runcmd:
+  - systemctl enable --now qemu-guest-agent
+# Optional hardening/tuning examples (uncomment if desired)
+# write_files:
+#   - path: /etc/sysctl.d/99-kubernetes-cri.conf
+#     content: |
+#       net.bridge.bridge-nf-call-iptables  = 1
+#       net.ipv4.ip_forward                 = 1
+#       net.bridge.bridge-nf-call-ip6tables = 1
+#   - path: /etc/modules-load.d/containerd.conf
+#     content: |
+#       overlay
+#       br_netfilter
+#
+# final_message: "cloud-init finished on $TIMESTAMP"

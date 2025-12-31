@@ -1,0 +1,179 @@
+---
+- name: Prepare Ubuntu 24.04 GPU worker node
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    kube_version: "1.30"
+
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+  tasks:
+    - name: Install base packages
+      apt:
+        name:
+          - curl
+          - gnupg
+          - ca-certificates
+          - lsb-release
+          - apt-transport-https
+          - software-properties-common
+        state: present
+
+    - name: Disable swap
+      command: swapoff -a
+      changed_when: false
+
+    - name: Remove swap from fstab
+      replace:
+        path: /etc/fstab
+        regexp: '^(.*\sswap\s.*)$'
+        replace: '#\1'
+
+    - name: Load required kernel modules
+      copy:
+        dest: /etc/modules-load.d/containerd.conf
+        content: |
+          overlay
+          br_netfilter
+      notify: ["reload sysctl"]
+
+    - name: Set sysctl params for Kubernetes
+      copy:
+        dest: /etc/sysctl.d/99-kubernetes-cri.conf
+        content: |
+          net.bridge.bridge-nf-call-iptables  = 1
+          net.ipv4.ip_forward                 = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+      notify: ["reload sysctl"]
+
+    - name: Install containerd
+      apt:
+        name: containerd
+        state: present
+
+    - name: Configure containerd
+      shell: |
+        mkdir -p /etc/containerd
+        containerd config default | tee /etc/containerd/config.toml
+        sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+      args:
+        creates: /etc/containerd/config.toml
+
+    - name: Restart and enable containerd
+      systemd:
+        name: containerd
+        state: restarted
+        enabled: yes
+
+    # - name: Ensure Kubernetes apt keyring present
+    #   shell: |
+    #     install -m 0755 -d /etc/apt/keyrings
+    #     curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ kube_version }}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    #     chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Add Kubernetes apt repo
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ kube_version }}/deb/ /"
+        filename: kubernetes
+        state: present
+      register: add_k8s_repo
+      retries: 5
+      delay: 5
+      until: add_k8s_repo is succeeded
+
+    - name: Update apt cache (kubernetes)
+      apt:
+        update_cache: yes
+
+    - name: Install Kubernetes packages
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+        update_cache: yes
+
+    - name: Hold Kubernetes packages
+      ansible.builtin.command: "apt-mark hold {{ item }}"
+      register: hold_result
+      changed_when: "'already' not in hold_result.stdout"
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+    - name: Install kernel headers (Ubuntu Noble)
+      apt:
+        name: linux-headers-generic
+        state: present
+        update_cache: yes
+
+    - name: Install NVIDIA driver (550)
+      apt:
+        name: nvidia-driver-550
+        state: present
+        update_cache: yes
+
+    - name: Reboot after NVIDIA driver install
+      reboot:
+        msg: "Rebooting to finalize NVIDIA driver installation"
+        reboot_timeout: 600
+
+    - name: Wait for system to be ready after reboot
+      wait_for_connection:
+        timeout: 300
+
+    # - name: Prepare NVIDIA container toolkit apt keyring
+    #   shell: |
+    #     install -m 0755 -d /usr/share/keyrings
+    #     curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    #     chmod 644 /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+    - name: Add NVIDIA container toolkit repo (primary for {{ ansible_distribution_release }})
+      shell: |
+        curl -fsSL https://nvidia.github.io/libnvidia-container/stable/ubuntu{{ ansible_distribution_version }}/libnvidia-container.list | \
+          sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+          tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+        apt-get update
+      register: add_nvidia_repo
+      failed_when: add_nvidia_repo.rc != 0 and ('404' not in add_nvidia_repo.stderr | default(''))
+      changed_when: true
+      ignore_errors: true
+
+    - name: Add NVIDIA container toolkit repo (fallback jammy)
+      when: add_nvidia_repo is failed
+      shell: |
+        curl -fsSL https://nvidia.github.io/libnvidia-container/stable/ubuntu22.04/libnvidia-container.list | \
+          sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+          tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+        apt-get update
+      register: add_nvidia_repo_fallback
+      retries: 3
+      delay: 5
+      until: add_nvidia_repo_fallback.rc == 0
+
+    - name: Install NVIDIA Container Toolkit
+      apt:
+        name: nvidia-container-toolkit
+        state: present
+        update_cache: yes
+
+    - name: Configure NVIDIA runtime for containerd
+      shell: |
+        nvidia-ctk runtime configure --runtime=containerd
+        systemctl restart containerd
+
+    - name: Join the cluster if join_command provided
+      shell: "{{ join_command }}"
+      when: join_command is defined and join_command != ""
+
+  handlers:
+    - name: reload sysctl
+      command: sysctl --system
