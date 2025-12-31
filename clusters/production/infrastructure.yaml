@@ -99,6 +99,7 @@ data:
     version: v1
     flags:
       migStrategy: none
+      deviceDiscoveryStrategy: nvml
     sharing:
       timeSlicing:
         resources:
@@ -121,6 +122,8 @@ spec:
       labels:
         name: nvidia-device-plugin-ds
     spec:
+      nodeSelector:
+        gpu: "true"
       tolerations:
         - key: nvidia.com/gpu
           operator: Exists
@@ -131,6 +134,7 @@ spec:
           args:
             - --pass-device-specs=false
             - --device-list-strategy=envvar
+            - --device-discovery-strategy=nvml
             - --config-file=/etc/nvidia-device-plugin/config.yaml
           securityContext:
             allowPrivilegeEscalation: false
@@ -141,6 +145,9 @@ spec:
               mountPath: /var/lib/kubelet/device-plugins
             - name: nvidia-config
               mountPath: /etc/nvidia-device-plugin
+            - name: nvidia-driver
+              mountPath: /driver-root
+              readOnly: true
       volumes:
         - name: device-plugin
           hostPath:
@@ -151,3 +158,7 @@ spec:
             items:
               - key: config.yaml
                 path: config.yaml
+        - name: nvidia-driver
+          hostPath:
+            path: /usr/lib/x86_64-linux-gnu
+            type: DirectoryOrCreate
