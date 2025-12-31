@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whisper
+  namespace: default
+spec:
+  selector:
+    app: whisper
+  ports:
+    - name: whisper
+      port: 10300
+      targetPort: whisper
+      protocol: TCP
+  type: ClusterIP
+---

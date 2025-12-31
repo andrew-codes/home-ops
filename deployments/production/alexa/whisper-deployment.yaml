@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whisper
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: whisper
+  template:
+    metadata:
+      labels:
+        app: whisper
+    spec:
+      serviceAccountName: app
+      imagePullSecrets:
+        - name: regcred
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: ["k8s-node-3"]
+      volumes:
+        - name: whisper-data
+          persistentVolumeClaim:
+            claimName: whisper-data-pvc
+      containers:
+        - name: whisper
+          image: ghcr.io/andrew-codes/whisper:latest
+          imagePullPolicy: Always
+          args: ["--model", "small.en", "--language", "en"]
+          env:
+            - name: TZ
+              value: America/New_York
+          ports:
+            - name: whisper
+              containerPort: 10300
+              protocol: TCP
+          volumeMounts:
+            - name: whisper-data
+              mountPath: /data

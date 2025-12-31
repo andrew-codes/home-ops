@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: piper
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: piper
+  template:
+    metadata:
+      labels:
+        app: piper
+    spec:
+      serviceAccountName: app
+      imagePullSecrets:
+        - name: regcred
+      volumes:
+        - name: piper-data
+          persistentVolumeClaim:
+            claimName: piper-data-pvc
+      containers:
+        - name: piper
+          image: rhasspy/wyoming-piper
+          imagePullPolicy: Always
+          args: ["--voice", "en_US-hfc_female-medium", "--debug"]
+          env:
+            - name: TZ
+              value: America/New_York
+          ports:
+            - name: piper
+              containerPort: 10200
+              protocol: TCP
+          volumeMounts:
+            - name: piper-data
+              mountPath: /data

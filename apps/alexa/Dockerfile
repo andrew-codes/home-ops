@@ -2,7 +2,7 @@ FROM nvidia/cuda:12.5.0-runtime-ubuntu22.04
 
 # Install Whisper
 WORKDIR /usr/src
-ARG WHISPER_VERSION='2.0.0'
+ARG WHISPER_VERSION='3.0.2'
 
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends \

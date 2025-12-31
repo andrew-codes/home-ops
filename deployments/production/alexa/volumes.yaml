@@ -1,0 +1,60 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: piper-data-pvc
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+    volume.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+spec:
+  resources:
+    requests:
+      storage: 40Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: whisper-data-pvc
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+    volume.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+spec:
+  resources:
+    requests:
+      storage: 80Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: open-wake-word-data-pvc
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+    volume.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+spec:
+  resources:
+    requests:
+      storage: 40Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: open-wake-word-custom-pvc
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+    volume.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+spec:
+  resources:
+    requests:
+      storage: 40Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
