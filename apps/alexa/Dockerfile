@@ -16,9 +16,9 @@ RUN pip3 install --no-cache-dir -U \
     wheel
 RUN pip3 install --no-cache-dir \
     "wyoming-faster-whisper==${WHISPER_VERSION}" nvidia-cublas-cu12 nvidia-cudnn-cu12
-RUN apt-get purge -y --auto-remove \
-    build-essential \
-    python3-dev
+# RUN apt-get purge -y --auto-remove \
+#     build-essential \
+#     python3-dev
 RUN rm -rf /var/lib/apt/lists/*
 
 WORKDIR /
