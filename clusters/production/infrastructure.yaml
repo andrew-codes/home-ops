@@ -150,6 +150,9 @@ spec:
             - name: nvidia-driver
               mountPath: /driver-root/usr/lib/x86_64-linux-gnu
               readOnly: true
+            - name: nvidia-driver-lib
+              mountPath: /driver-root/lib/x86_64-linux-gnu
+              readOnly: true
       volumes:
         - name: device-plugin
           hostPath:
@@ -163,4 +166,8 @@ spec:
         - name: nvidia-driver
           hostPath:
             path: /usr/lib/x86_64-linux-gnu
+            type: DirectoryOrCreate
+        - name: nvidia-driver-lib
+          hostPath:
+            path: /lib/x86_64-linux-gnu
             type: DirectoryOrCreate
