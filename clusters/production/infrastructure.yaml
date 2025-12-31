@@ -129,7 +129,7 @@ spec:
         - image: nvcr.io/nvidia/k8s-device-plugin:v0.16.2
           name: nvidia-device-plugin-ctr
           args:
-            - --pass-device-selector=false
+            - --pass-device-specs=false
             - --device-list-strategy=envvar
             - --config-file=/etc/nvidia-device-plugin/config.yaml
           securityContext:
