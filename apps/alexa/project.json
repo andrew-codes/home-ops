@@ -4,7 +4,7 @@
   "sourceRoot": "apps/alexa/src",
   "projectType": "application",
   "targets": {
-    "image/push": {
+    "publish": {
       "executor": "@ha/nx-executors:invoke",
       "options": {
         "module": "scripts/image-push.ts",
