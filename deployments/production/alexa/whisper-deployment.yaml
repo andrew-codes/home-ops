@@ -49,9 +49,9 @@ spec:
               protocol: TCP
           resources:
             requests:
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "2"
             limits:
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "2"
           volumeMounts:
             - name: whisper-data
               mountPath: /data
