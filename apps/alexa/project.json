@@ -4,11 +4,11 @@
   "sourceRoot": "apps/alexa/src",
   "projectType": "application",
   "targets": {
-    "deploy": {
+    "image/push": {
       "executor": "@ha/nx-executors:invoke",
       "options": {
-        "cwd": "apps/alexa",
-        "module": "scripts/deploy.ts"
+        "module": "scripts/image-push.ts",
+        "cwd": "apps/alexa"
       }
     }
   },
