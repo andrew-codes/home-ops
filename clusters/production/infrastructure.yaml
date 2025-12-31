@@ -132,6 +132,8 @@ spec:
         - image: nvcr.io/nvidia/k8s-device-plugin:v0.16.2
           name: nvidia-device-plugin-ctr
           args:
+            - --driver-root=/usr/lib/x86_64-linux-gnu
+            - --container-driver-root=/driver-root
             - --pass-device-specs=false
             - --device-list-strategy=envvar
             - --device-discovery-strategy=nvml

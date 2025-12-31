@@ -5,7 +5,7 @@
   gather_facts: true
 
   vars:
-    kube_version: "1.30"
+    kube_version: "1.32.2"
 
   pre_tasks:
     - name: Update apt cache
