@@ -26,4 +26,6 @@ data:
         service: "http://docs-adr:80"
       - hostname: "homebox.smith-simms.family"
         service: "http://homebox:7745"
+      - hostname: "music.smith-simms.family"
+        service: "http://music-assistant:8095"
       - service: "http_status:404"
