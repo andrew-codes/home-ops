@@ -32,7 +32,7 @@ spec:
           args:
             [
               "--model",
-              "tiny.en",
+              "small.en",
               "--language",
               "en",
               "--compute-type",
