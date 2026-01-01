@@ -45,3 +45,4 @@ terraform.plan
 
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
+default.profraw

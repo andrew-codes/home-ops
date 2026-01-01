@@ -128,6 +128,23 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
+  name: music-assistant
+  namespace: default
+spec:
+  dependsOn:
+    - name: nfs-provisioner
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/music-assistant
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
   name: mqtt
   namespace: default
 spec:

@@ -1,0 +1,43 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: music-assistant
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      name: music-assistant
+  template:
+    metadata:
+      labels:
+        name: music-assistant
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      volumes:
+        - name: music-assistant-data
+          persistentVolumeClaim:
+            claimName: music-assistant-data
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: music-assistant
+          image: ghcr.io/music-assistant/server:2
+          env:
+            - name: LOG_LEVEL
+              value: "info"
+          volumeMounts:
+            - name: music-assistant-data
+              mountPath: /data
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+                - DAC_READ_SEARCH
+      restartPolicy: Always
