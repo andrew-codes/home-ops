@@ -5,36 +5,38 @@ $TaskName = "Update-Gaming-PC"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ScriptPath = Join-Path $ScriptDir "update-self.ps1"
 
-# Load shared GitHub release functions
+# Load shared modules
+. (Join-Path $ScriptDir "logging.ps1")
 . (Join-Path $ScriptDir "github-release.ps1")
 
 # Check if running as administrator, elevate if not
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Write-Host "Elevating to administrator..."
+    Write-Log "Elevating to administrator..."
     $scriptFullPath = $MyInvocation.MyCommand.Definition
     Start-Process pwsh.exe -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptFullPath`""
     exit 0
 }
 
 # Download latest release artifact
-Write-Host "Fetching latest release from GitHub..."
+Write-Log "Fetching latest release from GitHub..."
 $tmpDir = Get-ReleaseArtifact -WorkingDirectory $ScriptDir
 if (-not $tmpDir) {
-    Write-Error "Failed to download release artifact"
+    Write-Log "Failed to download release artifact"
     exit 1
 }
 
 # Check if the target script exists in the extracted files
 $extractedScript = Join-Path $tmpDir "update-self.ps1"
 if (-not (Test-Path $extractedScript)) {
-    Write-Error "Cannot find update-self.ps1 in downloaded release"
+    Write-Log "Cannot find update-self.ps1 in downloaded release"
     exit 1
 }
 
 # Copy extracted files to script directory (overwrite existing)
-Write-Host "Installing files..."
+Write-Log "Installing files..."
 Get-ChildItem -Path $tmpDir -File | ForEach-Object {
+    Write-Log "  Copying $($_.Name)"
     Copy-Item -Path $_.FullName -Destination $ScriptDir -Force
 }
 
@@ -44,7 +46,7 @@ Remove-Item $tmpDir -Recurse -Force
 # Remove existing task if it exists
 $existingTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($existingTask) {
-    Write-Host "Removing existing task '$TaskName'..."
+    Write-Log "Removing existing task '$TaskName'..."
     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
 }
 
@@ -79,13 +81,13 @@ Register-ScheduledTask -TaskName $TaskName -InputObject $Task | Out-Null
 # Verify the task was created
 $createdTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 if ($createdTask) {
-    Write-Host "Successfully created scheduled task '$TaskName'"
-    Write-Host "  Schedule: Daily at midnight"
-    Write-Host "  Wake to run: Enabled"
-    Write-Host "  Script: $ScriptPath"
-    Write-Host "  Working Directory: $ScriptDir"
+    Write-Log "Successfully created scheduled task '$TaskName'"
+    Write-Log "  Schedule: Daily at midnight"
+    Write-Log "  Wake to run: Enabled"
+    Write-Log "  Script: $ScriptPath"
+    Write-Log "  Working Directory: $ScriptDir"
 }
 else {
-    Write-Error "Failed to create scheduled task"
+    Write-Log "Failed to create scheduled task"
     exit 1
 }

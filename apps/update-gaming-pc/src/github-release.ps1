@@ -19,11 +19,12 @@ function Get-LatestReleaseWithArtifact {
 
     while ($page -le $MaxPages) {
         $url = "$apiBase`?page=$page&per_page=30"
+        Write-Log "Fetching releases page $page..."
         try {
             $releases = Invoke-RestMethod -Uri $url -Headers @{ "User-Agent" = "PowerShell" }
         }
         catch {
-            Write-Error "Failed to fetch releases from GitHub: $_"
+            Write-Log "Failed to fetch releases from GitHub: $_"
             return $null
         }
 
@@ -45,7 +46,7 @@ function Get-LatestReleaseWithArtifact {
         $page++
     }
 
-    Write-Warning "No release found with artifact '$script:ArtifactName'"
+    Write-Log "No release found with artifact '$script:ArtifactName'"
     return $null
 }
 
@@ -66,8 +67,10 @@ function Get-ReleaseArtifact {
         return $null
     }
 
-    Write-Host "Found release: $($release.Tag)"
-    Write-Host "Downloading $script:ArtifactName..."
+    Write-Log "Found release: $($release.Tag)"
+    Write-Log "Release URL: $($release.ReleaseUrl)"
+    Write-Log "Artifact URL: $($release.ArtifactUrl)"
+    Write-Log "Downloading $script:ArtifactName..."
 
     $zipPath = Join-Path $WorkingDirectory $script:ArtifactName
     $tmpDir = Join-Path $WorkingDirectory "tmp"
@@ -84,23 +87,23 @@ function Get-ReleaseArtifact {
         Invoke-WebRequest -Uri $release.ArtifactUrl -OutFile $zipPath -Headers @{ "User-Agent" = "PowerShell" }
     }
     catch {
-        Write-Error "Failed to download artifact: $_"
+        Write-Log "Failed to download artifact: $_"
         return $null
     }
 
-    Write-Host "Extracting to tmp directory..."
+    Write-Log "Extracting to tmp directory..."
     try {
         New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
         Expand-Archive -Path $zipPath -DestinationPath $tmpDir -Force
     }
     catch {
-        Write-Error "Failed to extract artifact: $_"
+        Write-Log "Failed to extract artifact: $_"
         return $null
     }
 
     # Clean up zip file
     Remove-Item $zipPath -Force
 
-    Write-Host "Successfully downloaded and extracted release $($release.Tag)"
+    Write-Log "Successfully downloaded and extracted release $($release.Tag)"
     return $tmpDir
 }

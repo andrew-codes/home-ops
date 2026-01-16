@@ -1,24 +1,12 @@
+# Load shared logging module
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+. (Join-Path $ScriptDir "logging.ps1")
+
 function UpdateNVIDIADriver {
     param (
         [Parameter(Mandatory = $false)]
         [switch]$Clean
     )
-
-    # Helper function for consistent logging
-    function Write-Log {
-        param($Message)
-
-        $timestamp = Get-Date -Format 'HH:mm:ss'
-        $logMessage = "${timestamp}: $Message"
-
-        # Write to console
-        Write-Host $logMessage
-
-        # Write to log file
-        $LogDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
-        $LogFile = Join-Path $LogDir 'log.txt'
-        Add-Content -Path $LogFile -Value $logMessage
-    }
 
     # Function to detect NVIDIA GPU or prompt user to select one
     function Get-NvidiaGpuInfo {
