@@ -1,0 +1,9 @@
+{
+  "name": "@ha/update-gaming-pc",
+  "private": true,
+  "devDependencies": {
+    "@ha/configuration-api": "workspace:*",
+    "@ha/configuration-workspace": "workspace:*",
+    "@octokit/core": "^4.2.4"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "update-gaming-pc",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/update-gaming-pc/src",
+  "projectType": "application",
+  "targets": {
+    "publish": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "module": "scripts/publish-github-release.ts",
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}
