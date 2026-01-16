@@ -113,7 +113,7 @@ function UpdateNVIDIADriver {
         # Get current version using nvidia-smi if available
         if (Test-Path -Path "$env:SystemRoot\System32\DriverStore\FileRepository\nv*\nvidia-smi.exe") {
             $nvidiaSmiPath = (Get-ChildItem -Path "$env:SystemRoot\System32\DriverStore\FileRepository\nv*\nvidia-smi.exe" -Recurse -Force)[0].FullName
-            $nvidiaSmiOutput = & $nvidiaSmiPath --format=csv, noheader --query-gpu=driver_version 2>&1
+            $nvidiaSmiOutput = & $nvidiaSmiPath --format=csv,noheader --query-gpu=driver_version 2>&1
 
             if ($nvidiaSmiOutput -match "NVIDIA-SMI has failed") {
                 Write-Verbose -Message "nvidia-smi encountered an issue: $nvidiaSmiOutput"
@@ -172,9 +172,11 @@ function UpdateNVIDIADriver {
         $URL = "https://www.nvidia.com/Download/processDriver.aspx?psid=$($NvidiaGpuInfo.ParentID)&pfid=$($NvidiaGpuInfo.Value)&osid=$OSID&dtcid=1&dtid=1"
 
         Write-Log "Fetching driver information..."
+        Write-Log "Driver URL: $URL"
         $Response = (Invoke-WebRequest -Uri $URL -UseBasicParsing).Content.Trim()
+        Write-Log "Response: $Response"
 
-        if ($Response -match '^driverResults.aspx/(\d+)/en-us') {
+        if ($Response -match '(\d+)/en-us') {
             $downloadID = $Matches[1]
             $AjaxURL = "https://gfwsl.geforce.com/services_toolkit/services/com/nvidia/services/AjaxDriverService.php?func=GetDownloadDetails&downloadID=$downloadID"
 
