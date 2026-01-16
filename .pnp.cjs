@@ -91,6 +91,10 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/tailscale"\
     },\
     {\
+      "name": "@ha/update-gaming-pc",\
+      "reference": "workspace:apps/update-gaming-pc"\
+    },\
+    {\
       "name": "@ha/uptime-kuma",\
       "reference": "workspace:apps/uptime-kuma"\
     },\
@@ -288,6 +292,7 @@ const RAW_RUNTIME_STATE =
     ["@ha/themes-definition", ["workspace:packages/themes/definition"]],\
     ["@ha/themes-slate", ["workspace:packages/themes/slate"]],\
     ["@ha/unifi-client", ["workspace:packages/unifi-client"]],\
+    ["@ha/update-gaming-pc", ["workspace:apps/update-gaming-pc"]],\
     ["@ha/uptime-kuma", ["workspace:apps/uptime-kuma"]]\
   ],\
   "fallbackPool": [\
@@ -9455,6 +9460,18 @@ const RAW_RUNTIME_STATE =
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
           ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
+    ["@ha/update-gaming-pc", [\
+      ["workspace:apps/update-gaming-pc", {\
+        "packageLocation": "./apps/update-gaming-pc/",\
+        "packageDependencies": [\
+          ["@ha/update-gaming-pc", "workspace:apps/update-gaming-pc"],\
+          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
+          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
+          ["@octokit/core", "npm:4.2.4"]\
         ],\
         "linkType": "SOFT"\
       }]\

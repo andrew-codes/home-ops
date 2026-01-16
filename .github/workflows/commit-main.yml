@@ -77,3 +77,4 @@ jobs:
           GITHUB_USERNAME: ${{ github.actor }}
           NODE_ENV: production
           CI: "true"
+          GH_TOKEN: ${{ secrets.GHRELEASE_PAT }}
