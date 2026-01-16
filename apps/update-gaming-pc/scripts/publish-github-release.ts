@@ -22,6 +22,7 @@ const run = async (
   const zipPath = join(process.cwd(), artifactName)
 
   console.log(`Creating release for commit: ${gitSha}`)
+  
   console.log(`Tag: ${tagName}`)
 
   // Create zip of src directory (excluding config.json)
