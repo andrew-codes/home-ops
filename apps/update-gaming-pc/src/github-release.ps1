@@ -7,18 +7,20 @@ function Get-LatestReleaseWithArtifact {
     <#
     .SYNOPSIS
         Finds the latest GitHub release that contains the specified artifact.
+        Tags are formatted as update-gaming-pc-YYYYMMDD-HHMMSS-SHA so alphabetical sorting = chronological.
+        Returns the first matching release since GitHub returns them sorted alphabetically (newest first).
     .OUTPUTS
         Returns a hashtable with 'tag', 'releaseUrl', and 'artifactUrl' or $null if not found.
     #>
     param(
-        [int]$MaxPages = 5
+        [int]$MaxPages = 10
     )
 
     $apiBase = "https://api.github.com/repos/$script:GitHubRepo/releases"
     $page = 1
 
     while ($page -le $MaxPages) {
-        $url = "$apiBase`?page=$page&per_page=30"
+        $url = "$apiBase`?page=$page&per_page=100"
         Write-Log "Fetching releases page $page..."
         try {
             $releases = Invoke-RestMethod -Uri $url -Headers @{ "User-Agent" = "PowerShell" }
@@ -33,8 +35,14 @@ function Get-LatestReleaseWithArtifact {
         }
 
         foreach ($release in $releases) {
+            # Only consider releases with our tag prefix
+            if ($release.tag_name -notlike "update-gaming-pc-*") {
+                continue
+            }
+
             $artifact = $release.assets | Where-Object { $_.name -eq $script:ArtifactName }
             if ($artifact) {
+                Write-Log "Found latest release: $($release.tag_name)"
                 return @{
                     Tag         = $release.tag_name
                     ReleaseUrl  = $release.html_url

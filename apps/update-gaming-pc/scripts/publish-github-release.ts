@@ -14,8 +14,10 @@ const run = async (
 
   const gitSha = execSync("git rev-parse HEAD", { encoding: "utf-8" }).trim()
   const shortSha = gitSha.substring(0, 7)
-  const tagName = `update-gaming-pc-${shortSha}`
-  const releaseName = `Update Gaming PC - ${shortSha}`
+  const now = new Date()
+  const timestamp = now.toISOString().replace(/[-:]/g, "").replace("T", "-").substring(0, 15) // YYYYMMDD-HHMMSS
+  const tagName = `update-gaming-pc-${timestamp}-${shortSha}`
+  const releaseName = `Update Gaming PC - ${timestamp} (${shortSha})`
   const artifactName = "update-gaming-pc.zip"
 
   const srcDir = join(process.cwd(), "src")
