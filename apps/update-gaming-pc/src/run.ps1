@@ -164,7 +164,8 @@ function UpdateNVIDIADriver {
         $Response = (Invoke-WebRequest -Uri $URL -UseBasicParsing).Content.Trim()
         Write-Log "Response: $Response"
 
-        if ($Response -match '(\d+)/en-us') {
+        # Match either old format (driverResults.aspx/ID/en-us) or new format (drivers/details/ID/)
+        if ($Response -match '/details/(\d+)' -or $Response -match '(\d+)/en-us') {
             $downloadID = $Matches[1]
             $AjaxURL = "https://gfwsl.geforce.com/services_toolkit/services/com/nvidia/services/AjaxDriverService.php?func=GetDownloadDetails&downloadID=$downloadID"
 
