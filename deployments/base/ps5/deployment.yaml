@@ -19,7 +19,7 @@ spec:
           command:
             - sh
           args:
-            - '-c'
+            - "-c"
             - /app/run-standalone.sh
           ports:
             - name: http
@@ -50,6 +50,8 @@ spec:
               value: "8080"
             - name: CREDENTIAL_STORAGE_PATH
               value: /config/credentials.json
+            - name: CONFIG_PATH
+              value: /config/config.json
             - name: PSN_ACCOUNTS
               valueFrom:
                 secretKeyRef:
