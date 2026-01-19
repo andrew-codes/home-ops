@@ -29,7 +29,7 @@ spec:
             - name: CONFIG_PATH
               value: /config/config.json
             - name: DEBUG
-              value: "@ha:ps5:*"
+              value: "*"
           volumeMounts:
             - name: ps5-config
               mountPath: /config
