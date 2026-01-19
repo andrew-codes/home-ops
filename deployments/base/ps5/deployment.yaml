@@ -26,37 +26,8 @@ spec:
               containerPort: 8080
               protocol: TCP
           env:
-            - name: MQTT_HOST
-              value: mqtt
-            - name: MQTT_PORT
-              value: "1883"
-            - name: MQTT_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: mqtt-credentials
-                  key: username
-            - name: MQTT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mqtt-credentials
-                  key: password
-            - name: DEVICE_CHECK_INTERVAL
-              value: "5000"
-            - name: DEVICE_DISCOVERY_INTERVAL
-              value: "60000"
-            - name: ACCOUNT_CHECK_INTERVAL
-              value: "5000"
-            - name: FRONTEND_PORT
-              value: "8080"
-            - name: CREDENTIAL_STORAGE_PATH
-              value: /config/credentials.json
             - name: CONFIG_PATH
               value: /config/config.json
-            - name: PSN_ACCOUNTS
-              valueFrom:
-                secretKeyRef:
-                  name: psn-accounts
-                  key: accounts
             - name: DEBUG
               value: "@ha:ps5:*"
           volumeMounts:
