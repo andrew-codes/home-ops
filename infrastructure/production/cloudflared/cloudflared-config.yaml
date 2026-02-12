@@ -28,4 +28,6 @@ data:
         service: "http://homebox:7745"
       - hostname: "music.smith-simms.family"
         service: "http://music-assistant:8095"
+      - hostname: "havc.smith-simms.family"
+        service: "http://home-assistant-version-control:54001"
       - service: "http_status:404"

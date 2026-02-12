@@ -72,6 +72,7 @@ const sealedSecretNames = [
   "unifi/username",
   "homebox-oidc/client-secret",
   "homebox-oidc/client-id",
+  "home-assistant/version-control-supervisor-token",
   "homebox-oidc/issuer-url",
 ] as const
 const sealedSecretEnvConfiguration =
