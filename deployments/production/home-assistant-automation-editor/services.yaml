@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: home-assistant-automation-editor
+  namespace: default
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 54002
+      targetPort: http
+  selector:
+    name: home-assistant-automation-editor
+  type: ClusterIP

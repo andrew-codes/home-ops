@@ -30,4 +30,6 @@ data:
         service: "http://music-assistant:8095"
       - hostname: "havc.smith-simms.family"
         service: "http://home-assistant-version-control:54001"
+      - hostname: "haae.smith-simms.family"
+        service: "http://automation-editor:54002"
       - service: "http_status:404"
