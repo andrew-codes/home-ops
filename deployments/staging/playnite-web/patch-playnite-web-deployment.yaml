@@ -13,6 +13,11 @@ spec:
           env:
             - name: HOST
               value: staging-games.smith-simms.family
+            - name: COVER_ART_PATH
+              value: /app/game-assets/cover-art
+          volumeMounts:
+          - name: game-assets
+            mountPath: /app/game-assets/cover-art
 ---
 apiVersion: apps/v1
 kind: Deployment
