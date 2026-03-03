@@ -63,7 +63,6 @@ spec:
   dependsOn:
     - name: nfs-provisioner
     - name: sealed-secrets
-    - name: secrets
     - name: mqtt
   interval: 10m0s
   sourceRef:
