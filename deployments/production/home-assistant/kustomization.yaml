@@ -4,3 +4,24 @@ namespace: default
 resources:
   - ../../base/home-assistant
 
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: home-assistant
+      spec:
+        template:
+          spec:
+            nodeSelector:
+              kubernetes.io/hostname: k8s-main
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: home-assistant-app-daemon
+      spec:
+        template:
+          spec:
+            nodeSelector:
+              kubernetes.io/hostname: k8s-main
