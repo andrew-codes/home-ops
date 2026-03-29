@@ -1,0 +1,67 @@
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: playnite-web-app
+  namespace: default
+spec:
+  image: ghcr.io/andrew-codes/playnite-web-app
+  interval: 5m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: sync-library-processor
+  namespace: default
+spec:
+  image: ghcr.io/andrew-codes/sync-library-processor
+  interval: 5m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: playnite-web-app
+  namespace: default
+spec:
+  imageRepositoryRef:
+    name: playnite-web-app
+  policy:
+    semver:
+      range: ">=0.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: sync-library-processor
+  namespace: default
+spec:
+  imageRepositoryRef:
+    name: sync-library-processor
+  policy:
+    semver:
+      range: ">=0.0.0"
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageUpdateAutomation
+metadata:
+  name: playnite-web
+  namespace: default
+spec:
+  interval: 30m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: fluxcdbot@users.noreply.github.com
+        name: fluxcdbot
+      messageTemplate: "chore: update playnite-web images (staging)"
+    push:
+      branch: main
+  update:
+    path: ./deployments/staging/playnite-web
+    strategy: Setters
