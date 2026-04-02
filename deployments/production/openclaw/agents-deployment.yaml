@@ -415,25 +415,6 @@ spec:
             limits:
               memory: 32Mi
               cpu: 50m
-        - name: init-kubectl
-          image: bitnami/kubectl:1.32.3
-          command:
-            - sh
-            - -c
-            - cp /opt/bitnami/kubectl/bin/kubectl /tools/kubectl && chmod +x /tools/kubectl
-          securityContext:
-            runAsUser: 1000
-            runAsGroup: 1000
-          resources:
-            requests:
-              memory: 32Mi
-              cpu: 50m
-            limits:
-              memory: 64Mi
-              cpu: 100m
-          volumeMounts:
-            - name: bin-volume
-              mountPath: /tools
         - name: init-config
           image: busybox:1.37
           imagePullPolicy: IfNotPresent
@@ -441,6 +422,8 @@ spec:
             - sh
             - -c
             - |
+              wget -qO /home/node/bin/kubectl https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl
+              chmod +x /home/node/bin/kubectl
               cp /config/openclaw.json /home/node/.openclaw/openclaw.json
               mkdir -p /home/node/.openclaw/workspace
               cp /config/ha-AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
@@ -492,10 +475,10 @@ spec:
             runAsGroup: 1000
           resources:
             requests:
-              memory: 32Mi
+              memory: 64Mi
               cpu: 50m
             limits:
-              memory: 64Mi
+              memory: 128Mi
               cpu: 100m
           volumeMounts:
             - name: workspace
@@ -504,6 +487,8 @@ spec:
               mountPath: /home/node/coding-workspace
             - name: openclaw-workspace-config
               mountPath: /config
+            - name: bin-volume
+              mountPath: /home/node/bin
       containers:
         - name: gateway
           image: ghcr.io/openclaw/openclaw:2026.4.1
