@@ -1,4 +1,26 @@
 apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: openclaw-postgres-pv
+spec:
+  capacity:
+    storage: 40Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-openclaw-postgres
+  local:
+    path: /mnt/data/openclaw-postgres
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - k8s-man
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: openclaw-postgres
@@ -26,6 +48,8 @@ spec:
       labels:
         app: openclaw-postgres
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: k8s-man
       containers:
         - name: postgres
           image: postgres:18.3
@@ -52,6 +76,7 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
+        storageClassName: local-openclaw-postgres
         resources:
           requests:
             storage: 40Gi
