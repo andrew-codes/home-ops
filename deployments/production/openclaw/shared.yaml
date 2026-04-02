@@ -20,6 +20,56 @@ spec:
               values:
                 - k8s-man
 ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openclaw-workspace
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: openclaw-workspace
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress:
+    # DNS
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Postgres
+    - to:
+        - podSelector:
+            matchLabels:
+              app: openclaw-postgres
+      ports:
+        - port: 5432
+    # Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: openclaw-redis
+      ports:
+        - port: 6379
+    # Home Assistant (for ha-mcp sidecar)
+    - to:
+        - podSelector:
+            matchLabels:
+              name: home-assistant
+      ports:
+        - port: 8123
+    # External internet — allow non-RFC1918 IPs (Anthropic, Discord, GitHub, npm, etc.)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+---
 apiVersion: v1
 kind: Service
 metadata:
