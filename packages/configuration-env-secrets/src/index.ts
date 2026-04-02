@@ -74,6 +74,18 @@ const sealedSecretNames = [
   "homebox-oidc/client-id",
   "home-assistant/automation-editor-supervisor-token",
   "home-assistant/version-control-supervisor-token",
+  "openclaw-db/username",
+  "openclaw-db/password",
+  "openclaw-db/url",
+  "openclaw-api-keys/anthropic-api-key",
+  "openclaw-api-keys/discord-bot-token",
+  "openclaw-api-keys/context7-api-key",
+  "openclaw-api-keys/discord-bot-token-coding",
+  "openclaw-coding-secrets/github-token",
+  "openclaw-coding-secrets/atlassian-url",
+  "openclaw-coding-secrets/atlassian-email",
+  "openclaw-coding-secrets/atlassian-api-token",
+  "openclaw-alexa-secrets/home-assistant-token",
   "homebox-oidc/issuer-url",
 ] as const
 const sealedSecretEnvConfiguration =

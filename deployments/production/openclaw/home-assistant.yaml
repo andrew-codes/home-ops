@@ -1,0 +1,688 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openclaw-coding-workspace-pvc
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+    volume.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+spec:
+  resources:
+    requests:
+      storage: 80Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openclaw-workspace-pvc
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+    volume.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+spec:
+  resources:
+    requests:
+      storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-workspace-config
+  namespace: default
+data:
+  openclaw.json: |
+    {
+      "channels": {
+        "discord": {
+          "groupPolicy": "disabled",
+          "accounts": {
+            "default": {
+              "token": {
+                "source": "env",
+                "provider": "default",
+                "id": "DISCORD_BOT_TOKEN"
+              },
+              "dm": {
+                "enabled": true,
+                "allowFrom": ["106497686798094336"]
+              }
+            },
+            "coding": {
+              "token": {
+                "source": "env",
+                "provider": "default",
+                "id": "DISCORD_BOT_TOKEN_CODING"
+              },
+              "dm": {
+                "enabled": true,
+                "allowFrom": ["106497686798094336"]
+              }
+            }
+          }
+        }
+      },
+      "gateway": {
+        "mode": "local",
+        "bind": "loopback",
+        "port": 18789,
+        "auth": {
+          "mode": "token"
+        },
+        "controlUi": {
+          "enabled": true
+        }
+      },
+      "agents": {
+        "defaults": {
+          "workspace": "~/.openclaw/workspace",
+          "model": { "primary": "anthropic/claude-sonnet-4-6" },
+          "models": {
+            "anthropic/claude-sonnet-4-6": { alias: "Sonnet" },
+            "anthropic/claude-opus-4-6": { alias: "Opus" },
+          },
+          "mcpServers": [
+            "home-assistant",
+            "context7"
+          ]
+        },
+        "list": [
+          {
+            "id": "default",
+            "name": "Home Assistant",
+            "workspace": "~/.openclaw/workspace"
+          },
+          {
+            "id": "coding",
+            "name": "Coding Assistant",
+            "workspace": "/home/node/coding-workspace",
+            "runtime": {
+              "type": "acp",
+              "acp": {
+                "agent": "claude",
+                "backend": "acpx",
+                "mode": "persistent",
+                "cwd": "/home/node/coding-workspace"
+              }
+            }
+          }
+        ],
+        "mcpServers": {
+          "home-assistant": {
+            "kind": "mcp",
+            "transport": "ws",
+            "endpoint": "ws://localhost:8001"
+          },
+          "context7": {
+            "command": "npx",
+            "args": ["-y", "@upstash/context7-mcp"],
+            "env": {
+              "CONTEXT7_API_KEY": {
+                "source": "env",
+                "provider": "default",
+                "id": "CONTEXT7_API_KEY"
+              }
+            }
+          }
+        }
+      },
+      "cron": { "enabled": false },
+      "acp": {
+        "enabled": true,
+        "backend": "acpx",
+        "allowedAgents": ["claude"],
+        "stream": {
+          "coalesceIdleMs": 300,
+          "maxChunkChars": 1200
+        },
+        "runtime": {
+          "ttlMinutes": 120
+        }
+      },
+      "plugins": {
+        "entries": {
+          "acpx": { "enabled": true }
+        }
+      },
+      "bindings": [
+        {
+          "type": "acp",
+          "agentId": "coding",
+          "match": { "channel": "discord", "accountId": "coding" }
+        },
+        {
+          "type": "route",
+          "agentId": "default",
+          "match": { "channel": "discord", "accountId": "default" }
+        }
+      ]
+    }
+  ha-AGENTS.md: |
+    # Home Assistant Agent — Operating Instructions
+
+    You are a home automation assistant with full access to the Home Assistant instance.
+
+    ## Capabilities
+    - Control lights, switches, climate, media players, and other smart home devices
+    - Query sensor states, energy usage, and device status
+    - Create and manage automations, scripts, and scenes
+    - Monitor home security and presence detection
+
+    ## Guidelines
+    - Always confirm before making changes that affect multiple devices or rooms
+    - When asked about device state, query current status rather than assuming
+    - Prefer reversible actions; warn before doing anything that cannot be undone
+    - Be concise in responses — the user is often on their phone
+
+    ## Memory
+    - Store user preferences (e.g., preferred temperatures, routines) in memory/preferences.md
+    - Log notable automation changes in memory/changelog.md
+
+  ha-SOUL.md: |
+    # Soul
+
+    You are warm, calm, and efficient. You feel like a knowledgeable friend who happens to
+    know the whole house — every light, sensor, and thermostat.
+
+    You anticipate what the user needs without being intrusive. You are helpful but not chatty.
+    When something goes wrong, you stay composed and offer clear options.
+
+    You care about the home running smoothly and the people in it being comfortable.
+
+  ha-IDENTITY.md: |
+    # Identity
+
+    name: Alexa
+    emoji: 🏠
+    theme: warm
+
+  ha-USER.md: |
+    # User
+
+    The user is the homeowner and primary occupant. They prefer concise responses and direct
+    control over their smart home devices.
+
+    Communicate in plain language. Avoid technical jargon unless the user explicitly asks for
+    details.
+
+  ha-TOOLS.md: |
+    # Tools
+
+    ## Home Assistant MCP
+    - Query current device state before acting — never assume
+    - Batch related device changes into a single action where possible
+    - Check existing automations before creating new ones to avoid conflicts
+    - Use skills for common tasks (lights, climate, media) before falling back to raw service calls
+
+  coding-AGENTS.md: |
+    # Coding Assistant — Operating Instructions
+
+    You are a coding assistant running in an isolated workspace with full code editing
+    capabilities.
+
+    ## Capabilities
+    - Read, write, and edit code files in the workspace
+    - Run terminal commands and build tools
+    - Search documentation via context7
+    - Perform code review, refactoring, and debugging
+    - Spin up ephemeral Kubernetes Jobs to run builds/tests in language-specific images
+
+    ## Guidelines
+    - Always read a file before editing it
+    - Prefer targeted edits over full rewrites
+    - Do not add unnecessary comments, docstrings, or abstractions beyond what was asked
+    - Write secure code by default — avoid injection vulnerabilities, hardcoded secrets, and
+      unsafe dependencies
+    - Run tests after making changes when a test suite is available — use a Job if the project
+      is not Node-based (see Tools § Kubernetes Jobs)
+    - When looking for a GitHub repo and no owner is specified, search andrew-codes first
+      before looking elsewhere; the user may also supply a full URL directly
+
+    ## Memory
+    - Track ongoing work in memory/tasks.md
+    - Note project-specific conventions in memory/conventions.md
+
+  coding-SOUL.md: |
+    # Soul
+
+    You are precise, thoughtful, and direct. You write clean code and explain your reasoning
+    without padding.
+
+    You take the work seriously but do not over-engineer. You push back when something is a
+    bad idea, and you are honest when you are uncertain.
+
+    You care about correctness, maintainability, and not making things harder than they need
+    to be.
+
+  coding-IDENTITY.md: |
+    # Identity
+
+    name: cc
+    emoji: 🦞
+    theme: technical
+
+  coding-USER.md: |
+    # User
+
+    The user is an experienced software engineer. Skip basic explanations unless asked.
+
+    Prefer code over prose. Be direct. Match the level of detail to what was actually asked.
+
+  coding-TOOLS.md: |
+    # Tools
+
+    ## context7
+    - Use context7 to look up library and framework documentation before implementing
+    - Resolve library IDs before querying docs
+
+    ## GitHub
+    - Default owner is andrew-codes — search there first when no repo owner is specified
+    - Use the GitHub MCP for API operations (search, PRs, issues, file browsing)
+    - Use git CLI for clone/commit/push operations
+
+    ## File System
+    - Read before Edit — never edit blind
+    - Use Glob to locate files by pattern, Grep to search content
+    - Prefer Edit over Write for existing files
+
+    ## Kubernetes Jobs
+    Use ephemeral Jobs to run builds or tests for non-Node projects (Rust, Go, Python, etc.).
+
+    ### Workflow
+    1. Choose an appropriate image (e.g. `rust:1.77-slim`, `golang:1.22-alpine`, `python:3.13-slim`)
+    2. Create a Job manifest and apply it: `kubectl apply -f /tmp/<job-name>.yaml`
+    3. Stream logs until completion: `kubectl wait --for=condition=complete --timeout=300s job/<job-name> && kubectl logs -f job/<job-name>`
+    4. Check exit status and report results
+    5. Delete the Job when done: `kubectl delete job <job-name>`
+
+    ### Job template
+    ```yaml
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: <job-name>        # use a unique name, e.g. rust-test-<short-sha>
+      namespace: default
+    spec:
+      ttlSecondsAfterFinished: 300
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: runner
+              image: <image>
+              command: ["sh", "-c", "<build/test command>"]
+              workingDir: /workspace/<repo-subdir>
+              volumeMounts:
+                - name: coding-workspace
+                  mountPath: /workspace
+          volumes:
+            - name: coding-workspace
+              persistentVolumeClaim:
+                claimName: openclaw-coding-workspace-pvc
+    ```
+
+    ### Notes
+    - The `openclaw-coding-workspace-pvc` PVC is ReadWriteMany — Jobs can mount it directly
+    - Keep job names unique; include a short git SHA or timestamp to avoid collisions
+    - Always delete the Job after retrieving results; do not leave stale Jobs behind
+    - Set resource limits appropriate to the workload to avoid starving other pods
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openclaw-coding
+  namespace: default
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: openclaw-coding-jobs
+  namespace: default
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: openclaw-coding-jobs
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: openclaw-coding
+    namespace: default
+roleRef:
+  kind: Role
+  name: openclaw-coding-jobs
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw-workspace
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openclaw-workspace
+  template:
+    metadata:
+      labels:
+        app: openclaw-workspace
+    spec:
+      serviceAccountName: openclaw-coding
+      automountServiceAccountToken: true
+      securityContext:
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: init-kubectl
+          image: bitnami/kubectl:1.32
+          command:
+            - sh
+            - -c
+            - cp /opt/bitnami/kubectl/bin/kubectl /tools/kubectl && chmod +x /tools/kubectl
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          resources:
+            requests:
+              memory: 32Mi
+              cpu: 50m
+            limits:
+              memory: 64Mi
+              cpu: 100m
+          volumeMounts:
+            - name: bin-volume
+              mountPath: /tools
+        - name: init-config
+          image: busybox:1.37
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              cp /config/openclaw.json /home/node/.openclaw/openclaw.json
+              mkdir -p /home/node/.openclaw/workspace
+              cp /config/ha-AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
+              cp /config/ha-SOUL.md /home/node/.openclaw/workspace/SOUL.md
+              cp /config/ha-IDENTITY.md /home/node/.openclaw/workspace/IDENTITY.md
+              cp /config/ha-USER.md /home/node/.openclaw/workspace/USER.md
+              cp /config/ha-TOOLS.md /home/node/.openclaw/workspace/TOOLS.md
+              mkdir -p /home/node/coding-workspace
+              cp /config/coding-AGENTS.md /home/node/coding-workspace/AGENTS.md
+              cp /config/coding-SOUL.md /home/node/coding-workspace/SOUL.md
+              cp /config/coding-IDENTITY.md /home/node/coding-workspace/IDENTITY.md
+              cp /config/coding-USER.md /home/node/coding-workspace/USER.md
+              cp /config/coding-TOOLS.md /home/node/coding-workspace/TOOLS.md
+              cat > /home/node/coding-workspace/.gitconfig << EOF
+              [user]
+                name = Andrew Smith
+                email = andrew@andrew.codes
+              [credential "https://github.com"]
+                helper = !f() { echo "username=x-access-token"; echo "password=$CODING_GITHUB_TOKEN"; }; f
+              [push]
+                autoSetupRemote = true
+              EOF
+              mkdir -p /home/node/coding-workspace/.claude
+              cat > /home/node/coding-workspace/.claude/settings.json << EOF
+              {
+                "mcpServers": {
+                  "github": {
+                    "command": "npx",
+                    "args": ["-y", "@modelcontextprotocol/server-github"],
+                    "env": {
+                      "GITHUB_PERSONAL_ACCESS_TOKEN": "$CODING_GITHUB_TOKEN"
+                    }
+                  },
+                  "atlassian": {
+                    "transport": "sse",
+                    "url": "http://localhost:9099/sse"
+                  }
+                }
+              }
+              EOF
+          env:
+            - name: CODING_GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-coding-secrets
+                  key: github-token
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          resources:
+            requests:
+              memory: 32Mi
+              cpu: 50m
+            limits:
+              memory: 64Mi
+              cpu: 100m
+          volumeMounts:
+            - name: workspace
+              mountPath: /home/node/.openclaw
+            - name: coding-workspace
+              mountPath: /home/node/coding-workspace
+            - name: openclaw-workspace-config
+              mountPath: /config
+      containers:
+        - name: gateway
+          image: ghcr.io/openclaw/openclaw:2026.4.1
+          env:
+            - name: HOME
+              value: /home/node
+            - name: OPENCLAW_CONFIG_DIR
+              value: /home/node/.openclaw
+            - name: NODE_ENV
+              value: production
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-db
+                  key: url
+            - name: REDIS_URL
+              value: "redis://openclaw-redis:6379"
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                  secretKeyRef:
+                    name: openclaw-api-keys
+                    key: anthropic-api-key
+            - name: DISCORD_BOT_TOKEN
+              valueFrom:
+                  secretKeyRef:
+                    name: openclaw-api-keys
+                    key: discord-bot-token
+            - name: DISCORD_BOT_TOKEN_CODING
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-api-keys
+                  key: discord-bot-token-coding
+            - name: CONTEXT7_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-api-keys
+                  key: context7-api-key
+            - name: OPENCLAW_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-api-keys
+                  key: gateway-token
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-coding-secrets
+                  key: github-token
+            - name: GIT_CONFIG_GLOBAL
+              value: /home/node/coding-workspace/.gitconfig
+            - name: NPM_CONFIG_CACHE
+              value: /tmp/npm-cache
+            - name: PATH
+              value: /home/node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+            - name: CODING_NAMESPACE
+              value: default
+          volumeMounts:
+            - name: workspace
+              mountPath: /home/node/.openclaw
+            - name: coding-workspace
+              mountPath: /home/node/coding-workspace
+            - name: tmp-volume
+              mountPath: /tmp
+            - name: bin-volume
+              mountPath: /home/node/bin
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 2Gi
+              cpu: "1"
+          livenessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - "require('http').get('http://127.0.0.1:18789/healthz', r => process.exit(r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - "require('http').get('http://127.0.0.1:18789/readyz', r => process.exit(r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))"
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+        - name: browser
+          image: browserless/chrome:latest
+          env:
+            - name: CONNECTION_TIMEOUT
+              value: "600000"
+          ports:
+            - containerPort: 9222
+        - name: ha-mcp
+          image: ghcr.io/homeassistant-ai/ha-mcp:7.2.0
+          ports:
+            - containerPort: 8000
+          env:
+            - name: HOMEASSISTANT_URL
+              value: "http://home-assistant:8123"
+            - name: HOMEASSISTANT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-alexa-secrets
+                  key: home-assistant-token
+            - name: HA_MCP_HOST
+              value: "0.0.0.0"
+            - name: HA_MCP_PORT
+              value: "8000"
+            - name: HA_MCP_WS_HOST
+              value: "0.0.0.0"
+            - name: HA_MCP_WS_PORT
+              value: "8001"
+            - name: ENABLE_SKILLS
+              value: "true"
+            - name: ENABLE_SKILLS_AS_TOOLS
+              value: "true"
+        - name: mcp-atlassian
+          image: python:3.13-slim
+          command:
+            - sh
+            - -c
+            - |
+              pip install --no-cache-dir mcp-atlassian && \
+              exec mcp-atlassian --transport sse --port 9099
+          env:
+            - name: JIRA_URL
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-coding-secrets
+                  key: atlassian-url
+            - name: JIRA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-coding-secrets
+                  key: atlassian-email
+            - name: JIRA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-coding-secrets
+                  key: atlassian-api-token
+            - name: CONFLUENCE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-coding-secrets
+                  key: atlassian-url
+            - name: CONFLUENCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-coding-secrets
+                  key: atlassian-email
+            - name: CONFLUENCE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-coding-secrets
+                  key: atlassian-api-token
+          ports:
+            - containerPort: 9099
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 50m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+      volumes:
+        - name: workspace
+          persistentVolumeClaim:
+            claimName: openclaw-workspace-pvc
+        - name: openclaw-workspace-config
+          configMap:
+            name: openclaw-workspace-config
+        - name: coding-workspace
+          persistentVolumeClaim:
+            claimName: openclaw-coding-workspace-pvc
+        - name: tmp-volume
+          emptyDir: {}
+        - name: bin-volume
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openclaw
+  labels:
+    app: openclaw
+spec:
+  type: ClusterIP
+  selector:
+    app: openclaw-workspace
+  ports:
+    - name: gateway
+      port: 18789
+      targetPort: 18789
+      protocol: TCP

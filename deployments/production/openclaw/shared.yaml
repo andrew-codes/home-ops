@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: openclaw-postgres
+  namespace: default
+spec:
+  selector:
+    app: openclaw-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openclaw-postgres
+  namespace: default
+spec:
+  serviceName: openclaw-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openclaw-postgres
+  template:
+    metadata:
+      labels:
+        app: openclaw-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18.3
+          env:
+            - name: POSTGRES_DB
+              value: openclaw
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-db
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-db
+                  key: password
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 40Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openclaw-redis
+  namespace: default
+spec:
+  selector:
+    app: openclaw-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw-redis
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openclaw-redis
+  template:
+    metadata:
+      labels:
+        app: openclaw-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:8.6.2
+          args: ["--appendonly", "yes"]
+          ports:
+            - containerPort: 6379
