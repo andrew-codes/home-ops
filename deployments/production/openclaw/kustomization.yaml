@@ -3,4 +3,4 @@ kind: Kustomization
 namespace: default
 resources:
   - shared.yaml
-  - home-assistant.yaml
+  - agents-deployment.yaml
