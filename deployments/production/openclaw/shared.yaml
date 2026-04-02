@@ -77,7 +77,7 @@ spec:
         app: openclaw-postgres
     spec:
       nodeSelector:
-        kubernetes.io/hostname: k8s-man
+        kubernetes.io/hostname: k8s-main
       containers:
         - name: postgres
           image: postgres:18.3
