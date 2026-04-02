@@ -389,6 +389,32 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.37
+          command:
+            - sh
+            - -c
+            - until nc -z openclaw-postgres 5432; do echo "waiting for postgres..."; sleep 2; done
+          resources:
+            requests:
+              memory: 16Mi
+              cpu: 10m
+            limits:
+              memory: 32Mi
+              cpu: 50m
+        - name: wait-for-redis
+          image: busybox:1.37
+          command:
+            - sh
+            - -c
+            - until nc -z openclaw-redis 6379; do echo "waiting for redis..."; sleep 2; done
+          resources:
+            requests:
+              memory: 16Mi
+              cpu: 10m
+            limits:
+              memory: 32Mi
+              cpu: 50m
         - name: init-kubectl
           image: bitnami/kubectl:1.32.3
           command:
