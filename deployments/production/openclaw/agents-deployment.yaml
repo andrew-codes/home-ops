@@ -390,7 +390,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: init-kubectl
-          image: bitnami/kubectl:1.32
+          image: bitnami/kubectl:1.32.3
           command:
             - sh
             - -c
