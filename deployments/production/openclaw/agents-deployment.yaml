@@ -83,28 +83,20 @@ data:
           "workspace": "~/.openclaw/workspace",
           "model": { "primary": "anthropic/claude-sonnet-4-6" },
           "models": {
-            "anthropic/claude-sonnet-4-6": { alias: "Sonnet" },
-            "anthropic/claude-opus-4-6": { alias: "Opus" },
+            "anthropic/claude-sonnet-4-6": { "alias": "Sonnet" },
+            "anthropic/claude-opus-4-6": { "alias": "Opus" }
           }
         },
         "list": [
           {
             "id": "default",
             "name": "Alexa",
-            "workspace": "~/.openclaw/workspace",
-            "mcpServers": {
-              "home-assistant": { "enabled": true },
-              "context7": { "enabled": true }
-            }
+            "workspace": "~/.openclaw/workspace"
           },
           {
             "id": "coding",
             "name": "Coding Assistant",
             "workspace": "/home/node/coding-workspace",
-            "mcpServers": {
-              "home-assistant": { "enabled": false },
-              "context7": { "enabled": true }
-            },
             "runtime": {
               "type": "acp",
               "acp": {
@@ -117,19 +109,21 @@ data:
           }
         ]
       },
-      "mcpServers": {
-        "home-assistant": {
-          "transport": "sse",
-          "url": "http://localhost:8001/sse"
-        },
-        "context7": {
-          "command": "npx",
-          "args": ["-y", "@upstash/context7-mcp"],
-          "env": {
-            "CONTEXT7_API_KEY": {
-              "source": "env",
-              "provider": "default",
-              "id": "CONTEXT7_API_KEY"
+      "mcp": {
+        "servers": {
+          "home-assistant": {
+            "transport": "sse",
+            "url": "http://localhost:8001/sse"
+          },
+          "context7": {
+            "command": "npx",
+            "args": ["-y", "@upstash/context7-mcp"],
+            "env": {
+              "CONTEXT7_API_KEY": {
+                "source": "env",
+                "provider": "default",
+                "id": "CONTEXT7_API_KEY"
+              }
             }
           }
         }
