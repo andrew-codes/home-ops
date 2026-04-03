@@ -24,11 +24,14 @@
     - name: Install dependencies
       apt:
         name:
+          - nano
           - ca-certificates
           - curl
           - git
           - build-essential
           - cmake
+          - procps
+          - file
           - libsdl2-dev
           - libsdl2-mixer-dev
           - libsdl2-image-dev
@@ -38,16 +41,27 @@
           - unzip
           - jq
           - yq
+          - sudo
         state: present
 
-    - name: Install dependencies
-      apt:
-        name:
-          - ca-certificates
-          - curl
-        state: present
+    - name: Create linuxbrew directory
+      file:
+        path: /home/linuxbrew/.linuxbrew
+        state: directory
+        owner: openclaw
+        group: openclaw
+        mode: "0755"
+
+    - name: Install Homebrew as openclaw user
+      shell: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      environment:
+        NONINTERACTIVE: "1"
+      args:
+        creates: /home/linuxbrew/.linuxbrew/bin/brew
+      become: true
+      become_user: openclaw
 
     - name: Install OpenClaw
-      shell: curl -fsSL https://openclaw.ai/install.sh | bash -s -- --no-onboard
-      args:
-        creates: /usr/local/bin/openclaw
+      shell: curl -fsSL https://raw.githubusercontent.com/openclaw/openclaw-ansible/main/install.sh | bash
+    
+    # Manual steps on box: https://github.com/openclaw/openclaw-ansible?tab=readme-ov-file#post-install
