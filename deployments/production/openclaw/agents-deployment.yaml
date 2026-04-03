@@ -114,9 +114,8 @@ data:
         ],
         "mcpServers": {
           "home-assistant": {
-            "kind": "mcp",
-            "transport": "ws",
-            "endpoint": "ws://localhost:8001"
+            "transport": "sse",
+            "url": "http://localhost:8001/sse"
           },
           "context7": {
             "command": "npx",
@@ -596,8 +595,18 @@ spec:
             - containerPort: 9222
         - name: ha-mcp
           image: ghcr.io/homeassistant-ai/ha-mcp:7.2.0
+          command:
+            - fastmcp
+            - run
+            - fastmcp-sse.json
+            - --transport
+            - sse
+            - --port
+            - "8001"
+            - --host
+            - "0.0.0.0"
           ports:
-            - containerPort: 8000
+            - containerPort: 8001
           env:
             - name: HOMEASSISTANT_URL
               value: "http://home-assistant:8123"
@@ -606,14 +615,6 @@ spec:
                 secretKeyRef:
                   name: openclaw-alexa-secrets
                   key: home-assistant-token
-            - name: HA_MCP_HOST
-              value: "0.0.0.0"
-            - name: HA_MCP_PORT
-              value: "8000"
-            - name: HA_MCP_WS_HOST
-              value: "0.0.0.0"
-            - name: HA_MCP_WS_PORT
-              value: "8001"
             - name: ENABLE_SKILLS
               value: "true"
             - name: ENABLE_SKILLS_AS_TOOLS
