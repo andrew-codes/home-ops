@@ -89,7 +89,7 @@ data:
         },
         "list": [
           {
-            "id": "alexa",
+            "id": "default",
             "name": "Alexa",
             "workspace": "~/.openclaw/workspace"
           },
