@@ -89,7 +89,7 @@ data:
         },
         "list": [
           {
-            "id": "default",
+            "id": "alexa",
             "name": "Alexa",
             "workspace": "~/.openclaw/workspace"
           },
@@ -108,25 +108,6 @@ data:
             }
           }
         ]
-      },
-      "mcp": {
-        "servers": {
-          "home-assistant": {
-            "transport": "sse",
-            "url": "http://localhost:8001/sse"
-          },
-          "context7": {
-            "command": "npx",
-            "args": ["-y", "@upstash/context7-mcp"],
-            "env": {
-              "CONTEXT7_API_KEY": {
-                "source": "env",
-                "provider": "default",
-                "id": "CONTEXT7_API_KEY"
-              }
-            }
-          }
-        }
       },
       "cron": { "enabled": false },
       "acp": {
@@ -461,6 +442,13 @@ spec:
                   "atlassian": {
                     "transport": "sse",
                     "url": "http://localhost:9099/sse"
+                  },
+                  "context7": {
+                    "command": "npx",
+                    "args": ["-y", "@upstash/context7-mcp"],
+                    "env": {
+                      "CONTEXT7_API_KEY": "$CONTEXT7_API_KEY"
+                    }
                   }
                 }
               }
@@ -471,6 +459,11 @@ spec:
                 secretKeyRef:
                   name: openclaw-coding-secrets
                   key: github-token
+            - name: CONTEXT7_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-api-keys
+                  key: context7-api-key
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
