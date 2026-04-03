@@ -148,11 +148,7 @@ data:
           "api-gateway": {
             "enabled": true,
             "env": {
-              "MATON_API_KEY": {
-                "source": "env",
-                "provider": "default",
-                "id": "MATON_API_KEY"
-              }
+              "MATON_API_KEY": "$MATON_API_KEY"
             }
           }
         }
