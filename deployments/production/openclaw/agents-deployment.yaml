@@ -129,11 +129,6 @@ data:
           }
         }
       },
-      "plugins": {
-        "entries": {
-          "acpx": { "enabled": true }
-        }
-      },
       "bindings": [
         {
           "type": "acp",
