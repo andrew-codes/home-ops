@@ -569,6 +569,8 @@ spec:
               mountPath: /tmp
             - name: bin-volume
               mountPath: /home/node/bin
+            - name: extensions-volume
+              mountPath: /app/extensions
           resources:
             requests:
               memory: 512Mi
@@ -671,6 +673,8 @@ spec:
         - name: tmp-volume
           emptyDir: {}
         - name: bin-volume
+          emptyDir: {}
+        - name: extensions-volume
           emptyDir: {}
 
 ---
