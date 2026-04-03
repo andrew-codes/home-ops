@@ -126,6 +126,41 @@ data:
         "entries": {
           "home-assistant": {
             "enabled": true
+          },
+          "self-improving": {
+            "enabled": true
+          },
+          "word-docx": {
+            "enabled": true
+          },
+          "excel-xlsx": {
+            "enabled": true
+          },
+          "powerpoint-pptx": {
+            "enabled": true
+          },
+          "github": {
+            "enabled": true
+          },
+          "ontology": {
+            "enabled": true
+          },
+          "api-gateway": {
+            "enabled": true,
+            "env": {
+              "MATON_API_KEY": {
+                "source": "env",
+                "provider": "default",
+                "id": "MATON_API_KEY"
+              }
+            }
+          }
+        }
+      },
+      "plugins": {
+        "entries": {
+          "@openguardrails/moltguard": {
+            "enabled": true
           }
         }
       },
@@ -410,12 +445,30 @@ spec:
               chmod +x /home/node/bin/kubectl
               wget -qO /home/node/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
               chmod +x /home/node/bin/jq
+              wget -qO /tmp/gh.tar.gz https://github.com/cli/cli/releases/download/v2.67.0/gh_2.67.0_linux_amd64.tar.gz
+              tar -xzf /tmp/gh.tar.gz -C /tmp/
+              cp /tmp/gh_2.67.0_linux_amd64/bin/gh /home/node/bin/gh
+              chmod +x /home/node/bin/gh
               mkdir -p /home/node/.openclaw/workspace/skills/home-assistant
               wget -qO /tmp/ha-skill.zip 'https://wry-manatee-359.convex.site/api/v1/download?slug=home-assistant'
               mkdir -p /tmp/ha-skill-extract
               unzip -q /tmp/ha-skill.zip -d /tmp/ha-skill-extract
               SKILL_DIR=$(find /tmp/ha-skill-extract -name 'SKILL.md' -exec dirname {} \; | head -1)
               cp -r "$SKILL_DIR/." /home/node/.openclaw/workspace/skills/home-assistant/
+              mkdir -p /home/node/.openclaw/workspace/skills/self-improving
+              wget -qO /tmp/self-improving-skill.zip 'https://wry-manatee-359.convex.site/api/v1/download?slug=self-improving'
+              mkdir -p /tmp/self-improving-extract
+              unzip -q /tmp/self-improving-skill.zip -d /tmp/self-improving-extract
+              SKILL_DIR=$(find /tmp/self-improving-extract -name 'SKILL.md' -exec dirname {} \; | head -1)
+              cp -r "$SKILL_DIR/." /home/node/.openclaw/workspace/skills/self-improving/
+              for SLUG in word-docx excel-xlsx powerpoint-pptx github ontology api-gateway; do
+                mkdir -p /home/node/.openclaw/workspace/skills/$SLUG
+                wget -qO /tmp/$SLUG.zip "https://wry-manatee-359.convex.site/api/v1/download?slug=$SLUG"
+                mkdir -p /tmp/$SLUG-extract
+                unzip -q /tmp/$SLUG.zip -d /tmp/$SLUG-extract
+                SKILL_DIR=$(find /tmp/$SLUG-extract -name 'SKILL.md' -exec dirname {} \; | head -1)
+                cp -r "$SKILL_DIR/." /home/node/.openclaw/workspace/skills/$SLUG/
+              done
               cp /config/openclaw.json /home/node/.openclaw/openclaw.json
               mkdir -p /home/node/.openclaw/workspace
               cp /config/ha-AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
@@ -555,6 +608,11 @@ spec:
                 secretKeyRef:
                   name: openclaw-alexa-secrets
                   key: home-assistant-token
+            - name: MATON_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-api-keys
+                  key: maton-api-key
           volumeMounts:
             - name: workspace
               mountPath: /home/node/.openclaw
