@@ -5230,6 +5230,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@ha/resource-openclaw@workspace:resources/openclaw":
+  version: 0.0.0-use.local
+  resolution: "@ha/resource-openclaw@workspace:resources/openclaw"
+  dependencies:
+    "@ha/configuration-api": "workspace:^0.0.1"
+    "@ha/configuration-workspace": "workspace:^0.0.1"
+    "@ha/logger": "workspace:^0.0.1"
+    "@ha/nx-executors": "workspace:^0.1.0"
+    "@ha/terraform": "workspace:^0.0.1"
+    nx: "npm:^20.7.0"
+  languageName: unknown
+  linkType: soft
+
 "@ha/resource-pihole@workspace:apps/pihole":
   version: 0.0.0-use.local
   resolution: "@ha/resource-pihole@workspace:apps/pihole"

@@ -11,9 +11,8 @@
   "files.associations": {
     "*.yaml": "yaml"
   },
-  "eslint.validate": [
-    "json"
-  ],
+  "eslint.validate": ["json"],
   "eslint.nodePath": ".yarn/sdks",
-  "nxConsole.generateAiAgentRules": true
+  "nxConsole.generateAiAgentRules": true,
+  "js/ts.tsdk.path": ".yarn/sdks/typescript/lib"
 }

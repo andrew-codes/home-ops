@@ -1,0 +1,84 @@
+---
+- name: Setup OpenClaw
+  hosts: all
+  become: true
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: true
+  connection: ssh
+  remote_user: root
+
+  tasks:
+    - name: Disable password SSH access
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: "PasswordAuthentication .*"
+        line: "PasswordAuthentication no"
+        state: present
+
+    - name: Upgrade and update apt
+      apt:
+        update_cache: true
+        upgrade: full
+
+    - name: Install dependencies
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - git
+          - build-essential
+          - cmake
+          - libsdl2-dev
+          - libsdl2-mixer-dev
+          - libsdl2-image-dev
+          - libsdl2-ttf-dev
+          - zlib1g-dev
+          - python3-minimal
+          - unzip
+        state: present
+
+    - name: Clone OpenClaw repository
+      git:
+        repo: https://github.com/pjasicek/OpenClaw.git
+        dest: /opt/openclaw
+        version: master
+        force: false
+
+    - name: Create build directory
+      file:
+        path: /opt/openclaw/build
+        state: directory
+        mode: "0755"
+
+    - name: Build OpenClaw
+      shell: cmake .. && make -j{{ ansible_processor_nvcpus }}
+      args:
+        chdir: /opt/openclaw/build
+        creates: /opt/openclaw/build/openclaw
+
+    - name: Create openclaw systemd service
+      copy:
+        dest: /etc/systemd/system/openclaw.service
+        content: |
+          [Unit]
+          Description=OpenClaw Game Server
+          After=network.target
+
+          [Service]
+          Type=simple
+          WorkingDirectory=/opt/openclaw
+          ExecStart=/opt/openclaw/build/openclaw
+          Restart=on-failure
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: "0644"
+
+    - name: Enable and start openclaw service
+      systemd:
+        name: openclaw
+        enabled: true
+        state: started
+        daemon_reload: true
