@@ -94,7 +94,7 @@ resource "proxmox_lxc" "openclaw" {
   start        = true
   onboot       = true
 
-  cores  = 8
+  cores  = 12
   memory = 65536
   swap   = 0
 
