@@ -242,25 +242,3 @@ spec:
   wait: true
   timeout: 5m0s
 ---
-
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: openclaw
-  namespace: default
-spec:
-  dependsOn:
-    - name: home-assistant
-    - name: nfs-provisioner
-    - name: sealed-secrets
-    - name: secrets
-  interval: 10m0s
-  sourceRef:
-    kind: GitRepository
-    name: default
-  path: ./deployments/production/openclaw
-  prune: true
-  wait: true
-  timeout: 5m0s
----
-
