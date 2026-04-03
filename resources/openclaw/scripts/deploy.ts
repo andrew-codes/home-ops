@@ -6,7 +6,7 @@ import path from "path"
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
 ): Promise<void> => {
-  const ip = (await configurationApi.get("openclaw/ip")).value
+  const ip = "10.2.0.150"
 
   await runPlaybook(
     path.join(__dirname, "..", "src", "deployment", "deploy.yml"),

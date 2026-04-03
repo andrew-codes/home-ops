@@ -9276,6 +9276,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./resources/openclaw/",\
         "packageDependencies": [\
           ["@ha/resource-openclaw", "workspace:resources/openclaw"],\
+          ["@ha/ansible", "workspace:packages/ansible"],\
           ["@ha/configuration-api", "workspace:packages/configuration-api"],\
           ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
           ["@ha/logger", "workspace:packages/logger"],\

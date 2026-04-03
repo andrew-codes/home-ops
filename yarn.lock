@@ -5234,6 +5234,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ha/resource-openclaw@workspace:resources/openclaw"
   dependencies:
+    "@ha/ansible": "workspace:^0.0.1"
     "@ha/configuration-api": "workspace:^0.0.1"
     "@ha/configuration-workspace": "workspace:^0.0.1"
     "@ha/logger": "workspace:^0.0.1"

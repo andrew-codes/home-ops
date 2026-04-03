@@ -3,6 +3,7 @@
   "name": "@ha/resource-openclaw",
   "version": "0.0.1",
   "devDependencies": {
+    "@ha/ansible": "workspace:^0.0.1",
     "@ha/configuration-api": "workspace:^0.0.1",
     "@ha/configuration-workspace": "workspace:^0.0.1",
     "@ha/logger": "workspace:^0.0.1",
