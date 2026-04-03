@@ -85,22 +85,26 @@ data:
           "models": {
             "anthropic/claude-sonnet-4-6": { alias: "Sonnet" },
             "anthropic/claude-opus-4-6": { alias: "Opus" },
-          },
-          "mcpServers": [
-            "home-assistant",
-            "context7"
-          ]
+          }
         },
         "list": [
           {
             "id": "default",
-            "name": "Home Assistant",
-            "workspace": "~/.openclaw/workspace"
+            "name": "Alexa",
+            "workspace": "~/.openclaw/workspace",
+            "mcpServers": {
+              "home-assistant": { "enabled": true },
+              "context7": { "enabled": true }
+            }
           },
           {
             "id": "coding",
             "name": "Coding Assistant",
             "workspace": "/home/node/coding-workspace",
+            "mcpServers": {
+              "home-assistant": { "enabled": false },
+              "context7": { "enabled": true }
+            },
             "runtime": {
               "type": "acp",
               "acp": {
@@ -111,21 +115,21 @@ data:
               }
             }
           }
-        ],
-        "mcpServers": {
-          "home-assistant": {
-            "transport": "sse",
-            "url": "http://localhost:8001/sse"
-          },
-          "context7": {
-            "command": "npx",
-            "args": ["-y", "@upstash/context7-mcp"],
-            "env": {
-              "CONTEXT7_API_KEY": {
-                "source": "env",
-                "provider": "default",
-                "id": "CONTEXT7_API_KEY"
-              }
+        ]
+      },
+      "mcpServers": {
+        "home-assistant": {
+          "transport": "sse",
+          "url": "http://localhost:8001/sse"
+        },
+        "context7": {
+          "command": "npx",
+          "args": ["-y", "@upstash/context7-mcp"],
+          "env": {
+            "CONTEXT7_API_KEY": {
+              "source": "env",
+              "provider": "default",
+              "id": "CONTEXT7_API_KEY"
             }
           }
         }
@@ -152,7 +156,11 @@ data:
         {
           "type": "acp",
           "agentId": "coding",
-          "match": { "channel": "discord", "accountId": "coding" }
+          "match": {
+            "channel": "discord",
+            "accountId": "coding",
+            "peer": { "kind": "direct", "id": "1489432597795962890" }
+          }
         },
         {
           "type": "route",
