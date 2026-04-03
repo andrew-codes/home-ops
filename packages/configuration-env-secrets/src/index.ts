@@ -78,6 +78,7 @@ const sealedSecretNames = [
   "openclaw-db/password",
   "openclaw-db/url",
   "openclaw-api-keys/anthropic-api-key",
+  "openclaw-api-keys/gateway-token",
   "openclaw-api-keys/discord-bot-token",
   "openclaw-api-keys/context7-api-key",
   "openclaw-api-keys/discord-bot-token-coding",
