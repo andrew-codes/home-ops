@@ -153,13 +153,6 @@ data:
           }
         }
       },
-      "plugins": {
-        "entries": {
-          "@openguardrails/moltguard": {
-            "enabled": true
-          }
-        }
-      },
       "bindings": [
         {
           "type": "acp",
