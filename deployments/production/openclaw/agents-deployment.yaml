@@ -122,6 +122,13 @@ data:
           "ttlMinutes": 120
         }
       },
+      "skills": {
+        "entries": {
+          "home-assistant": {
+            "enabled": true
+          }
+        }
+      },
       "plugins": {
         "entries": {
           "acpx": { "enabled": true }
@@ -406,6 +413,14 @@ spec:
             - |
               wget -qO /home/node/bin/kubectl https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl
               chmod +x /home/node/bin/kubectl
+              wget -qO /home/node/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
+              chmod +x /home/node/bin/jq
+              mkdir -p /home/node/.openclaw/workspace/skills/home-assistant
+              wget -qO /tmp/ha-skill.zip 'https://wry-manatee-359.convex.site/api/v1/download?slug=home-assistant'
+              mkdir -p /tmp/ha-skill-extract
+              unzip -q /tmp/ha-skill.zip -d /tmp/ha-skill-extract
+              SKILL_DIR=$(find /tmp/ha-skill-extract -name 'SKILL.md' -exec dirname {} \; | head -1)
+              cp -r "$SKILL_DIR/." /home/node/.openclaw/workspace/skills/home-assistant/
               cp /config/openclaw.json /home/node/.openclaw/openclaw.json
               mkdir -p /home/node/.openclaw/workspace
               cp /config/ha-AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
@@ -538,6 +553,13 @@ spec:
               value: /home/node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
             - name: CODING_NAMESPACE
               value: default
+            - name: HA_URL
+              value: "http://home-assistant:8123"
+            - name: HA_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-alexa-secrets
+                  key: home-assistant-token
           volumeMounts:
             - name: workspace
               mountPath: /home/node/.openclaw
@@ -588,32 +610,6 @@ spec:
               value: "600000"
           ports:
             - containerPort: 9222
-        - name: ha-mcp
-          image: ghcr.io/homeassistant-ai/ha-mcp:7.2.0
-          command:
-            - fastmcp
-            - run
-            - fastmcp-sse.json
-            - --transport
-            - sse
-            - --port
-            - "8001"
-            - --host
-            - "0.0.0.0"
-          ports:
-            - containerPort: 8001
-          env:
-            - name: HOMEASSISTANT_URL
-              value: "http://home-assistant:8123"
-            - name: HOMEASSISTANT_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: openclaw-alexa-secrets
-                  key: home-assistant-token
-            - name: ENABLE_SKILLS
-              value: "true"
-            - name: ENABLE_SKILLS_AS_TOOLS
-              value: "true"
         - name: mcp-atlassian
           image: python:3.13-slim
           command:
