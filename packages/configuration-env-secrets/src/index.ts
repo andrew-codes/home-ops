@@ -104,7 +104,7 @@ const sealedEnvSecrets = [
   "homebox-oidc/issuer-url",
 ] as const
 const sealedBase64EnvSecrets = [
-  "home-assistant/ssh-key/private",
+  "home-assistant/ssh-key-private",
 ] as const
 
 const base64EnvConfiguration = createBase64EnvConfigurationApi(sealedBase64EnvSecrets)
