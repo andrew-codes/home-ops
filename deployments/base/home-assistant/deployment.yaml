@@ -19,6 +19,12 @@ spec:
         - name: home-assistant-config
           persistentVolumeClaim:
             claimName: home-assistant-config
+        - name: home-assistant-ssh-key
+          secret:
+            secretName: home-assistant
+            items:
+              - key: ssh-key-private
+                path: private
       imagePullPolicy: IfNotPresent
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
@@ -35,6 +41,9 @@ spec:
           volumeMounts:
             - name: home-assistant-config
               mountPath: /config
+            - name: home-assistant-ssh-key
+              mountPath: /root/.ssh/private
+              subPath: private
           livenessProbe:
             httpGet:
               path: /
