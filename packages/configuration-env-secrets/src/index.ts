@@ -1,3 +1,4 @@
+import { createConfigurationApi } from '@ha/configuration-aggregate';
 import { ConfigurationApi } from "@ha/configuration-api"
 import { toEnvName } from "@ha/secret-utils"
 import { env } from "node:process"
@@ -21,7 +22,27 @@ const createEnvConfigurationApi = <TSecretNames extends ReadonlyArray<string>>(
   }
 }
 
+const createBase64EnvConfigurationApi = <TSecretNames extends ReadonlyArray<string>>(
+  secretNames: TSecretNames,
+): ConfigurationApi<Record<TSecretNames[number], string>> => {
+  return {
+    get: async (name: TSecretNames[number]) => {
+      const value = { ...env }[toEnvName(name)]
+      if (!value) {
+        throw new Error(`Configuration value ${name} not found.`)
+      }
+
+      return Buffer.from(value, "base64").toString("utf-8")
+    },
+    getNames: () => secretNames,
+    set: async () => {
+      throw new Error("Not implemented")
+    },
+  }
+}
+
 const provisionedSecretNames = [
+  "nas/ip",
   "dev/ssh-key/public",
   "env",
   "github/username",
@@ -44,12 +65,14 @@ const provisionedSecretNames = [
   "tailscale/ip",
   "tailscale/subnet-routes",
   "unifi/ip",
+  "nas/openclaw/username",
+  "nas/openclaw/password",
 ] as const
 const provisionedEnvConfiguration = createEnvConfigurationApi(
   provisionedSecretNames,
 )
 
-const sealedSecretNames = [
+const sealedEnvSecrets = [
   "grafana-admin/admin-password",
   "grafana-admin/admin",
   "home-assistant-token/token",
@@ -76,22 +99,19 @@ const sealedSecretNames = [
   "home-assistant/version-control-supervisor-token",
   "openclaw-db/username",
   "openclaw-db/password",
-  "openclaw-db/url",
-  "openclaw-api-keys/anthropic-api-key",
-  "openclaw-api-keys/gateway-token",
-  "openclaw-api-keys/discord-bot-token",
-  "openclaw-api-keys/discord-bot-token-coding",
-  "openclaw-api-keys/context7-api-key",
-  "openclaw-api-keys/maton-api-key",
-  "openclaw-coding-secrets/github-token",
-  "openclaw-coding-secrets/atlassian-url",
-  "openclaw-coding-secrets/atlassian-email",
-  "openclaw-coding-secrets/atlassian-api-token",
-  "openclaw-alexa-secrets/home-assistant-token",
+  "openclaw-redis-auth/username",
+  "openclaw-redis-auth/password",
   "homebox-oidc/issuer-url",
 ] as const
+const sealedBase64EnvSecrets = [
+  "home-assistant/ssh-key/private",
+] as const
+
+const base64EnvConfiguration = createBase64EnvConfigurationApi(sealedBase64EnvSecrets)
+const envConfiguration = createEnvConfigurationApi(sealedEnvSecrets)
+
 const sealedSecretEnvConfiguration =
-  createEnvConfigurationApi(sealedSecretNames)
+  createConfigurationApi([base64EnvConfiguration, envConfiguration])
 
 export { provisionedEnvConfiguration, sealedSecretEnvConfiguration }
 export default createEnvConfigurationApi
