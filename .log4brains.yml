@@ -1,5 +1,0 @@
-project:
-  name: "@andrew-codes/home-ops"
-  tz: America/New_York
-  adrFolder: ./docs/adr
-  packages: []

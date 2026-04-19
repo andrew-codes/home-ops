@@ -1,9 +1,0 @@
-{
-  "verbose": true,
-  "ignore": ["*.test.js", "fixtures/*"],
-  "execMap": {
-    "js": "node -r esbuild-register",
-    "ts": "node -r esbuild-register"
-  },
-  "watch": ["src"]
-}
