@@ -47,7 +47,7 @@ const provisionedSecretNames = [
   "env",
   "github/username",
   "github/token",
-  "home-assistant/ssh-key/public",
+  "home-assistant/ssh-key-public",
   "k8s/ip",
   "k8s/pod-network-cidr",
   "pihole/domain",
@@ -67,6 +67,10 @@ const provisionedSecretNames = [
   "unifi/ip",
   "nas/openclaw/username",
   "nas/openclaw/password",
+  "gaming-pc/ip",
+  "gaming-pc/user",
+  "gaming-pc/username",
+  "gaming-pc/password",
 ] as const
 const provisionedEnvConfiguration = createEnvConfigurationApi(
   provisionedSecretNames,

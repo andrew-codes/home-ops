@@ -4503,7 +4503,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/configuration-api@workspace:*, @ha/configuration-api@workspace:^0.0.1, @ha/configuration-api@workspace:packages/configuration-api":
+"@ha/configuration-api@workspace:^0.0.1, @ha/configuration-api@workspace:packages/configuration-api":
   version: 0.0.0-use.local
   resolution: "@ha/configuration-api@workspace:packages/configuration-api"
   dependencies:
@@ -4531,7 +4531,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/configuration-workspace@workspace:*, @ha/configuration-workspace@workspace:^0.0.1, @ha/configuration-workspace@workspace:packages/configuration-workspace":
+"@ha/configuration-workspace@workspace:^0.0.1, @ha/configuration-workspace@workspace:packages/configuration-workspace":
   version: 0.0.0-use.local
   resolution: "@ha/configuration-workspace@workspace:packages/configuration-workspace"
   dependencies:
@@ -4736,6 +4736,7 @@ __metadata:
     "@ha/configuration-workspace": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
     "@ha/shell-utils": "workspace:^1.0.0"
+    "@octokit/core": "npm:^4.2.4"
     nx: "npm:^20.7.0"
     shelljs: "npm:^0.8.5"
   languageName: unknown
@@ -5418,16 +5419,6 @@ __metadata:
     nx: "npm:^20.7.0"
     ts-jest: "npm:^29.2.5"
     typescript: "npm:^5.7.3"
-  languageName: unknown
-  linkType: soft
-
-"@ha/update-gaming-pc@workspace:apps/update-gaming-pc":
-  version: 0.0.0-use.local
-  resolution: "@ha/update-gaming-pc@workspace:apps/update-gaming-pc"
-  dependencies:
-    "@ha/configuration-api": "workspace:*"
-    "@ha/configuration-workspace": "workspace:*"
-    "@octokit/core": "npm:^4.2.4"
   languageName: unknown
   linkType: soft
 

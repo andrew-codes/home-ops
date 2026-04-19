@@ -1,0 +1,144 @@
+---
+- hosts: all
+  gather_facts: yes
+  connection: winrm
+  vars_files:
+    - ../.secrets/ansible-secrets.yml
+
+  tasks:
+    - name: Ensure Chocolatey is installed
+      win_shell: |
+        Set-ExecutionPolicy Bypass -Scope Process -Force
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+      args:
+        creates: C:\ProgramData\chocolatey\bin\choco.exe
+
+    - name: Ensure PowerShell 7 is installed
+      win_chocolatey:
+        name: powershell-core
+        state: present
+
+    - name: Ensure Steam is installed
+      win_chocolatey:
+        name: steam
+        state: present
+
+    - name: Ensure Epic is installed
+      win_chocolatey:
+        name: epicgameslauncher
+        state: present
+
+    - name: Remove GOG
+      win_chocolatey:
+        name: goggalaxy
+        state: absent
+
+    - name: Ensure Playnite is installed
+      win_chocolatey:
+        name: playnite
+        state: present
+
+    - name: Ensure Uplay is installed
+      win_chocolatey:
+        name: uplay
+        state: absent
+
+    - name: Ensure nuget is installed
+      win_chocolatey:
+        name: nuget.commandline
+        state: present
+
+    # - name: Ensure node is installed
+    #   win_chocolatey:
+    #     name: nodejs
+    #     state: present
+
+    # - name: Ensure Git is installed
+    #   win_chocolatey:
+    #     name: git
+    #     package_params: /GitAndUnixToolsOnPath /NoShellIntegration
+    #     state: present
+
+    - name: Ensure vscode
+      win_chocolatey:
+        name: vscode
+        state: present
+
+    - name: Install the Win32-OpenSSH service
+      win_chocolatey:
+        name: openssh
+        package_params: /SSHServerFeature /AlsoLogToFile
+        state: present
+
+    - name: Enable HA Ping through firewall
+      win_firewall_rule:
+        name: "HA Ping"
+        description: "Allow ping from Home Assistant"
+        direction: In
+        protocol: icmpv4
+        icmp_type_code:
+          - "8:*"
+        profiles: private
+        action: Allow
+        enabled: yes
+        state: present
+
+    - name: Ensure .ssh directory exists
+      win_file:
+        path: C:\Users\{{ user }}\.ssh
+        state: directory
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Read authorized_keys source
+      set_fact:
+        authorized_keys_content: "{{ lookup('file', '../.secrets/authorized_keys') }}"
+
+    - name: Ensure authorized_keys contains each required key
+      win_lineinfile:
+        path: C:\Users\{{ user }}\.ssh\authorized_keys
+        line: "{{ item }}"
+        create: yes
+      loop: "{{ authorized_keys_content.splitlines() | select('match', '.+') | list }}"
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Copy sshd_config
+      ansible.windows.win_copy:
+        src: ../src/sshd_config
+        dest: C:\ProgramData\ssh\sshd_config
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
+        ansible_remote_tmp: 'C:\tmp'
+
+    - name: Restart SSH Service
+      win_shell: |
+        Get-Service -Name sshd | Restart-Service
+
+    - name: Ensure developer/tools directory exists
+      win_file:
+        path: C:\Users\{{ user }}\developer\tools
+        state: directory
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Copy install.ps1
+      ansible.windows.win_copy:
+        src: ../src/install.ps1
+        dest: C:\Users\{{ user }}\developer\tools\install.ps1
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+        ansible_remote_tmp: 'C:\tmp'
+
+    - name: Run install.ps1
+      win_shell: |
+        pwsh -File "C:\Users\{{ user }}\developer\tools\install.ps1"
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"

@@ -4,11 +4,18 @@
   "sourceRoot": "apps/gaming-pc",
   "projectType": "application",
   "targets": {
-    "deploy": {
+    "provision": {
       "executor": "@ha/nx-executors:invoke",
       "options": {
-        "cwd": "apps/gaming-pc",
-        "module": "scripts/deploy.ts"
+        "cwd": "{projectRoot}",
+        "module": "scripts/provision.ts"
+      },
+      "publish": {
+        "executor": "@ha/nx-executors:invoke",
+        "options": {
+          "cwd": "{projectRoot}",
+          "module": "scripts/publish-github-release.ts"
+        }
       }
     }
   },
