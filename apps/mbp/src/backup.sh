@@ -7,12 +7,17 @@ if [[ $# -lt 1 ]]; then
 fi
 
 DEST="$1"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG="$SCRIPT_DIR/backup.log"
+
+echo "=== backup started $(date) ===" >> "$LOG"
 
 pids=()
+users=()
 for user_dir in /Users/*/; do
   user="$(basename "$user_dir")"
   [[ $user == "Shared" || $user == ".localized" ]] && continue
-  rsync -aHv --delete \
+  rsync -aHv --delete --ignore-errors --no-perms --no-owner --no-group \
     --exclude='.DS_Store' \
     --exclude='.Trash/' \
     --exclude='Pictures/' \
@@ -20,15 +25,25 @@ for user_dir in /Users/*/; do
     --exclude='Library/' \
     --exclude='Parallels/' \
     --exclude='solidlsp_tmp/' \
+    --exclude='.npm/' \
+    --exclude='.local/' \
     --exclude='Public/' \
     --exclude='.cache/' \
-    "$user_dir" "$DEST/$user/" &
+    "$user_dir" "$DEST/$user/" >> "$LOG" 2>&1 &
   pids+=($!)
+  users+=("$user")
 done
 
-for pid in "${pids[@]}"; do
-  wait "$pid" || {
-    echo "rsync failed for PID $pid" >&2
-    exit 1
-  }
+failed=0
+for i in "${!pids[@]}"; do
+  pid="${pids[$i]}"
+  user="${users[$i]}"
+  wait "$pid" && rc=0 || rc=$?
+  if [[ $rc -ne 0 && $rc -ne 23 && $rc -ne 24 ]]; then
+    echo "rsync failed for $user (exit $rc)" | tee -a "$LOG" >&2
+    failed=1
+  fi
 done
+
+echo "=== backup finished $(date) ===" >> "$LOG"
+[[ $failed -eq 0 ]] || exit 1
