@@ -15,6 +15,7 @@ function ConvertTo-RsyncPath {
     return $WindowsPath -replace '\\', '/'
 }
 
+$RsyncExe = "C:\msys64\usr\bin\rsync.exe"
 $DestRoot = "Z:\"
 
 $Sources = @(
@@ -36,13 +37,13 @@ foreach ($Source in $Sources) {
     Write-Log "Queuing backup: $Source -> $DestPath"
 
     $Job = Start-Job -ScriptBlock {
-        param($SrcRsync, $DstRsync, $DestPath, $Source)
+        param($SrcRsync, $DstRsync, $DestPath, $Source, $RsyncExe)
 
         if (-not (Test-Path $DestPath)) {
             New-Item -ItemType Directory -Path $DestPath -Force | Out-Null
         }
 
-        $output = & rsync -a "$SrcRsync/" "$DstRsync/" 2>&1
+        $output = & $RsyncExe -a "$SrcRsync/" "$DstRsync/" 2>&1
         $rsyncExit = $LASTEXITCODE
         [PSCustomObject]@{
             Source   = $Source
@@ -50,7 +51,7 @@ foreach ($Source in $Sources) {
             ExitCode = $rsyncExit
             Output   = $output -join "`n"
         }
-    } -ArgumentList $SrcRsync, $DstRsync, $DestPath, $Source
+    } -ArgumentList $SrcRsync, $DstRsync, $DestPath, $Source, $RsyncExe
 
     $Jobs += $Job
 }
