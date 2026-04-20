@@ -28,6 +28,12 @@ for user_backup in "$SRC"/*/; do
   rsync -aHv --delete --ignore-errors --no-perms --no-owner --no-group \
     --exclude='.DS_Store' \
     --exclude='OneDrive*/' \
+    --exclude='node_modules/' \
+    --exclude='.nvm/' \
+    --exclude='.serena/language_servers/' \
+    --exclude='.vscode/extensions/' \
+    --exclude='/.yarn/' \
+    --exclude='/Documents/WindowsPowerShell/' \
     "$user_backup" "$dest/" > "$tmplog" 2>&1 &
   pids+=($!)
   users+=("$user")
