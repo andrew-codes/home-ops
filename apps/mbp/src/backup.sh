@@ -11,7 +11,7 @@ DEST="$1"
 pids=()
 for user_dir in /Users/*/; do
   user="$(basename "$user_dir")"
-  [[ "$user" == "Shared" || "$user" == ".localized" ]] && continue
+  [[ $user == "Shared" || $user == ".localized" ]] && continue
   rsync -aHv \
     --exclude='.DS_Store' \
     --exclude='.Trash/' \
@@ -21,10 +21,14 @@ for user_dir in /Users/*/; do
     --exclude='Parallels/' \
     --exclude='solidlsp_tmp/' \
     --exclude='Public/' \
+    --exclude='.cache/' \
     "$user_dir" "$DEST/$user/" &
   pids+=($!)
 done
 
 for pid in "${pids[@]}"; do
-  wait "$pid" || { echo "rsync failed for PID $pid" >&2; exit 1; }
+  wait "$pid" || {
+    echo "rsync failed for PID $pid" >&2
+    exit 1
+  }
 done
