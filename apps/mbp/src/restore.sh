@@ -14,6 +14,7 @@ echo "=== restore started $(date) ===" >> "$LOG"
 
 pids=()
 users=()
+tmplogs=()
 for user_backup in "$SRC"/*/; do
   [[ -d "$user_backup" ]] || continue
   user="$(basename "$user_backup")"
@@ -23,18 +24,24 @@ for user_backup in "$SRC"/*/; do
     echo "Skipping $user: /Users/$user does not exist" | tee -a "$LOG" >&2
     continue
   fi
+  tmplog="$(mktemp)"
   rsync -aHv --delete --ignore-errors --no-perms --no-owner --no-group \
     --exclude='.DS_Store' \
-    "$user_backup" "$dest/" >> "$LOG" 2>&1 &
+    "$user_backup" "$dest/" > "$tmplog" 2>&1 &
   pids+=($!)
   users+=("$user")
+  tmplogs+=("$tmplog")
 done
 
 failed=0
 for i in "${!pids[@]}"; do
   pid="${pids[$i]}"
   user="${users[$i]}"
+  tmplog="${tmplogs[$i]}"
   wait "$pid" && rc=0 || rc=$?
+  echo "=== $user (exit $rc) ===" >> "$LOG"
+  cat "$tmplog" >> "$LOG"
+  rm -f "$tmplog"
   if [[ $rc -ne 0 && $rc -ne 23 && $rc -ne 24 ]]; then
     echo "rsync failed for $user (exit $rc)" | tee -a "$LOG" >&2
     failed=1

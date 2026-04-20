@@ -1,5 +1,6 @@
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 . (Join-Path $ScriptDir "logging.ps1")
+$script:LogFile = Join-Path $ScriptDir "backup.log"
 
 function ConvertTo-RsyncPath {
     param([string]$WindowsPath)

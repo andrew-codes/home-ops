@@ -14,9 +14,11 @@ echo "=== backup started $(date) ===" >> "$LOG"
 
 pids=()
 users=()
+tmplogs=()
 for user_dir in /Users/*/; do
   user="$(basename "$user_dir")"
   [[ $user == "Shared" || $user == ".localized" ]] && continue
+  tmplog="$(mktemp)"
   rsync -aHv --delete --ignore-errors --no-perms --no-owner --no-group \
     --exclude='.DS_Store' \
     --exclude='.Trash/' \
@@ -29,16 +31,21 @@ for user_dir in /Users/*/; do
     --exclude='.local/' \
     --exclude='Public/' \
     --exclude='.cache/' \
-    "$user_dir" "$DEST/$user/" >> "$LOG" 2>&1 &
+    "$user_dir" "$DEST/$user/" > "$tmplog" 2>&1 &
   pids+=($!)
   users+=("$user")
+  tmplogs+=("$tmplog")
 done
 
 failed=0
 for i in "${!pids[@]}"; do
   pid="${pids[$i]}"
   user="${users[$i]}"
+  tmplog="${tmplogs[$i]}"
   wait "$pid" && rc=0 || rc=$?
+  echo "=== $user (exit $rc) ===" >> "$LOG"
+  cat "$tmplog" >> "$LOG"
+  rm -f "$tmplog"
   if [[ $rc -ne 0 && $rc -ne 23 && $rc -ne 24 ]]; then
     echo "rsync failed for $user (exit $rc)" | tee -a "$LOG" >&2
     failed=1
