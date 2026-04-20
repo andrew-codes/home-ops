@@ -27,6 +27,7 @@ for user_backup in "$SRC"/*/; do
   tmplog="$(mktemp)"
   rsync -aHv --delete --ignore-errors --no-perms --no-owner --no-group \
     --exclude='.DS_Store' \
+    --exclude='OneDrive*/' \
     "$user_backup" "$dest/" > "$tmplog" 2>&1 &
   pids+=($!)
   users+=("$user")

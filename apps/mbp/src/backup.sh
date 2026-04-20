@@ -31,6 +31,7 @@ for user_dir in /Users/*/; do
     --exclude='.local/' \
     --exclude='Public/' \
     --exclude='.cache/' \
+    --exclude='OneDrive*/' \
     "$user_dir" "$DEST/$user/" > "$tmplog" 2>&1 &
   pids+=($!)
   users+=("$user")
