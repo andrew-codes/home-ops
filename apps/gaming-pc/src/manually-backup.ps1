@@ -15,7 +15,7 @@ function ConvertTo-RsyncPath {
     return $WindowsPath -replace '\\', '/'
 }
 
-$DestRoot = "Z:\gaming-pc"
+$DestRoot = "Z:\"
 
 $Sources = @(
     "C:\Program Files (x86)\Steam\userdata",
