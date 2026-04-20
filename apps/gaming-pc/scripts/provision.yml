@@ -6,6 +6,14 @@
     - ../.secrets/ansible-secrets.yml
 
   tasks:
+    - name: Set timezone to Eastern Time
+      win_shell: tzutil /s "Eastern Standard Time"
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
+
     - name: Configure Windows Update scheduled installs at 3 AM daily
       win_regedit:
         path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU
