@@ -6,6 +6,43 @@
     - ../.secrets/ansible-secrets.yml
 
   tasks:
+    - name: Configure Windows Update scheduled installs at 3 AM daily
+      win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU
+        name: "{{ item.name }}"
+        data: "{{ item.data }}"
+        type: dword
+      loop:
+        - { name: NoAutoUpdate, data: 0 }
+        - { name: AUOptions, data: 4 }
+        - { name: ScheduledInstallDay, data: 0 }
+        - { name: ScheduledInstallTime, data: 3 }
+        - { name: AllowMUUpdateService, data: 1 }
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Hide desktop icons
+      win_regedit:
+        path: HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+        name: HideIcons
+        data: 1
+        type: dword
+
+    - name: Disable UAC
+      win_regedit:
+        path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+        name: EnableLUA
+        data: 0
+        type: dword
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
+
     - name: Ensure Chocolatey is installed
       win_shell: |
         Set-ExecutionPolicy Bypass -Scope Process -Force
@@ -13,41 +50,129 @@
         iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
       args:
         creates: C:\ProgramData\chocolatey\bin\choco.exe
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure PowerShell 7 is installed
       win_chocolatey:
         name: powershell-core
         state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Steam is installed
       win_chocolatey:
         name: steam
         state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Epic is installed
       win_chocolatey:
         name: epicgameslauncher
         state: present
-
-    - name: Remove GOG
-      win_chocolatey:
-        name: goggalaxy
-        state: absent
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Playnite is installed
       win_chocolatey:
         name: playnite
         state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
 
-    - name: Ensure Uplay is installed
+    - name: Ensure 7-Zip is installed
       win_chocolatey:
-        name: uplay
-        state: absent
+        name: 7zip
+        state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure Apollo is installed
+      win_chocolatey:
+        name: apollo
+        state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure NVIDIA App is installed
+      win_chocolatey:
+        name: nvidia-app
+        state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure 1Password is installed
+      win_chocolatey:
+        name: 1password
+        state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure Windows HDR Calibration is installed
+      win_shell: winget install --id Microsoft.WindowsHDRCalibration --accept-source-agreements --accept-package-agreements --silent
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure Dolby Access is installed
+      win_shell: winget install --id Dolby.DolbyAccess --accept-source-agreements --accept-package-agreements --silent
+      args:
+        creates: C:\Program Files\WindowsApps\DolbyLaboratories.DolbyAccess_*
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure Tailscale is installed
+      win_chocolatey:
+        name: tailscale
+        state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure nuget is installed
       win_chocolatey:
         name: nuget.commandline
         state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
 
     # - name: Ensure node is installed
     #   win_chocolatey:
@@ -64,12 +189,22 @@
       win_chocolatey:
         name: vscode
         state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
 
     - name: Install the Win32-OpenSSH service
       win_chocolatey:
         name: openssh
         package_params: /SSHServerFeature /AlsoLogToFile
         state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
 
     - name: Enable HA Ping through firewall
       win_firewall_rule:
@@ -83,6 +218,11 @@
         action: Allow
         enabled: yes
         state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure .ssh directory exists
       win_file:
@@ -110,6 +250,8 @@
       ansible.windows.win_copy:
         src: ../src/sshd_config
         dest: C:\ProgramData\ssh\sshd_config
+      become: yes
+      become_method: runas
       vars:
         ansible_become_user: BUILTIN\Administrators
         ansible_become_password: "{{ ansible_password }}"
@@ -118,6 +260,11 @@
     - name: Restart SSH Service
       win_shell: |
         Get-Service -Name sshd | Restart-Service
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure developer/tools directory exists
       win_file:
@@ -139,6 +286,8 @@
     - name: Run install.ps1
       win_shell: |
         pwsh -File "C:\Users\{{ user }}\developer\tools\install.ps1"
+      become: yes
+      become_method: runas
       vars:
-        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_user: BUILTIN\Administrators
         ansible_become_password: "{{ ansible_password }}"
