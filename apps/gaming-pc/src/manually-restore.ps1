@@ -48,7 +48,19 @@ foreach ($Source in $Sources) {
             New-Item -ItemType Directory -Path $Source -Force | Out-Null
         }
 
-        $output = & $RsyncExe -a --delete "$SrcRsync/" "$DstRsync/" 2>&1
+        $output = & $RsyncExe -a --delete `
+            --exclude='OneDrive*/' `
+            --exclude='PrintHood/' `
+            --exclude='Start Menu/' `
+            --exclude='Searches/' `
+            --exclude='SendTo/' `
+            --exclude='Contacts/' `
+            --exclude='Links/' `
+            --exclude='NetHood/' `
+            --exclude='Recent/' `
+            --exclude='Templates/' `
+            --exclude='Favorites/' `
+            "$SrcRsync/" "$DstRsync/" 2>&1
         $rsyncExit = $LASTEXITCODE
         [PSCustomObject]@{
             Source   = $BackupPath
