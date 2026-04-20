@@ -9,13 +9,13 @@
       "options": {
         "cwd": "{projectRoot}",
         "module": "scripts/provision.ts"
-      },
-      "publish": {
-        "executor": "@ha/nx-executors:invoke",
-        "options": {
-          "cwd": "{projectRoot}",
-          "module": "scripts/publish-github-release.ts"
-        }
+      }
+    },
+    "publish": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/publish-github-release.ts"
       }
     }
   },
