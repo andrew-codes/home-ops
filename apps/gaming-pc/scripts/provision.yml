@@ -174,10 +174,20 @@
         ansible_become_user: BUILTIN\Administrators
         ansible_become_password: "{{ ansible_password }}"
 
-    - name: Ensure rsync is installed
+    - name: Ensure MSYS2 is installed
       win_chocolatey:
-        name: rsync
+        name: msys2
         state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: BUILTIN\Administrators
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure rsync is installed via MSYS2
+      win_shell: C:\msys64\usr\bin\pacman.exe -S --noconfirm rsync
+      args:
+        creates: C:\msys64\usr\bin\rsync.exe
       become: yes
       become_method: runas
       vars:
