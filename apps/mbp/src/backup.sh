@@ -12,7 +12,7 @@ pids=()
 for user_dir in /Users/*/; do
   user="$(basename "$user_dir")"
   [[ $user == "Shared" || $user == ".localized" ]] && continue
-  rsync -aHv \
+  rsync -aHv --delete \
     --exclude='.DS_Store' \
     --exclude='.Trash/' \
     --exclude='Pictures/' \

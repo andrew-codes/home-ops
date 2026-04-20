@@ -43,7 +43,7 @@ foreach ($Source in $Sources) {
             New-Item -ItemType Directory -Path $DestPath -Force | Out-Null
         }
 
-        $output = & $RsyncExe -a "$SrcRsync/" "$DstRsync/" 2>&1
+        $output = & $RsyncExe -a --delete "$SrcRsync/" "$DstRsync/" 2>&1
         $rsyncExit = $LASTEXITCODE
         [PSCustomObject]@{
             Source   = $Source
