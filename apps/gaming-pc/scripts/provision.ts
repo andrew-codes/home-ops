@@ -51,7 +51,6 @@ ${devSshPub}`,
     sh.exec(
       `ansible-playbook ${path.join(
         __dirname,
-        "..",
         "provision.yml",
       )} -i ${path.join(
         __dirname,
