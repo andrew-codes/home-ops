@@ -8,10 +8,10 @@ function ConvertTo-RsyncPath {
     if ($WindowsPath -match '^([A-Za-z]):\\(.+)$') {
         $drive = $Matches[1].ToLower()
         $rest = $Matches[2] -replace '\\', '/'
-        return "/$drive/$rest"
+        return "/cygdrive/$drive/$rest"
     }
     elseif ($WindowsPath -match '^([A-Za-z]):$') {
-        return "/$($Matches[1].ToLower())/"
+        return "/cygdrive/$($Matches[1].ToLower())/"
     }
     return $WindowsPath -replace '\\', '/'
 }
@@ -30,7 +30,7 @@ $Jobs = @()
 
 foreach ($Source in $Sources) {
     $RelativePath = $Source -replace '^[A-Za-z]:', ''
-    $DestPath = $DestRoot + $RelativePath
+    $DestPath = $DestRoot.TrimEnd('\') + $RelativePath
 
     $SrcRsync = ConvertTo-RsyncPath $Source
     $DstRsync = ConvertTo-RsyncPath $DestPath
