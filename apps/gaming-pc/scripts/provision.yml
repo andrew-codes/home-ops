@@ -11,7 +11,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Configure Windows Update scheduled installs at 3 AM daily
@@ -29,7 +29,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Hide desktop icons
@@ -48,7 +48,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Chocolatey is installed
@@ -61,7 +61,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure PowerShell 7 is installed
@@ -71,7 +71,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Steam is installed
@@ -81,7 +81,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Epic is installed
@@ -91,7 +91,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Playnite is installed
@@ -101,7 +101,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure 7-Zip is installed
@@ -111,7 +111,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Apollo is installed
@@ -121,7 +121,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure NVIDIA App is installed
@@ -131,7 +131,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure 1Password is installed
@@ -141,7 +141,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Windows HDR Calibration is installed
@@ -149,7 +149,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Dolby Access is installed
@@ -159,7 +159,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Tailscale is installed
@@ -169,7 +169,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure nuget is installed
@@ -179,7 +179,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure MSYS2 is installed
@@ -189,7 +189,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure rsync is installed via MSYS2
@@ -199,7 +199,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     # - name: Ensure node is installed
@@ -220,7 +220,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Install the Win32-OpenSSH service
@@ -231,7 +231,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Enable HA Ping through firewall
@@ -249,7 +249,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure .ssh directory exists
@@ -281,7 +281,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
         ansible_remote_tmp: 'C:\tmp'
 
@@ -291,7 +291,7 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure developer/tools directory exists
@@ -317,5 +317,5 @@
       become: yes
       become_method: runas
       vars:
-        ansible_become_user: BUILTIN\Administrators
+        ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
