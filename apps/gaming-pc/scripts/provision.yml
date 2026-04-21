@@ -32,12 +32,47 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
+    - name: Disable notifications
+      win_regedit:
+        path: "{{ item.path }}"
+        name: "{{ item.name }}"
+        data: "{{ item.data }}"
+        type: dword
+      loop:
+        - { path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications', name: ToastEnabled, data: 0 }
+        - { path: 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer', name: DisableNotificationCenter, data: 1 }
+
     - name: Hide desktop icons
       win_regedit:
         path: HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced
         name: HideIcons
         data: 1
         type: dword
+
+    - name: Hide Recycle Bin from desktop
+      win_regedit:
+        path: HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel
+        name: '{645FF040-5081-101B-9F08-00AA002F954E}'
+        data: 1
+        type: dword
+
+    - name: Remove unwanted Microsoft apps
+      win_shell: |
+        $packages = @(
+          'Microsoft.OutlookForWindows',
+          'Microsoft.Copilot',
+          'MSTeams',
+          'Microsoft.Todos'
+        )
+        foreach ($pkg in $packages) {
+          Get-AppxPackage -Name $pkg -AllUsers | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+          Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $pkg | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
+        }
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
 
     - name: Disable UAC
       win_regedit:
@@ -144,23 +179,33 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
-    - name: Ensure Windows HDR Calibration is installed
-      win_shell: winget install --id Microsoft.WindowsHDRCalibration --accept-source-agreements --accept-package-agreements --silent
+    - name: Ensure Logi Options+ is installed
+      win_chocolatey:
+        name: logitech-options-plus
+        state: present
       become: yes
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
-    - name: Ensure Dolby Access is installed
-      win_shell: winget install --id Dolby.DolbyAccess --accept-source-agreements --accept-package-agreements --silent
-      args:
-        creates: C:\Program Files\WindowsApps\DolbyLaboratories.DolbyAccess_*
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+    # - name: Ensure Windows HDR Calibration is installed
+    #   win_shell: winget install --id Microsoft.WindowsHDRCalibration --accept-source-agreements --accept-package-agreements --silent
+    #   become: yes
+    #   become_method: runas
+    #   vars:
+    #     ansible_become_user: "{{ ansible_user }}"
+    #     ansible_become_password: "{{ ansible_password }}"
+
+    # - name: Ensure Dolby Access is installed
+    #   win_shell: winget install --id Dolby.DolbyAccess --accept-source-agreements --accept-package-agreements --silent
+    #   args:
+    #     creates: C:\Program Files\WindowsApps\DolbyLaboratories.DolbyAccess_*
+    #   become: yes
+    #   become_method: runas
+    #   vars:
+    #     ansible_become_user: "{{ ansible_user }}"
+    #     ansible_become_password: "{{ ansible_password }}"
 
     - name: Ensure Tailscale is installed
       win_chocolatey:
@@ -172,30 +217,20 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
-    - name: Ensure nuget is installed
-      win_chocolatey:
-        name: nuget.commandline
-        state: present
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
-
-    - name: Ensure MSYS2 is installed
+    - name: Ensure rsync is installed
       win_chocolatey:
         name: msys2
-        state: present
+        state: absent
       become: yes
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
-    - name: Ensure rsync is installed via MSYS2
-      win_shell: C:\msys64\usr\bin\pacman.exe -S --noconfirm rsync
-      args:
-        creates: C:\msys64\usr\bin\rsync.exe
+    - name: Ensure rsync is installed
+      win_chocolatey:
+        name: rsync
+        state: present
       become: yes
       become_method: runas
       vars:
@@ -302,10 +337,10 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
-    - name: Copy install.ps1
+    - name: Copy scripts to developer/tools
       ansible.windows.win_copy:
-        src: ../src/install.ps1
-        dest: C:\Users\{{ user }}\developer\tools\install.ps1
+        src: ../src/
+        dest: C:\Users\{{ user }}\developer\tools\
       vars:
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"

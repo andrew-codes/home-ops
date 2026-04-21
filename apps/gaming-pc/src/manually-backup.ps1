@@ -16,7 +16,7 @@ function ConvertTo-RsyncPath {
     return $WindowsPath -replace '\\', '/'
 }
 
-$RsyncExe = "C:\msys64\usr\bin\rsync.exe"
+$RsyncExe = "C:\ProgramData\chocolatey\bin\rsync.exe"
 $DestRoot = "Z:\"
 
 $Sources = @(
