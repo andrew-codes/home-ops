@@ -26,8 +26,6 @@ $Sources = @(
     $env:APPDATA
 ) | Select-Object -Unique | Where-Object { $_ -and $_ -ne "" }
 
-$Jobs = @()
-
 foreach ($Source in $Sources) {
     $RelativePath = $Source -replace '^[A-Za-z]:', ''
     $BackupPath = $DestRoot.TrimEnd('\') + $RelativePath
@@ -40,51 +38,33 @@ foreach ($Source in $Sources) {
     $SrcRsync = ConvertTo-RsyncPath $BackupPath
     $DstRsync = ConvertTo-RsyncPath $Source
 
-    Write-Log "Queuing restore: $BackupPath -> $Source"
+    Write-Log "Restoring: $BackupPath -> $Source"
 
-    $Job = Start-Job -ScriptBlock {
-        param($SrcRsync, $DstRsync, $Source, $BackupPath, $RsyncExe)
+    if (-not (Test-Path $Source)) {
+        New-Item -ItemType Directory -Path $Source -Force | Out-Null
+    }
 
-        if (-not (Test-Path $Source)) {
-            New-Item -ItemType Directory -Path $Source -Force | Out-Null
-        }
+    $output = & $RsyncExe -a --delete `
+        --exclude='OneDrive*/' `
+        --exclude='PrintHood/' `
+        --exclude='Start Menu/' `
+        --exclude='Searches/' `
+        --exclude='SendTo/' `
+        --exclude='Contacts/' `
+        --exclude='Links/' `
+        --exclude='NetHood/' `
+        --exclude='Recent/' `
+        --exclude='Templates/' `
+        --exclude='Favorites/' `
+        "$SrcRsync/" "$DstRsync/" 2>&1
+    $rsyncExit = $LASTEXITCODE
 
-        $output = & $RsyncExe -a --delete `
-            --exclude='OneDrive*/' `
-            --exclude='PrintHood/' `
-            --exclude='Start Menu/' `
-            --exclude='Searches/' `
-            --exclude='SendTo/' `
-            --exclude='Contacts/' `
-            --exclude='Links/' `
-            --exclude='NetHood/' `
-            --exclude='Recent/' `
-            --exclude='Templates/' `
-            --exclude='Favorites/' `
-            "$SrcRsync/" "$DstRsync/" 2>&1
-        $rsyncExit = $LASTEXITCODE
-        [PSCustomObject]@{
-            Source   = $BackupPath
-            Dest     = $Source
-            ExitCode = $rsyncExit
-            Output   = $output -join "`n"
-        }
-    } -ArgumentList $SrcRsync, $DstRsync, $Source, $BackupPath, $RsyncExe
-
-    $Jobs += $Job
-}
-
-Write-Log "Running $($Jobs.Count) restore job(s) in parallel..."
-
-foreach ($Job in ($Jobs | Wait-Job)) {
-    $Result = $Job | Receive-Job
-    if ($Result.ExitCode -eq 0) {
-        Write-Log "Completed: $($Result.Source) -> $($Result.Dest)"
+    if ($rsyncExit -eq 0) {
+        Write-Log "Completed: $BackupPath -> $Source"
     }
     else {
-        Write-Log "ERROR: $($Result.Source) failed (exit $($Result.ExitCode))`n$($Result.Output)"
+        Write-Log "ERROR: $BackupPath failed (exit $rsyncExit)`n$($output -join "`n")"
     }
 }
 
-$Jobs | Remove-Job
 Write-Log "All restores complete."
