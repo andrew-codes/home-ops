@@ -30,7 +30,7 @@ $Jobs = @()
 
 foreach ($Source in $Sources) {
     $RelativePath = $Source -replace '^[A-Za-z]:', ''
-    $BackupPath = $DestRoot + $RelativePath
+    $BackupPath = $DestRoot.TrimEnd('\') + $RelativePath
 
     if (-not (Test-Path $BackupPath)) {
         Write-Log "Skipping (no backup found): $BackupPath"
