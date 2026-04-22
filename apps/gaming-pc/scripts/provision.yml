@@ -71,6 +71,16 @@
         - { path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications', name: ToastEnabled, data: 0 }
         - { path: 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer', name: DisableNotificationCenter, data: 1 }
 
+    - name: Enable dark mode
+      win_regedit:
+        path: HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize
+        name: "{{ item.name }}"
+        data: "{{ item.data }}"
+        type: dword
+      loop:
+        - { name: AppsUseLightTheme, data: 0 }
+        - { name: SystemUsesLightTheme, data: 0 }
+
     - name: Hide desktop icons
       win_regedit:
         path: HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced
@@ -127,6 +137,18 @@
           Get-AppxPackage -Name $pkg -AllUsers | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
           Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $pkg | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
         }
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Disable Edge password manager
+      win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Edge
+        name: PasswordManagerEnabled
+        data: 0
+        type: dword
       become: yes
       become_method: runas
       vars:
@@ -248,25 +270,25 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
-    - name: Ensure Raycast is installed
-      win_shell: winget install Raycast --accept-source-agreements --accept-package-agreements --silent --source msstore
-      failed_when: result.rc != 0 and 'No newer package versions are available' not in result.stdout
-      register: result
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+    # - name: Ensure Raycast is installed
+    #   win_shell: winget install Raycast --accept-source-agreements --accept-package-agreements --silent --source msstore
+    #   failed_when: result.rc != 0 and 'No newer package versions are available' not in result.stdout
+    #   register: result
+    #   become: yes
+    #   become_method: runas
+    #   vars:
+    #     ansible_become_user: "{{ ansible_user }}"
+    #     ansible_become_password: "{{ ansible_password }}"
 
-    - name: Ensure Windows HDR Calibration is installed
-      win_shell: winget install "Windows HDR Calibration" --accept-source-agreements --accept-package-agreements --silent --source msstore
-      failed_when: result2.rc != 0 and 'No newer package versions are available' not in result2.stdout
-      register: result2
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+    # - name: Ensure Windows HDR Calibration is installed
+    #   win_shell: winget install "Windows HDR Calibration" --accept-source-agreements --accept-package-agreements --silent --source msstore
+    #   failed_when: result2.rc != 0 and 'No newer package versions are available' not in result2.stdout
+    #   register: result2
+    #   become: yes
+    #   become_method: runas
+    #   vars:
+    #     ansible_become_user: "{{ ansible_user }}"
+    #     ansible_become_password: "{{ ansible_password }}"
 
     # - name: Ensure Dolby Access is installed
     #   win_shell: winget install "Dolby Access" --accept-source-agreements --accept-package-agreements --silent --source msstore
