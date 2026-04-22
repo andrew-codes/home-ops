@@ -85,6 +85,17 @@
         data: 1
         type: dword
 
+    - name: Disable taskbar widgets, task view, and search box
+      win_regedit:
+        path: "{{ item.path }}"
+        name: "{{ item.name }}"
+        data: "{{ item.data }}"
+        type: dword
+      loop:
+        - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: TaskbarDa, data: 0 }
+        - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: ShowTaskViewButton, data: 0 }
+        - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search', name: SearchboxTaskbarMode, data: 0 }
+
     - name: Auto-hide taskbar
       win_shell: |
         $path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
