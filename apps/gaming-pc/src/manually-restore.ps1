@@ -22,8 +22,6 @@ $DestRoot = "Z:\"
 $Sources = @(
     "C:\Program Files (x86)\Steam\userdata",
     $env:USERPROFILE,
-    $env:LOCALAPPDATA,
-    $env:APPDATA
 ) | Select-Object -Unique | Where-Object { $_ -and $_ -ne "" }
 
 foreach ($Source in $Sources) {
@@ -44,7 +42,25 @@ foreach ($Source in $Sources) {
         New-Item -ItemType Directory -Path $Source -Force | Out-Null
     }
 
-    $output = & $RsyncExe -a --delete `
+    $output = & $RsyncExe -rlt --delete `
+        --include='AppData/' `
+        --include='AppData/Roaming/' `
+        --include='AppData/Roaming/SEGA/' `
+        --include='AppData/Roaming/SEGA/**' `
+        --include='AppData/LocalLow/' `
+        --include='AppData/LocalLow/RedCandleGames/' `
+        --include='AppData/LocalLow/RedCandleGames/**' `
+        --include='AppData/Local/' `
+        --include='AppData/Local/MGSDelta*/' `
+        --include='AppData/Local/MGSDelta*/**' `
+        --include='AppData/Local/Steam/' `
+        --include='AppData/Local/Steam/userdata/' `
+        --include='AppData/Local/Steam/userdata/**' `
+        --include='AppData/Local/Ubisoft/' `
+        --include='AppData/Local/Ubisoft/**' `
+        --exclude='AppData/**' `
+        --exclude='Application Data' `
+        --exclude='Local Settings' `
         --exclude='OneDrive*/' `
         --exclude='PrintHood/' `
         --exclude='Start Menu/' `
@@ -61,6 +77,10 @@ foreach ($Source in $Sources) {
 
     if ($rsyncExit -eq 0) {
         Write-Log "Completed: $BackupPath -> $Source"
+        Write-Log "Resetting permissions on $Source for $($env:USERNAME)..."
+        & icacls $Source /reset /T /C /Q 2>&1 | Out-Null
+        & icacls $Source /grant "$($env:USERNAME):(OI)(CI)F" /T /C /Q 2>&1 | Out-Null
+        Write-Log "Permissions set."
     }
     else {
         Write-Log "ERROR: $BackupPath failed (exit $rsyncExit)`n$($output -join "`n")"
