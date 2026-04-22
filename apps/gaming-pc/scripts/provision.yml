@@ -248,16 +248,24 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
-    # - name: Ensure Windows HDR Calibration is installed
-    #   win_shell: winget install --id Microsoft.WindowsHDRCalibration --accept-source-agreements --accept-package-agreements --silent
-    #   become: yes
-    #   become_method: runas
-    #   vars:
-    #     ansible_become_user: "{{ ansible_user }}"
-    #     ansible_become_password: "{{ ansible_password }}"
+    - name: Ensure Raycast is installed
+      win_shell: winget install Raycast --accept-source-agreements --accept-package-agreements --silent --source msstore
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure Windows HDR Calibration is installed
+      win_shell: winget install "Windows HDR Calibration" --accept-source-agreements --accept-package-agreements --silent --source msstore
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
 
     # - name: Ensure Dolby Access is installed
-    #   win_shell: winget install --id Dolby.DolbyAccess --accept-source-agreements --accept-package-agreements --silent
+    #   win_shell: winget install "Dolby Access" --accept-source-agreements --accept-package-agreements --silent --source msstore
     #   args:
     #     creates: C:\Program Files\WindowsApps\DolbyLaboratories.DolbyAccess_*
     #   become: yes
