@@ -20,7 +20,7 @@ $RsyncExe = "C:\ProgramData\chocolatey\bin\rsync.exe"
 $DestRoot = "Z:\"
 
 $Sources = @(
-    "C:\Program Files (x86)\Steam\userdata",
+    # "C:\Program Files (x86)\Steam\userdata",
     $env:USERPROFILE,
 ) | Select-Object -Unique | Where-Object { $_ -and $_ -ne "" }
 
