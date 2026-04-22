@@ -250,6 +250,8 @@
 
     - name: Ensure Raycast is installed
       win_shell: winget install Raycast --accept-source-agreements --accept-package-agreements --silent --source msstore
+      failed_when: result.rc != 0 and 'No newer package versions are available' not in result.stdout
+      register: result
       become: yes
       become_method: runas
       vars:
@@ -258,6 +260,8 @@
 
     - name: Ensure Windows HDR Calibration is installed
       win_shell: winget install "Windows HDR Calibration" --accept-source-agreements --accept-package-agreements --silent --source msstore
+      failed_when: result2.rc != 0 and 'No newer package versions are available' not in result2.stdout
+      register: result2
       become: yes
       become_method: runas
       vars:
