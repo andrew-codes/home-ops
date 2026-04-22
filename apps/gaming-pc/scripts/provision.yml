@@ -85,6 +85,14 @@
         data: 1
         type: dword
 
+    - name: Auto-hide taskbar
+      win_shell: |
+        $path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
+        $settings = (Get-ItemProperty -Path $path).Settings
+        $settings[8] = 0x03
+        Set-ItemProperty -Path $path -Name Settings -Value $settings
+        Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+
     - name: Remove unwanted Microsoft apps
       win_shell: |
         $packages = @(
