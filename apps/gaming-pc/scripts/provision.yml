@@ -85,14 +85,25 @@
         data: 1
         type: dword
 
-    - name: Disable taskbar widgets, task view, and search box
+    - name: Disable taskbar widgets via policy
+      win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Dsh
+        name: AllowNewsAndInterests
+        data: 0
+        type: dword
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Disable taskbar task view and search box
       win_regedit:
         path: "{{ item.path }}"
         name: "{{ item.name }}"
         data: "{{ item.data }}"
         type: dword
       loop:
-        - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: TaskbarDa, data: 0 }
         - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: ShowTaskViewButton, data: 0 }
         - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search', name: SearchboxTaskbarMode, data: 0 }
 
