@@ -190,6 +190,15 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
+    - name: Install AudioDeviceCmdlets PowerShell module
+      win_shell: |
+        pwsh -Command "Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser"
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
     - name: Ensure Steam is installed
       win_chocolatey:
         name: steam

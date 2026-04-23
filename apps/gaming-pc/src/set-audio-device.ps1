@@ -1,5 +1,3 @@
-Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
-
 Import-Module AudioDeviceCmdlets
 
 Get-AudioDevice -List |
