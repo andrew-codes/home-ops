@@ -1,0 +1,184 @@
+---
+- name: Configure Proxmox Backup Server
+  hosts: all
+  become: yes
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: yes
+  connection: ssh
+  vars_files:
+    - ../.secrets/ansible-secrets.yml
+
+  tasks:
+    - name: Set timezone to Eastern
+      community.general.timezone:
+        name: America/New_York
+
+    - name: Configure Cloudflare DNS
+      copy:
+        dest: /etc/resolv.conf
+        content: |
+          nameserver 1.1.1.1
+          nameserver 1.0.0.1
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Remove PBS enterprise repository sources
+      shell: grep -rl "enterprise.proxmox.com" /etc/apt/sources.list.d/ | xargs -r rm -f
+      changed_when: false
+
+    - name: Add PBS no-subscription repository
+      apt_repository:
+        repo: "deb http://download.proxmox.com/debian/pbs {{ ansible_facts['distribution_release'] }} pbs-no-subscription"
+        state: present
+        filename: pbs-no-subscription
+        update_cache: no
+
+    - name: Update apt cache
+      command: apt-get update
+      changed_when: false
+
+    - name: Install required packages
+      apt:
+        name:
+          - nfs-common
+          - ufw
+        state: present
+        update_cache: yes
+
+    - name: Create NFS mount point
+      file:
+        path: /mnt/pbs
+        state: directory
+        mode: "0755"
+
+    - name: Mount NAS PBS share on boot
+      ansible.posix.mount:
+        src: "{{ nas_host }}:/volume1/pbs"
+        path: /mnt/pbs
+        fstype: nfs
+        opts: "nfsvers=4,rw,hard,noatime,_netdev,x-systemd.requires=network-online.target"
+        state: mounted
+
+    - name: Set NFS mount ownership to PBS backup user
+      file:
+        path: /mnt/pbs
+        owner: backup
+        group: backup
+        mode: "0755"
+
+    - name: Create PBS datastore on NFS mount
+      command: proxmox-backup-manager datastore create nas /mnt/pbs
+      args:
+        creates: /etc/proxmox-backup/datastore.cfg
+
+    - name: Ensure PBS backup user owns datastore contents
+      file:
+        path: /mnt/pbs
+        owner: backup
+        group: backup
+        recurse: yes
+
+    - name: Restart PBS service to pick up datastore permissions
+      systemd:
+        name: proxmox-backup
+        state: restarted
+
+    - name: Check existing PBS users
+      command: proxmox-backup-manager user list
+      register: pbs_user_list
+      changed_when: false
+
+    - name: Create PBS backup user
+      command:
+        argv:
+          - proxmox-backup-manager
+          - user
+          - create
+          - "{{ pbs_backup_username }}@pbs"
+          - --password
+          - "{{ pbs_backup_password }}"
+      when: pbs_backup_username + '@pbs' not in pbs_user_list.stdout
+
+    - name: Grant PBS backup user DatastoreBackup on nas datastore
+      command:
+        argv:
+          - proxmox-backup-manager
+          - acl
+          - update
+          - /datastore/nas
+          - DatastoreBackup
+          - --auth-id
+          - "{{ pbs_backup_username }}@pbs"
+
+    - name: Check existing PBS prune jobs
+      command: proxmox-backup-manager prune-job list
+      register: pbs_prune_jobs
+      changed_when: false
+
+    - name: Create datastore prune job
+      command:
+        argv:
+          - proxmox-backup-manager
+          - prune-job
+          - create
+          - prune-nas
+          - --store
+          - nas
+          - --schedule
+          - daily
+          - --keep-daily
+          - "7"
+          - --keep-weekly
+          - "4"
+          - --keep-monthly
+          - "3"
+      when: "'prune-nas' not in pbs_prune_jobs.stdout"
+
+    - name: Set weekly garbage collection schedule on nas datastore
+      command:
+        argv:
+          - proxmox-backup-manager
+          - datastore
+          - update
+          - nas
+          - --gc-schedule
+          - weekly
+
+    - name: Check existing PBS verify jobs
+      command: proxmox-backup-manager verify-job list
+      register: pbs_verify_jobs
+      changed_when: false
+
+    - name: Create datastore verify job
+      command:
+        argv:
+          - proxmox-backup-manager
+          - verify-job
+          - create
+          - verify-nas
+          - --store
+          - nas
+          - --schedule
+          - weekly
+      when: "'verify-nas' not in pbs_verify_jobs.stdout"
+
+    - name: Allow SSH in UFW
+      ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+        comment: SSH
+
+    - name: Open PBS web UI port in UFW
+      ufw:
+        rule: allow
+        port: "8007"
+        proto: tcp
+        comment: Proxmox Backup Server web UI
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        policy: deny

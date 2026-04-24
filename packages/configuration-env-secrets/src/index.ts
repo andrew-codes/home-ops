@@ -71,6 +71,11 @@ const provisionedSecretNames = [
   "gaming-pc/user",
   "gaming-pc/username",
   "gaming-pc/password",
+  "pbs/ip",
+  "pbs/username",
+  "pbs/password",
+  "pbs/backup-username",
+  "pbs/backup-password",
 ] as const
 const provisionedEnvConfiguration = createEnvConfigurationApi(
   provisionedSecretNames,

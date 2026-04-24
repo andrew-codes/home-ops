@@ -1,0 +1,17 @@
+{
+  "name": "pbs",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "resources/pbs",
+  "projectType": "application",
+  "targets": {
+    "deploy": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/deploy.ts"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}

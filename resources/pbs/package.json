@@ -1,0 +1,11 @@
+{
+  "name": "@ha/pbs",
+  "devDependencies": {
+    "@ha/configuration-api": "workspace:^0.0.1",
+    "@ha/configuration-workspace": "workspace:^0.0.1",
+    "@ha/nx-executors": "workspace:^0.1.0",
+    "@ha/shell-utils": "workspace:^1.0.0",
+    "nx": "^20.7.0",
+    "shelljs": "^0.8.5"
+  }
+}

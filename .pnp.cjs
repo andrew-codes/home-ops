@@ -195,6 +195,10 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:resources/openclaw"\
     },\
     {\
+      "name": "@ha/pbs",\
+      "reference": "workspace:resources/pbs"\
+    },\
+    {\
       "name": "@ha/sealed-secrets",\
       "reference": "workspace:resources/sealed-secrets"\
     },\
@@ -238,6 +242,7 @@ const RAW_RUNTIME_STATE =
     ["@ha/mqtt-client", ["virtual:6f91e7b0bde71c6cb901ab70791e8fb603ca9d11b29a28717f53661d1ac75d552cf24389ad50b592d98ad4c71c07045310c0baa14b2e87b9ada5b45041f150b1#workspace:packages/mqtt-client", "workspace:packages/mqtt-client"]],\
     ["@ha/mqtt-heartbeat", ["workspace:packages/mqtt-heartbeat"]],\
     ["@ha/nx-executors", ["workspace:packages/nx-executors"]],\
+    ["@ha/pbs", ["workspace:resources/pbs"]],\
     ["@ha/pihole-service", ["workspace:apps/pihole-service"]],\
     ["@ha/resource-fluxcd", ["workspace:resources/fluxcd"]],\
     ["@ha/resource-k8s", ["workspace:resources/k8s"]],\
@@ -4559,6 +4564,21 @@ const RAW_RUNTIME_STATE =
           ["shelljs", "npm:0.8.5"],\
           ["ts-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#npm:29.2.6"],\
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
+    ["@ha/pbs", [\
+      ["workspace:resources/pbs", {\
+        "packageLocation": "./resources/pbs/",\
+        "packageDependencies": [\
+          ["@ha/pbs", "workspace:resources/pbs"],\
+          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
+          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
+          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
+          ["@ha/shell-utils", "workspace:packages/shell-utils"],\
+          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
+          ["shelljs", "npm:0.8.5"]\
         ],\
         "linkType": "SOFT"\
       }]\
