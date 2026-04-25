@@ -1,13 +1,7 @@
 import { createConfigurationApi } from "@ha/configuration-aggregate"
-import {
-  provisionedEnvConfiguration,
-  sealedSecretEnvConfiguration,
-} from "@ha/configuration-env-secrets"
+import { onePasswordConfiguration } from "@ha/configuration-1password"
 
-const configurationApi = createConfigurationApi([
-  provisionedEnvConfiguration,
-  sealedSecretEnvConfiguration,
-])
+const configurationApi = createConfigurationApi([onePasswordConfiguration])
 
 type ConfigurationKeys =
   (typeof configurationApi)["getNames"] extends () => infer T

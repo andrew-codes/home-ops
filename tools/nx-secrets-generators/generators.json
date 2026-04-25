@@ -1,14 +1,9 @@
 {
   "generators": {
-    "provisioning": {
-      "factory": "./src/generators/secrets-provisioning",
-      "schema": "./src/generators/schema.json",
-      "description": "Scaffold all secrets required for provisioning.",
-    },
-    "deploying": {
-      "factory": "./src/generators/secrets-deploying",
-      "schema": "./src/generators/schema.json",
-      "description": "Scaffold all secrets required for deployments."
+    "1password": {
+      "factory": "./src/generators/secrets-1password",
+      "schema": "./src/generators/schema-1password.json",
+      "description": "Scaffold all secrets in 1Password that do not already exist."
     },
     "seal": {
       "factory": "./src/generators/secrets-seal",
