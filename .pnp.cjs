@@ -47,7 +47,7 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/manual-deployment"\
     },\
     {\
-      "name": "@ha/resource-pihole",\
+      "name": "@ha/pihole",\
       "reference": "workspace:apps/pihole"\
     },\
     {\
@@ -248,11 +248,11 @@ const RAW_RUNTIME_STATE =
     ["@ha/mqtt-heartbeat", ["workspace:packages/mqtt-heartbeat"]],\
     ["@ha/nx-executors", ["workspace:packages/nx-executors"]],\
     ["@ha/pbs", ["workspace:resources/pbs"]],\
+    ["@ha/pihole", ["workspace:apps/pihole"]],\
     ["@ha/pihole-service", ["workspace:apps/pihole-service"]],\
     ["@ha/resource-fluxcd", ["workspace:resources/fluxcd"]],\
     ["@ha/resource-k8s", ["workspace:resources/k8s"]],\
     ["@ha/resource-openclaw", ["workspace:resources/openclaw"]],\
-    ["@ha/resource-pihole", ["workspace:apps/pihole"]],\
     ["@ha/sealed-secrets", ["workspace:resources/sealed-secrets"]],\
     ["@ha/secret-utils", ["workspace:packages/secret-utils"]],\
     ["@ha/secrets", ["workspace:tools/nx-secrets-generators"]],\
@@ -4606,6 +4606,26 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
+    ["@ha/pihole", [\
+      ["workspace:apps/pihole", {\
+        "packageLocation": "./apps/pihole/",\
+        "packageDependencies": [\
+          ["@ha/pihole", "workspace:apps/pihole"],\
+          ["@ha/ansible", "workspace:packages/ansible"],\
+          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
+          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
+          ["@ha/logger", "workspace:packages/logger"],\
+          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
+          ["@ha/shell-utils", "workspace:packages/shell-utils"],\
+          ["@ha/terraform", "workspace:packages/terraform"],\
+          ["lodash", "npm:4.17.21"],\
+          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
+          ["shelljs", "npm:0.8.5"],\
+          ["uuid", "npm:11.1.0"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
     ["@ha/pihole-service", [\
       ["workspace:apps/pihole-service", {\
         "packageLocation": "./apps/pihole-service/",\
@@ -4678,26 +4698,6 @@ const RAW_RUNTIME_STATE =
         "linkType": "SOFT"\
       }]\
     ]],\
-    ["@ha/resource-pihole", [\
-      ["workspace:apps/pihole", {\
-        "packageLocation": "./apps/pihole/",\
-        "packageDependencies": [\
-          ["@ha/resource-pihole", "workspace:apps/pihole"],\
-          ["@ha/ansible", "workspace:packages/ansible"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/shell-utils", "workspace:packages/shell-utils"],\
-          ["@ha/terraform", "workspace:packages/terraform"],\
-          ["lodash", "npm:4.17.21"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["shelljs", "npm:0.8.5"],\
-          ["uuid", "npm:11.1.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
     ["@ha/sealed-secrets", [\
       ["workspace:resources/sealed-secrets", {\
         "packageLocation": "./resources/sealed-secrets/",\
@@ -4737,8 +4737,6 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@ha/secrets", "workspace:tools/nx-secrets-generators"],\
           ["@ha/configuration-1password", "workspace:packages/configuration-1password"],\
-          ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
           ["@ha/secret-utils", "workspace:packages/secret-utils"],\
           ["@nx/devkit", "virtual:1be72f037a4446ce3fab15aeeedf5a251474db363b80dfdaeb32f088c867a44298931904ff4fb39a6b998a5310610b86f896809260c67fb3aa545845b05d9bbd#npm:20.7.0"],\
           ["@nx/jest", "npm:20.8.0"],\

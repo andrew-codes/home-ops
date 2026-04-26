@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@ha/resource-pihole",
+  "name": "@ha/pihole",
   "description": "Local DNS server, network-wide ad blocker. Deploys two instances for redundant locaL DNS.",
   "version": "0.0.1",
   "devDependencies": {

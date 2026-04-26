@@ -1,5 +1,5 @@
 {
-  "name": "resource-pihole",
+  "name": "pihole",
   "sourceRoot": "{projectRoot}/src",
   "projectType": "application",
   "targets": {
@@ -14,6 +14,20 @@
       "executor": "@ha/nx-executors:invoke",
       "options": {
         "module": "scripts/provision.ts",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "update": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "module": "scripts/update.ts",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "deploy": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "module": "scripts/deploy.ts",
         "cwd": "{projectRoot}"
       }
     }

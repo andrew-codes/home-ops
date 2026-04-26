@@ -21,9 +21,8 @@ const run = async (
 
   const proxmoxSshKey = await configurationApi.get("proxmox/ssh-key/public")
   const devSshKey = await configurationApi.get("dev/ssh-key/public")
-  const haSshKey = await configurationApi.get("home-assistant/ssh-key/public")
 
-  const sshKey = [proxmoxSshKey, devSshKey, haSshKey].join("\n")
+  const sshKey = [proxmoxSshKey, devSshKey].join("\n")
 
   const vmId = ip1.split(".").slice(1).join("")
 

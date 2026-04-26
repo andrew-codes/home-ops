@@ -1,0 +1,12 @@
+---
+- hosts: all
+  become: yes
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: no
+  connection: ssh
+  remote_user: root
+
+  tasks:
+    - name: Update Pi-hole
+      ansible.builtin.shell: pihole -up

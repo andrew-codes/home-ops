@@ -2162,7 +2162,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/configuration-1password@workspace:*, @ha/configuration-1password@workspace:^0.0.1, @ha/configuration-1password@workspace:packages/configuration-1password":
+"@ha/configuration-1password@workspace:^0.0.1, @ha/configuration-1password@workspace:packages/configuration-1password":
   version: 0.0.0-use.local
   resolution: "@ha/configuration-1password@workspace:packages/configuration-1password"
   dependencies:
@@ -2207,7 +2207,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/configuration-env-secrets@workspace:*, @ha/configuration-env-secrets@workspace:^0.0.1, @ha/configuration-env-secrets@workspace:packages/configuration-env-secrets":
+"@ha/configuration-env-secrets@workspace:^0.0.1, @ha/configuration-env-secrets@workspace:packages/configuration-env-secrets":
   version: 0.0.0-use.local
   resolution: "@ha/configuration-env-secrets@workspace:packages/configuration-env-secrets"
   dependencies:
@@ -2671,6 +2671,24 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@ha/pihole@workspace:apps/pihole":
+  version: 0.0.0-use.local
+  resolution: "@ha/pihole@workspace:apps/pihole"
+  dependencies:
+    "@ha/ansible": "workspace:^0.0.1"
+    "@ha/configuration-api": "workspace:^0.0.1"
+    "@ha/configuration-workspace": "workspace:^0.0.1"
+    "@ha/logger": "workspace:^0.0.1"
+    "@ha/nx-executors": "workspace:^0.1.0"
+    "@ha/shell-utils": "workspace:^1.0.0"
+    "@ha/terraform": "workspace:^0.0.1"
+    lodash: "npm:^4.17.21"
+    nx: "npm:^20.7.0"
+    shelljs: "npm:^0.8.5"
+    uuid: "npm:^11.1.0"
+  languageName: unknown
+  linkType: soft
+
 "@ha/resource-fluxcd@workspace:resources/fluxcd":
   version: 0.0.0-use.local
   resolution: "@ha/resource-fluxcd@workspace:resources/fluxcd"
@@ -2718,24 +2736,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/resource-pihole@workspace:apps/pihole":
-  version: 0.0.0-use.local
-  resolution: "@ha/resource-pihole@workspace:apps/pihole"
-  dependencies:
-    "@ha/ansible": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/shell-utils": "workspace:^1.0.0"
-    "@ha/terraform": "workspace:^0.0.1"
-    lodash: "npm:^4.17.21"
-    nx: "npm:^20.7.0"
-    shelljs: "npm:^0.8.5"
-    uuid: "npm:^11.1.0"
-  languageName: unknown
-  linkType: soft
-
 "@ha/sealed-secrets@workspace:resources/sealed-secrets":
   version: 0.0.0-use.local
   resolution: "@ha/sealed-secrets@workspace:resources/sealed-secrets"
@@ -2749,7 +2749,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/secret-utils@workspace:*, @ha/secret-utils@workspace:^0.0.1, @ha/secret-utils@workspace:packages/secret-utils":
+"@ha/secret-utils@workspace:^0.0.1, @ha/secret-utils@workspace:packages/secret-utils":
   version: 0.0.0-use.local
   resolution: "@ha/secret-utils@workspace:packages/secret-utils"
   dependencies:
@@ -2769,10 +2769,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@ha/secrets@workspace:tools/nx-secrets-generators"
   dependencies:
-    "@ha/configuration-1password": "workspace:*"
-    "@ha/configuration-env-secrets": "workspace:*"
-    "@ha/kubectl": "workspace:*"
-    "@ha/secret-utils": "workspace:*"
+    "@ha/configuration-1password": "workspace:^0.0.1"
+    "@ha/secret-utils": "workspace:^0.0.1"
     "@nx/devkit": "npm:20.7.0"
     "@nx/jest": "npm:^20.8.0"
     "@types/jest": "npm:^29.5.14"
