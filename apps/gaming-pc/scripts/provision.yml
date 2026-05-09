@@ -458,6 +458,12 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
+    - name: Add developer/tools to user PATH
+      win_path:
+        elements: C:\Users\{{ user }}\developer\tools
+        scope: user
+        state: present
+
     - name: Copy scripts to developer/tools
       ansible.windows.win_copy:
         src: ../src/
