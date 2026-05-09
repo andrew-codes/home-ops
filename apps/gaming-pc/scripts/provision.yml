@@ -441,6 +441,23 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
+    - name: Get latest gsync-toggle release info
+      win_uri:
+        url: https://api.github.com/repos/FrogTheFrog/gsync-toggle/releases/latest
+        method: GET
+        headers:
+          Accept: application/vnd.github.v3+json
+        return_content: yes
+      register: gsync_release
+
+    - name: Download latest gsync-toggle executable
+      win_get_url:
+        url: "{{ (gsync_release.json.assets | selectattr('name', 'match', '.*\\.exe$') | first).browser_download_url }}"
+        dest: C:\Users\{{ user }}\developer\tools\gsync.exe
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
     - name: Copy scripts to developer/tools
       ansible.windows.win_copy:
         src: ../src/
