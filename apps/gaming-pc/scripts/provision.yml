@@ -138,7 +138,9 @@
         $settings = (Get-ItemProperty -Path $path).Settings
         $settings[8] = 0x03
         Set-ItemProperty -Path $path -Name Settings -Value $settings
-        Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+        if (Get-Process -Name explorer -ErrorAction SilentlyContinue) {
+          Stop-Process -Name explorer -Force
+        }
 
     - name: Remove unwanted Microsoft apps
       win_shell: |
