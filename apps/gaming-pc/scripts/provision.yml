@@ -211,6 +211,13 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
+    - name: Set Steam Big Picture as default shell for gaming user
+      win_regedit:
+        path: HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+        name: Shell
+        data: "C:\\Program Files (x86)\\Steam\\Steam.exe -bigpicture"
+        type: string
+
     - name: Ensure Epic is installed
       win_chocolatey:
         name: epicgameslauncher
@@ -221,15 +228,35 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
-    - name: Ensure Playnite is installed
+    - name: Ensure Playnite is not installed
       win_chocolatey:
         name: playnite
-        state: present
+        state: absent
       become: yes
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure Discord is not installed
+      win_shell: |
+        $chocoInstalled = choco list --local-only 2>&1 | Select-String "discord"
+        if ($chocoInstalled) {
+          choco uninstall discord -y 2>&1 | Out-Null
+        }
+        $discordUpdate = "$env:LOCALAPPDATA\Discord\Update.exe"
+        if (Test-Path $discordUpdate) {
+          Start-Process $discordUpdate -ArgumentList "--uninstall" -Wait -ErrorAction SilentlyContinue
+        }
+        @("$env:LOCALAPPDATA\Discord", "$env:APPDATA\discord") | ForEach-Object {
+          if (Test-Path $_) { Remove-Item $_ -Recurse -Force -ErrorAction SilentlyContinue }
+        }
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+      ignore_errors: yes
 
     - name: Ensure 7-Zip is installed
       win_chocolatey:
@@ -427,6 +454,77 @@
     - name: Restart SSH Service
       win_shell: |
         Get-Service -Name sshd | Restart-Service
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Enable Remote Desktop
+      win_regedit:
+        path: HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server
+        name: fDenyTSConnections
+        data: 0
+        type: dword
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Enable RDP through firewall
+      win_shell: |
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure andrew local user exists
+      win_user:
+        name: andrew
+        password: "{{ andrew_password }}"
+        password_never_expires: yes
+        state: present
+        groups:
+          - Administrators
+        groups_action: add
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure andrew .ssh directory exists
+      win_file:
+        path: C:\Users\andrew\.ssh
+        state: directory
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Ensure andrew authorized_keys contains each required key
+      win_lineinfile:
+        path: C:\Users\andrew\.ssh\authorized_keys
+        line: "{{ item }}"
+        create: yes
+      loop: "{{ authorized_keys_content.splitlines() | select('match', '.+') | list }}"
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
+    - name: Add users to Remote Desktop Users group
+      win_group_membership:
+        name: "Remote Desktop Users"
+        members:
+          - "{{ ansible_user }}"
+          - andrew
+        state: present
       become: yes
       become_method: runas
       vars:

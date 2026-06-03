@@ -14,6 +14,7 @@ const run = async (
   const user = await configurationApi.get("gaming-pc/user")
   const username = await configurationApi.get("gaming-pc/username")
   const password = await configurationApi.get("gaming-pc/password")
+  const andrewPassword = await configurationApi.get("gaming-pc/andrew-password")
   const haSshPub = await configurationApi.get("home-assistant/ssh-key-public")
   const devSshPub = await configurationApi.get("dev/ssh-key/public")
 
@@ -37,6 +38,7 @@ const run = async (
     path.join(__dirname, "..", ".secrets", "ansible-secrets.yml"),
     `---
 user: ${user.replace(/ /g, "/ ")}
+andrew_password: ${andrewPassword}
 `,
     "utf8",
   )
@@ -49,10 +51,7 @@ ${devSshPub}`,
 
   await throwIfError(
     sh.exec(
-      `ansible-playbook ${path.join(
-        __dirname,
-        "provision.yml",
-      )} -i ${path.join(
+      `ansible-playbook ${path.join(__dirname, "provision.yml")} -i ${path.join(
         __dirname,
         "..",
         ".secrets",
