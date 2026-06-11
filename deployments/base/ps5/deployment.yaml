@@ -12,6 +12,8 @@ spec:
       labels:
         app: ps5
     spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: ps5
           image: ghcr.io/funkeyflo/ps5-mqtt/amd64:latest
