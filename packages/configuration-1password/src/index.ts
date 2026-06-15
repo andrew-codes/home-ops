@@ -27,7 +27,11 @@ const createOnePasswordConfigurationApi = <
         throw new Error("OP_VAULT environment variable is not set.")
       }
       const reference = toOnePasswordReference(name as string, vault)
-      const { stdout } = await execFile("op", ["read", "--no-newline", reference])
+      const { stdout } = await execFile("op", [
+        "read",
+        "--no-newline",
+        reference,
+      ])
       return stdout
     },
     getNames: () => secretNames,
@@ -67,6 +71,7 @@ const secretNames = [
   "gaming-pc/user",
   "gaming-pc/username",
   "gaming-pc/password",
+  "gaming-pc/andrew-password",
   "pbs/ip",
   "pbs/username",
   "pbs/password",

@@ -12,12 +12,14 @@ spec:
       labels:
         app: ps5
     spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: ps5
-          image: ghcr.io/funkeyflo/ps5-mqtt/amd64:latest
+          image: ghcr.io/andrew-codes/ps5-mqtt:dev
           imagePullPolicy: Always
           command:
-            - sh
+
           args:
             - "-c"
             - /app/run-standalone.sh
@@ -29,7 +31,7 @@ spec:
             - name: CONFIG_PATH
               value: /config/config.json
             - name: DEBUG
-              value: "*"
+              value: "@ha:ps5:*"
           volumeMounts:
             - name: ps5-config
               mountPath: /config
