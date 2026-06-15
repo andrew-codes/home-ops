@@ -16,10 +16,10 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: ps5
-          image: ghcr.io/funkeyflo/ps5-mqtt/amd64:latest
+          image: ghcr.io/andrew-codes/ps5-mqtt:dev
           imagePullPolicy: Always
           command:
-            - sh
+
           args:
             - "-c"
             - /app/run-standalone.sh
