@@ -6,4 +6,4 @@ metadata:
   namespace: default
 spec:
   interval: 1h0m0s
-  url: https://bitnami-labs.github.io/sealed-secrets
+  url: https://bitnami.github.io/sealed-secrets
