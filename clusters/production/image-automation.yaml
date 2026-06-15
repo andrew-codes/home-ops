@@ -1,5 +1,5 @@
 ---
-apiVersion: image.toolkit.fluxcd.io/v1beta1
+apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageRepository
 metadata:
   name: playnite-web-app
@@ -8,7 +8,7 @@ spec:
   image: ghcr.io/andrew-codes/playnite-web-app
   interval: 5m0s
 ---
-apiVersion: image.toolkit.fluxcd.io/v1beta1
+apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageRepository
 metadata:
   name: sync-library-processor
@@ -17,7 +17,7 @@ spec:
   image: ghcr.io/andrew-codes/sync-library-processor
   interval: 5m0s
 ---
-apiVersion: image.toolkit.fluxcd.io/v1beta1
+apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImagePolicy
 metadata:
   name: playnite-web-app
@@ -29,7 +29,7 @@ spec:
     semver:
       range: ">=13.0.0 <14.0.0"
 ---
-apiVersion: image.toolkit.fluxcd.io/v1beta1
+apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImagePolicy
 metadata:
   name: sync-library-processor
@@ -41,7 +41,7 @@ spec:
     semver:
       range: ">=13.0.0 <14.0.0"
 ---
-apiVersion: image.toolkit.fluxcd.io/v1beta1
+apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageUpdateAutomation
 metadata:
   name: playnite-web
