@@ -76,6 +76,28 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ ansible_password }}"
 
+    - name: Enable Wake-on-LAN on wired network adapters
+      win_shell: |
+        $ErrorActionPreference = 'Stop'
+        $adapters = Get-NetAdapter -Physical |
+          Where-Object { $_.Status -eq 'Up' -and $_.MediaType -eq '802.3' }
+        foreach ($adapter in $adapters) {
+          # Wake only on a magic packet, not on pattern match (avoids spurious wakes)
+          try {
+            Set-NetAdapterPowerManagement -Name $adapter.Name `
+              -WakeOnMagicPacket Enabled -WakeOnPattern Disabled
+          } catch {
+            Write-Host "WakeOnMagicPacket not supported on $($adapter.Name): $_"
+          }
+          # "Allow this device to wake the computer"
+          powercfg /deviceenablewake "$($adapter.InterfaceDescription)"
+        }
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ ansible_password }}"
+
     - name: Disable notifications
       win_regedit:
         path: "{{ item.path }}"
