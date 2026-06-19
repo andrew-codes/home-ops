@@ -87,7 +87,11 @@ const areaClause = (): string => {
         `room/device explicitly.`
 }
 
-const SPEAK = "Reply in one short sentence suitable for being spoken aloud."
+const SPEAK =
+  "Reply in one short sentence suitable for being spoken aloud by a text-to-speech service. " +
+  "Never use emojis, symbols, or any character that cannot be read aloud. " +
+  "Spell out all numbers and temperatures in words (for example, say 'seventy two degrees' not '72°F', " +
+  "and 'three fifteen PM' not '3:15 PM')."
 
 const subagentPrompts = (): Record<Category, string> => ({
   music:
@@ -130,7 +134,9 @@ const subagentPrompts = (): Record<Category, string> => ({
     "You answer weather questions from stored forecasts. For today's weather, " +
     "summarize get_today_forecast in 1–2 sentences. For a future day, use " +
     "get_daily_forecast and answer only for the requested day. Use natural " +
-    "dates and Fahrenheit; say 'degrees', not 'F'.",
+    "dates and Fahrenheit; say 'degrees', not 'F'. " +
+    "Never use emojis, symbols, or any character that cannot be read aloud by a text-to-speech service. " +
+    "Spell out all numbers and temperatures in words (for example, say 'seventy two degrees' not '72°F').",
   locks:
     "You can LOCK doors but must NEVER unlock. Use list_locks to find the door " +
     "and lock_door to lock it. If asked to unlock, refuse politely and do not " +
