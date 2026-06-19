@@ -147,31 +147,33 @@ const subagentPrompts = (): Record<Category, string> => ({
     SPEAK,
 })
 
-const makeLlm = (): ChatAnthropic => {
-  const s = getSettings()
-  return new ChatAnthropic({
-    model: s.model,
-    apiKey: s.anthropicApiKey,
+const makeLlm = (model: string): ChatAnthropic =>
+  new ChatAnthropic({
+    model,
+    apiKey: getSettings().anthropicApiKey,
     maxTokens: 1024,
   })
-}
 
 export const buildGraph = () => {
-  const llm = makeLlm()
-  const routerLlm = llm.withStructuredOutput(RouteDecision, { name: "route" })
+  const haiku  = makeLlm("claude-haiku-4-5")
+  const sonnet = makeLlm("claude-sonnet-4-6")
+  const routerLlm = haiku.withStructuredOutput(RouteDecision, { name: "route" })
   const prompts = subagentPrompts()
 
-  const makeAgent = (tools: Parameters<typeof createReactAgent>[0]["tools"], category: Category) =>
-    createReactAgent({ llm, tools, prompt: prompts[category] })
+  const makeAgent = (
+    llm: ChatAnthropic,
+    tools: Parameters<typeof createReactAgent>[0]["tools"],
+    category: Category,
+  ) => createReactAgent({ llm, tools, prompt: prompts[category] })
 
   const subagents: Record<Category, ReturnType<typeof createReactAgent>> = {
-    music: makeAgent(MUSIC_TOOLS, "music"),
-    lists: makeAgent(LIST_TOOLS, "lists"),
-    climate: makeAgent(CLIMATE_TOOLS, "climate"),
-    weather: makeAgent(WEATHER_TOOLS, "weather"),
-    locks: makeAgent(LOCK_TOOLS, "locks"),
-    lights: makeAgent(LIGHTING_TOOLS, "lights"),
-    states: makeAgent(STATE_TOOLS, "states"),
+    music:   makeAgent(sonnet, MUSIC_TOOLS,    "music"),
+    lists:   makeAgent(sonnet, LIST_TOOLS,     "lists"),
+    climate: makeAgent(haiku,  CLIMATE_TOOLS,  "climate"),
+    weather: makeAgent(haiku,  WEATHER_TOOLS,  "weather"),
+    locks:   makeAgent(haiku,  LOCK_TOOLS,     "locks"),
+    lights:  makeAgent(haiku,  LIGHTING_TOOLS, "lights"),
+    states:  makeAgent(haiku,  STATE_TOOLS,    "states"),
   }
 
   const router = async (state: typeof AgentState.State) => {
