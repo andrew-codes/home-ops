@@ -114,8 +114,8 @@
         sqlite3 /etc/pihole/gravity.db
         "INSERT OR IGNORE INTO adlist (address, enabled, comment) VALUES ('{{ item }}', 1, 'Added by Ansible');"
       loop:
-        - "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklist@latest/hosts/pro.txt"
-        - "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklist@latest/hosts/tif.txt"
+        - "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/pro.txt"
+        - "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tif.txt"
         - "https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/SmartTV.txt"
         - "https://phishing.army/download/phishing_army_blocklist.txt"
 
