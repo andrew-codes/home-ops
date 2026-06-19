@@ -13,6 +13,8 @@ spec:
       labels:
         app: voice-agent-kitchen
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: voice-agent
           image: ghcr.io/andrew-codes/voice-agent:latest
