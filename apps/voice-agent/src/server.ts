@@ -65,7 +65,10 @@ const handleChat = async (
   const threadId = conversationId ?? randomUUID()
 
   if (isStopRequest(text)) {
-    sendJson(res, 200, { text: "", conversationId: threadId })
+    // "*" is the View Assist sentinel for "no speech returned" — it prevents the
+    // AI Response display and sensor update while avoiding the TTS error that
+    // empty string triggers in some HA/TTS configurations.
+    sendJson(res, 200, { text: "*", conversationId: threadId })
     return
   }
 
