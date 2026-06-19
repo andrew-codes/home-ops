@@ -4,7 +4,7 @@ An HTTP service exposing `POST /chat` that accepts natural-language home automat
 
 The LangGraph graph in `src/graph.ts` has two layers:
 
-1. **Router node** — calls `ChatAnthropic.withStructuredOutput` to classify user text into `music | lists | climate | weather | locks | lights | states`. No HA calls are made here.
+1. **Router node** — calls `ChatAnthropic.withStructuredOutput` to classify user text into `music | lists | climate | weather | locks | lights | states | maintenance`. No HA calls are made here.
 2. **Subagent nodes** — one `createReactAgent` per category, each bound only to tools relevant to that domain (`src/tools.ts`). Each prompt encodes that category's business rules (player/thermostat selection, list dedup, lock-only, etc.). The subagent loops over its tools until it produces one short, speakable sentence.
 
 `MemorySaver` provides per-`conversationId` short-term memory so follow-up commands have context.
@@ -15,7 +15,9 @@ The LangGraph graph in `src/graph.ts` has two layers:
 
 # Tools
 
-Tools in `src/tools.ts` read via `getExposedEntities`/`findExposed` and write via `haClient.callService`. Writes call `refuseIfNotExposed` first so a hallucinated entity id can't reach HA. Services that return data (`todo.get_items`, `music_assistant.search`, `view_assist.get_timers`) use `haClient.callServiceWithResponse` (REST `?return_response`). Tools are grouped into per-category sets (`MUSIC_TOOLS`, `LIST_TOOLS`, `CLIMATE_TOOLS`, `WEATHER_TOOLS`, `LOCK_TOOLS`, `LIGHTING_TOOLS`, `STATE_TOOLS`) and assigned to the matching subagent.
+Tools in `src/tools.ts` read via `getExposedEntities`/`findExposed` and write via `haClient.callService`. Writes call `refuseIfNotExposed` first so a hallucinated entity id can't reach HA. Services that return data (`todo.get_items`, `music_assistant.search`, `view_assist.get_timers`) use `haClient.callServiceWithResponse` (REST `?return_response`). Tools are grouped into per-category sets (`MUSIC_TOOLS`, `LIST_TOOLS`, `CLIMATE_TOOLS`, `WEATHER_TOOLS`, `LOCK_TOOLS`, `LIGHTING_TOOLS`, `STATE_TOOLS`, `MAINTENANCE_TOOLS`) and assigned to the matching subagent.
+
+`STATE_TOOLS` includes timer management via View Assist (`set_timer`, `get_timers`, `cancel_timers`). Timers are not pre-defined HA entities; View Assist creates them ad-hoc. Multiple named timers can run simultaneously; `cancel_timers` targets one by name or all when name is omitted. `MAINTENANCE_TOOLS` covers filter and battery status queries.
 
 To add a new intent category: define tools, add a node, add the category string to the router enum, and wire a conditional edge.
 

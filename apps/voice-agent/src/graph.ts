@@ -5,7 +5,7 @@
  *   user text
  *       |
  *    [router]  -- classifies intent --> music | lists | climate | weather |
- *       |                                locks | lights | states
+ *       |                                locks | lights | states | maintenance
  *  [subagent]  -- ReAct loop with category-scoped HA tools --> reply
  *
  * Every subagent sees only entities the user has exposed to the conversation
@@ -149,8 +149,17 @@ const subagentPrompts = (): Record<Category, string> => ({
     "get_states with the relevant domain (e.g. 'sensor') to discover exposed " +
     "entities first, then report the matching entity's state. Only call " +
     "get_entity_state when you already have the exact entity ID from a prior " +
-    "get_states result. Never guess entity IDs. " +
-    "For timers/alarms use set_timer, get_timers and cancel_timers (View Assist). " +
+    "get_states result. Never guess entity IDs.\n" +
+    "For timers and alarms (View Assist):\n" +
+    "- Multiple named timers can run simultaneously.\n" +
+    "- set_timer: create a timer or alarm; pass the name the user gave " +
+    "(e.g. 'pasta timer'). Ad-hoc timers without a name are also fine.\n" +
+    "- get_timers: call this to list all active timers and their remaining time. " +
+    "Use it to answer 'how much time is left' questions.\n" +
+    "- cancel_timers: pass name to cancel one specific timer. Omit name only " +
+    "when cancelling ALL active timers. If the user wants to cancel a specific " +
+    "timer but multiple are active and no name was mentioned, call get_timers " +
+    "first, report what's running, and ask which one to cancel.\n" +
     SPEAK,
   maintenance:
     "You answer questions about home maintenance: filters and batteries.\n" +
