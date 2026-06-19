@@ -1,0 +1,588 @@
+/**
+ * LangChain tools, grouped by request category. Each subagent receives only the
+ * tools relevant to its category — a tightly scoped tool set keeps each
+ * subagent's decisions simple and reliable.
+ *
+ * Two invariants every tool upholds:
+ *   - Reads only ever return entities exposed to the conversation assistant
+ *     (see `registry.ts`); non-exposed entities are invisible to the agent.
+ *   - Writes refuse to act on a non-exposed entity, so a hallucinated entity id
+ *     can never reach Home Assistant.
+ */
+
+import { tool } from "@langchain/core/tools"
+import { z } from "zod"
+
+import { getHaClient } from "./haClient"
+import {
+  type EnrichedEntity,
+  getAgentArea,
+  getAllEntities,
+  getExposedEntities,
+  isExposed,
+} from "./registry"
+
+// --- shared helpers -------------------------------------------------------
+
+/** Render an entity for the LLM: id, name, area/floor, state and chosen attrs. */
+const describe = (e: EnrichedEntity, attrs: string[] = []): string => {
+  const where = e.areaName
+    ? ` [area: ${e.areaName}${e.floorName ? `, floor: ${e.floorName}` : ""}]`
+    : ""
+  const extra = attrs
+    .filter((a) => e.attributes[a] != null)
+    .map((a) => `${a}=${JSON.stringify(e.attributes[a])}`)
+    .join(", ")
+  return `${e.entity_id} (${e.friendlyName})${where}: ${e.state}${
+    extra ? ` {${extra}}` : ""
+  }`
+}
+
+const list = (entities: EnrichedEntity[], attrs: string[] = []): string =>
+  entities.length === 0
+    ? "(no matching exposed entities)"
+    : entities.map((e) => describe(e, attrs)).join("\n")
+
+/**
+ * Guard a write: returns a refusal string when the entity is not exposed to the
+ * conversation assistant, or null when it is safe to proceed.
+ */
+const refuseIfNotExposed = async (entityId: string): Promise<string | null> =>
+  (await isExposed(entityId))
+    ? null
+    : `${entityId} is not available to the voice assistant.`
+
+const clamp = (n: number, lo: number, hi: number): number =>
+  Math.max(lo, Math.min(hi, n))
+
+const findExposed = async (
+  entityId: string,
+): Promise<EnrichedEntity | undefined> => {
+  const domain = entityId.split(".")[0]
+  const entities = await getExposedEntities(domain)
+  return entities.find((e) => e.entity_id === entityId)
+}
+
+// --- Music / media --------------------------------------------------------
+
+const MEDIA_ATTRS = [
+  "volume_level",
+  "is_volume_muted",
+  "media_title",
+  "media_artist",
+  "shuffle",
+]
+
+const listMediaPlayers = tool(
+  async () => list(await getExposedEntities("media_player"), MEDIA_ATTRS),
+  {
+    name: "list_media_players",
+    description:
+      "List exposed media_player entities with their area, state and volume. " +
+      "Use this to choose the player (by room/device name, or the agent's area).",
+    schema: z.object({}),
+  },
+)
+
+const searchMusic = tool(
+  async ({ name, mediaType }) => {
+    const data: Record<string, unknown> = { name, limit: 8 }
+    if (mediaType) data["media_type"] = [mediaType]
+    const res = (await getHaClient().callServiceWithResponse(
+      "music_assistant",
+      "search",
+      data,
+    )) as Record<string, Array<Record<string, unknown>>>
+    const lines: string[] = []
+    for (const [type, items] of Object.entries(res)) {
+      for (const item of items ?? []) {
+        if (item["uri"]) {
+          lines.push(
+            `${type}: ${item["name"] ?? item["uri"]} — uri=${item["uri"]}`,
+          )
+        }
+      }
+    }
+    return lines.length ? lines.join("\n") : "(no matches)"
+  },
+  {
+    name: "search_music",
+    description:
+      "Search Music Assistant for an artist, track, album or playlist. Returns " +
+      "matches with a `uri` to pass to play_music.",
+    schema: z.object({
+      name: z.string().describe("Search query, e.g. the song or artist name"),
+      mediaType: z
+        .enum(["artist", "album", "track", "playlist", "radio"])
+        .optional(),
+    }),
+  },
+)
+
+const playMusic = tool(
+  async ({ entityId, mediaId, mediaType }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    const ha = getHaClient()
+    // Spec: set volume to 50% before playing, then play via Music Assistant.
+    await ha.callService("media_player", "volume_set", {
+      entity_id: entityId,
+      volume_level: 0.5,
+    })
+    await ha.callService("music_assistant", "play_media", {
+      entity_id: entityId,
+      media_id: mediaId,
+      media_type: mediaType,
+    })
+    return `Playing on ${entityId} at 50% volume.`
+  },
+  {
+    name: "play_music",
+    description:
+      "Play a library item on a media player via Music Assistant. Sets volume " +
+      "to 50% first. mediaId is a uri from search_music (or a plain name).",
+    schema: z.object({
+      entityId: z.string(),
+      mediaId: z.string().describe("A Music Assistant uri, or an item name"),
+      mediaType: z.enum(["artist", "album", "track", "playlist", "radio"]),
+    }),
+  },
+)
+
+const MEDIA_COMMANDS = {
+  pause: "media_pause",
+  resume: "media_play",
+  stop: "media_stop",
+  next: "media_next_track",
+  previous: "media_previous_track",
+} as const
+
+const mediaControl = tool(
+  async ({ entityId, command }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    await getHaClient().callService("media_player", MEDIA_COMMANDS[command], {
+      entity_id: entityId,
+    })
+    return `${command} on ${entityId}.`
+  },
+  {
+    name: "media_control",
+    description:
+      "Control playback: pause, resume/play, stop, next/skip, previous.",
+    schema: z.object({
+      entityId: z.string(),
+      command: z.enum(["pause", "resume", "stop", "next", "previous"]),
+    }),
+  },
+)
+
+const setShuffle = tool(
+  async ({ entityId, enabled }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    await getHaClient().callService("media_player", "shuffle_set", {
+      entity_id: entityId,
+      shuffle: enabled,
+    })
+    return `Shuffle ${enabled ? "on" : "off"} for ${entityId}.`
+  },
+  {
+    name: "set_shuffle",
+    description: "Turn shuffle on or off for a media player.",
+    schema: z.object({ entityId: z.string(), enabled: z.boolean() }),
+  },
+)
+
+const setVolume = tool(
+  async ({ entityId, level }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    const volume = clamp(level, 0, 1)
+    await getHaClient().callService("media_player", "volume_set", {
+      entity_id: entityId,
+      volume_level: volume,
+    })
+    return `Set ${entityId} volume to ${Math.round(volume * 100)}%.`
+  },
+  {
+    name: "set_volume",
+    description:
+      "Set absolute volume. level is 0.0–1.0 (e.g. 'volume to 30%' → 0.3).",
+    schema: z.object({
+      entityId: z.string(),
+      level: z.number().min(0).max(1),
+    }),
+  },
+)
+
+const changeVolume = tool(
+  async ({ entityId, delta }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    const player = await findExposed(entityId)
+    const current = Number(player?.attributes["volume_level"] ?? 0)
+    const volume = clamp(current + delta, 0, 1)
+    await getHaClient().callService("media_player", "volume_set", {
+      entity_id: entityId,
+      volume_level: volume,
+    })
+    return `Set ${entityId} volume to ${Math.round(volume * 100)}%.`
+  },
+  {
+    name: "change_volume",
+    description:
+      "Adjust volume relative to its current level. Use delta +0.1 to turn up " +
+      "(louder/increase) and -0.1 to turn down (quieter/decrease).",
+    schema: z.object({
+      entityId: z.string(),
+      delta: z.number().describe("e.g. 0.1 louder, -0.1 quieter"),
+    }),
+  },
+)
+
+const setMute = tool(
+  async ({ entityId, muted }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    await getHaClient().callService("media_player", "volume_mute", {
+      entity_id: entityId,
+      is_volume_muted: muted,
+    })
+    return `${muted ? "Muted" : "Unmuted"} ${entityId}.`
+  },
+  {
+    name: "set_mute",
+    description: "Mute or unmute a media player.",
+    schema: z.object({ entityId: z.string(), muted: z.boolean() }),
+  },
+)
+
+// --- Lists / groceries ----------------------------------------------------
+
+const getTodoItems = tool(
+  async ({ entityId }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    const res = (await getHaClient().callServiceWithResponse(
+      "todo",
+      "get_items",
+      { entity_id: entityId },
+    )) as Record<string, { items?: Array<{ summary?: string }> }>
+    const items = res[entityId]?.items ?? Object.values(res)[0]?.items ?? []
+    if (items.length === 0) return "(list is empty)"
+    return items.map((i) => i.summary ?? "").join("\n")
+  },
+  {
+    name: "get_todo_items",
+    description:
+      "Read the current items of a todo list so you can dedupe before adding. " +
+      "Returns one item per line.",
+    schema: z.object({
+      entityId: z
+        .string()
+        .describe("todo entity, e.g. todo.to_do_groceries"),
+    }),
+  },
+)
+
+const addTodoItem = tool(
+  async ({ listEntityId, item }) => {
+    const refusal = await refuseIfNotExposed(listEntityId)
+    if (refusal) return refusal
+    await getHaClient().callService("ms365_todo", "new_todo", {
+      entity_id: listEntityId,
+      subject: item,
+    })
+    return `Added "${item}" to ${listEntityId}.`
+  },
+  {
+    name: "add_todo_item",
+    description:
+      "Add an item to a todo list via ms365_todo.new_todo. Only call this " +
+      "after confirming (via get_todo_items) the item is not already present.",
+    schema: z.object({
+      listEntityId: z.string(),
+      item: z.string(),
+    }),
+  },
+)
+
+// --- Climate --------------------------------------------------------------
+
+const CLIMATE_ATTRS = [
+  "temperature",
+  "target_temp_high",
+  "target_temp_low",
+  "current_temperature",
+  "hvac_action",
+]
+
+const listClimate = tool(
+  async () => list(await getExposedEntities("climate"), CLIMATE_ATTRS),
+  {
+    name: "list_climate",
+    description:
+      "List exposed climate (thermostat) entities with area, floor, current " +
+      "target temperature and mode. Use this to select the right thermostat.",
+    schema: z.object({}),
+  },
+)
+
+const setTemperature = tool(
+  async ({ entityId, temperature }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    const target = clamp(Math.round(temperature), 60, 74)
+    await getHaClient().callService("climate", "set_temperature", {
+      entity_id: entityId,
+      temperature: target,
+    })
+    return `Set ${entityId} to ${target} degrees.`
+  },
+  {
+    name: "set_temperature",
+    description:
+      "Set the target temperature for a climate entity. Value is clamped to " +
+      "the safe range 60–74 and rounded to a whole number.",
+    schema: z.object({
+      entityId: z.string(),
+      temperature: z.number(),
+    }),
+  },
+)
+
+// --- Weather --------------------------------------------------------------
+
+const readForecast = async (entityId: string): Promise<string> => {
+  const e = await findExposed(entityId)
+  if (!e || e.state === "unknown" || e.state === "unavailable" || !e.state) {
+    return `(no forecast available from ${entityId})`
+  }
+  return e.state
+}
+
+const getTodayForecast = tool(
+  async () => readForecast("input_text.today_forecast"),
+  {
+    name: "get_today_forecast",
+    description: "Get today's weather forecast text (input_text.today_forecast).",
+    schema: z.object({}),
+  },
+)
+
+const getDailyForecast = tool(
+  async () => readForecast("input_text.daily_forecast"),
+  {
+    name: "get_daily_forecast",
+    description:
+      "Get the multi-day weather forecast text (input_text.daily_forecast) " +
+      "for questions about a future day.",
+    schema: z.object({}),
+  },
+)
+
+// --- Locks ----------------------------------------------------------------
+
+const listLocks = tool(async () => list(await getExposedEntities("lock")), {
+  name: "list_locks",
+  description: "List exposed lock entities and their locked/unlocked state.",
+  schema: z.object({}),
+})
+
+const lockDoor = tool(
+  async ({ entityId }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    await getHaClient().callService("lock", "lock", { entity_id: entityId })
+    return `Locked ${entityId}.`
+  },
+  {
+    name: "lock_door",
+    description:
+      "Lock a door. There is intentionally no unlock capability — never unlock.",
+    schema: z.object({ entityId: z.string() }),
+  },
+)
+
+// --- Lights ---------------------------------------------------------------
+
+const listLights = tool(
+  async () => list(await getExposedEntities("light"), ["brightness"]),
+  {
+    name: "list_lights",
+    description:
+      "List exposed light entities with their on/off state and brightness.",
+    schema: z.object({}),
+  },
+)
+
+const setLight = tool(
+  async ({ entityId, on, brightnessPct }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    const ha = getHaClient()
+    if (on) {
+      const data: Record<string, unknown> = { entity_id: entityId }
+      if (brightnessPct != null) {
+        data["brightness_pct"] = clamp(brightnessPct, 0, 100)
+      }
+      await ha.callService("light", "turn_on", data)
+      return `Turned on ${entityId}${
+        brightnessPct != null ? ` at ${brightnessPct}%` : ""
+      }.`
+    }
+    await ha.callService("light", "turn_off", { entity_id: entityId })
+    return `Turned off ${entityId}.`
+  },
+  {
+    name: "set_light",
+    description:
+      "Turn a light on or off; optionally set brightness when turning on.",
+    schema: z.object({
+      entityId: z.string().describe("Full light entity id, e.g. light.kitchen"),
+      on: z.boolean(),
+      brightnessPct: z.number().min(0).max(100).optional(),
+    }),
+  },
+)
+
+// --- Entity states --------------------------------------------------------
+
+const getStates = tool(
+  async ({ domain }) => list(await getExposedEntities(domain)),
+  {
+    name: "get_states",
+    description:
+      "Read the state of exposed entities, optionally filtered to one domain " +
+      "(e.g. sensor, switch, binary_sensor, cover).",
+    schema: z.object({
+      domain: z
+        .string()
+        .optional()
+        .describe("e.g. sensor; omit to list everything exposed"),
+    }),
+  },
+)
+
+const getEntityState = tool(
+  async ({ entityId }) => {
+    const e = await findExposed(entityId)
+    if (!e) return `${entityId} is not available to the voice assistant.`
+    return `${describe(e)}\nattributes: ${JSON.stringify(e.attributes)}`
+  },
+  {
+    name: "get_entity_state",
+    description:
+      "Get the full state and attributes of a single exposed entity.",
+    schema: z.object({ entityId: z.string() }),
+  },
+)
+
+// --- Timers & alarms (View Assist) ---------------------------------------
+
+/**
+ * Resolve the View Assist satellite entity for this agent's area. Timers attach
+ * to a VA entity, not to anything the user names, so this is resolved from the
+ * area rather than from the exposed set.
+ */
+const resolveViewAssistEntity = async (): Promise<string | undefined> => {
+  const area = await getAgentArea()
+  const candidates = (await getAllEntities()).filter((e) =>
+    /viewassist|view_assist/i.test(e.entity_id),
+  )
+  if (candidates.length === 0) return undefined
+  const inArea = area
+    ? candidates.find(
+        (e) => e.areaName?.toLowerCase() === area.areaName.toLowerCase(),
+      )
+    : undefined
+  return (inArea ?? candidates[0]).entity_id
+}
+
+const setTimer = tool(
+  async ({ type, time, name }) => {
+    const entityId = await resolveViewAssistEntity()
+    if (!entityId) return "I don't have a timer device set up for this room."
+    const data: Record<string, unknown> = { entity_id: entityId, type, time }
+    if (name) data["name"] = name
+    const res = (await getHaClient().callServiceWithResponse(
+      "view_assist",
+      "set_timer",
+      data,
+    )) as Record<string, unknown>
+    return JSON.stringify(res)
+  },
+  {
+    name: "set_timer",
+    description:
+      "Set a timer, alarm or reminder via View Assist. `time` is a natural " +
+      "phrase like 'two minutes' or '7 am'.",
+    schema: z.object({
+      type: z.enum(["timer", "alarm", "reminder", "command"]),
+      time: z.string(),
+      name: z.string().optional(),
+    }),
+  },
+)
+
+const getTimers = tool(
+  async () => {
+    const entityId = await resolveViewAssistEntity()
+    if (!entityId) return "I don't have a timer device set up for this room."
+    const res = await getHaClient().callServiceWithResponse(
+      "view_assist",
+      "get_timers",
+      { entity_id: entityId },
+    )
+    return JSON.stringify(res)
+  },
+  {
+    name: "get_timers",
+    description: "List active timers and alarms for this room.",
+    schema: z.object({}),
+  },
+)
+
+const cancelTimers = tool(
+  async ({ name }) => {
+    const entityId = await resolveViewAssistEntity()
+    if (!entityId) return "I don't have a timer device set up for this room."
+    const data: Record<string, unknown> = { entity_id: entityId }
+    if (name) data["name"] = name
+    await getHaClient().callService("view_assist", "cancel_timer", data)
+    return name ? `Cancelled timer "${name}".` : "Cancelled the timers."
+  },
+  {
+    name: "cancel_timers",
+    description:
+      "Cancel timers/alarms for this room. Pass a name to target one, or omit " +
+      "to cancel all for this room.",
+    schema: z.object({ name: z.string().optional() }),
+  },
+)
+
+// --- Tool sets per category ----------------------------------------------
+
+export const MUSIC_TOOLS = [
+  listMediaPlayers,
+  searchMusic,
+  playMusic,
+  mediaControl,
+  setShuffle,
+  setVolume,
+  changeVolume,
+  setMute,
+]
+export const LIST_TOOLS = [getTodoItems, addTodoItem]
+export const CLIMATE_TOOLS = [listClimate, setTemperature]
+export const WEATHER_TOOLS = [getTodayForecast, getDailyForecast]
+export const LOCK_TOOLS = [listLocks, lockDoor]
+export const LIGHTING_TOOLS = [listLights, setLight]
+export const STATE_TOOLS = [
+  getStates,
+  getEntityState,
+  setTimer,
+  getTimers,
+  cancelTimers,
+]

@@ -1,0 +1,19 @@
+{
+  "name": "@ha/voice-agent",
+  "dependencies": {
+    "@langchain/anthropic": "^1.5.0",
+    "@langchain/core": "^1.2.0",
+    "@langchain/langgraph": "^1.4.4",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@ha/build-ts": "workspace:^1.0.0",
+    "@ha/configuration-api": "workspace:^0.0.1",
+    "@ha/configuration-workspace": "workspace:^0.0.1",
+    "@ha/docker": "workspace:^0.0.1",
+    "@ha/nx-executors": "workspace:^0.1.0",
+    "@types/node": "^22.10.0",
+    "nx": "^20.7.0",
+    "typescript": "^5.7.3"
+  }
+}

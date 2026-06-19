@@ -1,0 +1,33 @@
+{
+  "name": "voice-agent",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/voice-agent/src",
+  "projectType": "application",
+  "targets": {
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "rm -rf dist",
+        "cwd": "apps/voice-agent"
+      }
+    },
+    "compile": {
+      "executor": "@ha/nx-executors:invoke",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "module": "scripts/compile.ts",
+        "cwd": "apps/voice-agent"
+      }
+    },
+    "publish": {
+      "executor": "@ha/nx-executors:invoke",
+      "dependsOn": ["compile"],
+      "options": {
+        "module": "scripts/image-push.ts",
+        "cwd": "apps/voice-agent"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}
