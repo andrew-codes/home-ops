@@ -1,4 +1,3 @@
-import { provisionedEnvConfiguration } from "@ha/configuration-env-secrets"
 import { throwIfError } from "@ha/shell-utils"
 import fs from "fs/promises"
 import path from "path"
@@ -10,14 +9,14 @@ type DeploymentOptions = {
 }
 type DeploymentCommand = "restart"
 
-const kubectl = () => {
+const kubectl = (env: string) => {
+  const kubeConfigPath = path.join(
+    __dirname,
+    `../../../resources/k8s/._secrets/${env}/.kube/config`,
+  )
+
   return {
     applyToCluster: async (content: string): Promise<void> => {
-      const env = await provisionedEnvConfiguration.get("env")
-      let kubeConfigPath = path.join(
-        __dirname,
-        `../../../resources/k8s/._secrets/${env}/.kube/config`,
-      )
       const fileName = uuidv4()
       try {
         await fs.mkdir("/tmp")
@@ -41,11 +40,6 @@ const kubectl = () => {
       namespace: string,
       content: string,
     ): Promise<void> => {
-      const env = await provisionedEnvConfiguration.get("env")
-      let kubeConfigPath = path.join(
-        __dirname,
-        `../../../resources/k8s/._secrets/${env}/.kube/config`,
-      )
       await throwIfError(
         sh.exec(
           `kubectl patch ${resourceType} --namespace ${namespace} ${name} --patch="$(echo -n '${content}' | sed 's/"/\\"/g')";`,
@@ -65,11 +59,6 @@ const kubectl = () => {
       deploymentName: string,
       options: DeploymentOptions = { namespace: "default" },
     ): Promise<void> => {
-      const env = await provisionedEnvConfiguration.get("env")
-      let kubeConfigPath = path.join(
-        __dirname,
-        `../../../resources/k8s/._secrets/${env}/.kube/config`,
-      )
       await throwIfError(
         sh.exec(
           `kubectl -n ${options.namespace} rollout ${command} deployment ${deploymentName};`,
@@ -85,11 +74,6 @@ const kubectl = () => {
       )
     },
     exec: async (command: string): Promise<string> => {
-      const env = await provisionedEnvConfiguration.get("env")
-      let kubeConfigPath = path.join(
-        __dirname,
-        `../../../resources/k8s/._secrets/${env}/.kube/config`,
-      )
       return throwIfError(
         sh.exec(`${command}`, {
           shell: "/bin/bash",

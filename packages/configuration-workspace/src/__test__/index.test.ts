@@ -4,9 +4,14 @@ import { when } from "jest-when"
 jest.mock("@ha/configuration-aggregate")
 
 describe("workspace configuration api.", () => {
-  test("Created with 1password configuration API.", async () => {
+  test("Created with 1password and env configuration APIs.", async () => {
     when(createConfigurationApi)
-      .calledWith([onePasswordConfiguration])
+      .calledWith(
+        expect.arrayContaining([
+          onePasswordConfiguration,
+          expect.objectContaining({ getNames: expect.any(Function) }),
+        ]),
+      )
       .mockReturnValue("configurationApi")
     const sut = await import("../")
     expect(sut.default).toEqual("configurationApi")

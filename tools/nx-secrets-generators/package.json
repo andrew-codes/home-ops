@@ -7,6 +7,7 @@
   "types": "./src/index.d.ts",
   "dependencies": {
     "@ha/configuration-1password": "workspace:^0.0.1",
+    "@ha/kubectl": "workspace:^1.0.0",
     "@ha/secret-utils": "workspace:^0.0.1",
     "@nx/devkit": "20.7.0",
     "dotenv": "^16.5.0",

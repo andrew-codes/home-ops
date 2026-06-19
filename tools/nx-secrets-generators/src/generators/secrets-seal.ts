@@ -1,7 +1,6 @@
-import { sealedSecretEnvConfiguration } from "@ha/configuration-env-secrets"
+import { sealedOnePasswordConfiguration } from "@ha/configuration-1password"
 import { kubectl } from "@ha/kubectl"
 import { Tree } from "@nx/devkit"
-import { configDotenv } from "dotenv"
 import { isEmpty, merge } from "lodash"
 import path from "node:path"
 import { env } from "node:process"
@@ -13,17 +12,14 @@ export async function secretsSealGenerator(
 ) {
   env.ENV = options.env
 
-  const secretsFile = `._secrets.${options.env}.deploying.env`
-  configDotenv({ path: secretsFile })
-
   let secrets: Record<string, Record<string, string>> = {}
-  for (const name of sealedSecretEnvConfiguration.getNames()) {
+  for (const name of sealedOnePasswordConfiguration.getNames()) {
     const k8sSecretName = name.split("/").shift()
     const k8sKeyName = name.split("/").pop()
     if (!k8sSecretName || !k8sKeyName) {
       continue
     }
-    const value = await sealedSecretEnvConfiguration.get(name)
+    const value = await sealedOnePasswordConfiguration.get(name)
 
     secrets = merge({}, secrets, {
       [k8sSecretName]: {
@@ -32,7 +28,7 @@ export async function secretsSealGenerator(
     })
   }
 
-  const kube = kubectl()
+  const kube = kubectl(options.env)
   const secretsDir = `./infrastructure/${options.env}/secrets`
   for (const [k8sName, kv] of Object.entries(secrets)) {
     try {
@@ -83,10 +79,6 @@ ${Object.keys(secrets)
   })
   .join("\n")}`,
   )
-
-  return () => {
-    console.log(`Created ${secretsFile}`)
-  }
 }
 
 export default secretsSealGenerator

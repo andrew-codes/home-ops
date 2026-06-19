@@ -10,7 +10,8 @@ const toOnePasswordReference = (secretName: string, vault: string): string => {
   if (parts.length === 1) {
     return `op://${vault}/${secretName}/credential`
   }
-  const field = parts[parts.length - 1]
+  const rawField = parts[parts.length - 1]
+  const field = rawField.replace(/\.[^.]+$/, "")
   const item = parts.slice(0, -1).join("-")
   return `op://${vault}/${item}/${field}`
 }
@@ -41,6 +42,37 @@ const createOnePasswordConfigurationApi = <
   }
 }
 
+const sealedSecretNames = [
+  "grafana-admin/admin-password",
+  "grafana-admin/admin",
+  "home-assistant-token/token",
+  "mqtt-credentials/password",
+  "mqtt-credentials/username",
+  "mqtt-passwd/passwd",
+  "playnite-web-credentials/database-url",
+  "playnite-web-credentials/secret",
+  "playnite-web-db-credentials/username",
+  "playnite-web-db-credentials/password",
+  "psn-accounts/accounts",
+  "regcred/email",
+  "regcred/password",
+  "regcred/server",
+  "regcred/username",
+  "tsauthkey",
+  "tunnel-credentials/credentials.json",
+  "unifi/ip",
+  "unifi/password",
+  "unifi/username",
+  "homebox-oidc/client-secret",
+  "homebox-oidc/client-id",
+  "home-assistant/automation-editor-supervisor-token",
+  "home-assistant/version-control-supervisor-token",
+  "homebox-oidc/issuer-url",
+  "home-assistant/ssh-key-private",
+  "voice-agent/home-assistant-token",
+  "voice-agent/anthropic-api-key",
+] as const
+
 const secretNames = [
   "nas/ip",
   "dev/ssh-key/public",
@@ -50,8 +82,6 @@ const secretNames = [
   "home-assistant/ssh-key-public",
   "k8s/ip",
   "k8s/pod-network-cidr",
-  "pihole/domain",
-  "pihole/hostname",
   "pihole/ip",
   "pihole/password",
   "pihole2/ip",
@@ -65,8 +95,6 @@ const secretNames = [
   "tailscale/ip",
   "tailscale/subnet-routes",
   "unifi/ip",
-  "nas/openclaw/username",
-  "nas/openclaw/password",
   "gaming-pc/ip",
   "gaming-pc/user",
   "gaming-pc/username",
@@ -100,15 +128,17 @@ const secretNames = [
   "homebox-oidc/client-id",
   "home-assistant/automation-editor-supervisor-token",
   "home-assistant/version-control-supervisor-token",
-  "openclaw-db/username",
-  "openclaw-db/password",
-  "openclaw-redis-auth/username",
-  "openclaw-redis-auth/password",
   "homebox-oidc/issuer-url",
   "home-assistant/ssh-key-private",
 ] as const
 
 const onePasswordConfiguration = createOnePasswordConfigurationApi(secretNames)
+const sealedOnePasswordConfiguration =
+  createOnePasswordConfigurationApi(sealedSecretNames)
 
-export { onePasswordConfiguration, toOnePasswordReference }
+export {
+  onePasswordConfiguration,
+  sealedOnePasswordConfiguration,
+  toOnePasswordReference,
+}
 export default createOnePasswordConfigurationApi

@@ -20,9 +20,9 @@ const run = async (
   const owner = await configurationApi.get("repository/owner")
   const repo = await configurationApi.get("repository/name")
   const octokit = new Octokit({
-    auth: token.value,
+    auth: token,
   })
-  await octokit.request(`POST /repos/${owner.value}/${repo.value}/dispatches`, {
+  await octokit.request(`POST /repos/${owner}/${repo}/dispatches`, {
     event_type: "manual-deploy",
     client_payload: {
       projects: projects.join(","),
