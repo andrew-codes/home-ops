@@ -479,6 +479,24 @@ const getEntityState = tool(
   },
 )
 
+// --- Time -----------------------------------------------------------------
+
+const getCurrentTime = tool(
+  async () => {
+    const now = new Date()
+    return now.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+  },
+  {
+    name: "get_current_time",
+    description: "Get the current local time. Use when the user asks what time it is.",
+    schema: z.object({}),
+  },
+)
+
 // --- Timers & alarms (View Assist) ---------------------------------------
 
 /**
@@ -562,6 +580,150 @@ const cancelTimers = tool(
   },
 )
 
+// --- Maintenance (filters & batteries) ------------------------------------
+
+const FILTER_KEYWORDS = ["filter", "air_quality", "hvac", "furnace", "purifier"]
+const BATTERY_ATTRS = ["battery_level", "battery"]
+
+/** True when an entity looks filter-related by id or friendly name. */
+const isFilterRelated = (e: EnrichedEntity): boolean => {
+  const target = `${e.entity_id} ${e.friendlyName}`.toLowerCase()
+  return FILTER_KEYWORDS.some((k) => target.includes(k))
+}
+
+/** True when an entity is a battery sensor or binary_sensor. */
+const isBatteryEntity = (e: EnrichedEntity): boolean => {
+  const dc = (e.attributes["device_class"] as string | undefined)?.toLowerCase()
+  return dc === "battery"
+}
+
+const listFilterStatus = tool(
+  async () => {
+    const [sensors, binary, climate] = await Promise.all([
+      getExposedEntities("sensor"),
+      getExposedEntities("binary_sensor"),
+      getExposedEntities("climate"),
+    ])
+
+    const lines: string[] = []
+
+    // Check sensor entities with filter keywords or filter-related attributes
+    const filterAttrs = [
+      "filter_life",
+      "filter_hours_used",
+      "filter_replacement",
+      "filter_life_remaining",
+    ]
+    for (const e of [...sensors, ...binary]) {
+      const hasFilterAttr = filterAttrs.some((a) => e.attributes[a] != null)
+      if (isFilterRelated(e) || hasFilterAttr) {
+        const attrs = [...filterAttrs, "last_changed", "last_reset"]
+          .filter((a) => e.attributes[a] != null)
+          .map((a) => `${a}=${JSON.stringify(e.attributes[a])}`)
+          .join(", ")
+        lines.push(
+          `${e.entity_id} (${e.friendlyName})${e.areaName ? ` [${e.areaName}]` : ""}: ${e.state}${attrs ? ` {${attrs}}` : ""}`,
+        )
+      }
+    }
+
+    // Check climate entities for filter attributes in their attributes
+    for (const e of climate) {
+      const hasFilterAttr = filterAttrs.some((a) => e.attributes[a] != null)
+      if (hasFilterAttr || isFilterRelated(e)) {
+        const attrs = filterAttrs
+          .filter((a) => e.attributes[a] != null)
+          .map((a) => `${a}=${JSON.stringify(e.attributes[a])}`)
+          .join(", ")
+        lines.push(
+          `${e.entity_id} (${e.friendlyName})${e.areaName ? ` [${e.areaName}]` : ""}: ${e.state}${attrs ? ` {${attrs}}` : ""}`,
+        )
+      }
+    }
+
+    return lines.length > 0
+      ? lines.join("\n")
+      : "(no filter-related entities found in exposed entities)"
+  },
+  {
+    name: "list_filter_status",
+    description:
+      "List filter-related exposed entities (air filters, HVAC filters, purifier " +
+      "filters). Shows filter life, hours used, and replacement status. Use to " +
+      "answer questions about filter maintenance.",
+    schema: z.object({}),
+  },
+)
+
+const listBatteryStatus = tool(
+  async () => {
+    const [sensors, binary] = await Promise.all([
+      getExposedEntities("sensor"),
+      getExposedEntities("binary_sensor"),
+    ])
+
+    const lines: string[] = []
+
+    for (const e of sensors) {
+      if (!isBatteryEntity(e)) continue
+      const level = Number(e.state)
+      const label = isNaN(level)
+        ? e.state
+        : level <= 10
+          ? `${level}% (CRITICAL)`
+          : level <= 20
+            ? `${level}% (low)`
+            : `${level}%`
+      const attrs = BATTERY_ATTRS.filter((a) => e.attributes[a] != null)
+        .map((a) => `${a}=${JSON.stringify(e.attributes[a])}`)
+        .join(", ")
+      lines.push(
+        `${e.entity_id} (${e.friendlyName})${e.areaName ? ` [${e.areaName}]` : ""}: ${label}${attrs ? ` {${attrs}}` : ""}`,
+      )
+    }
+
+    for (const e of binary) {
+      if (!isBatteryEntity(e)) continue
+      // binary_sensor battery: "on" = low battery, "off" = ok
+      const status = e.state === "on" ? "LOW BATTERY" : "ok"
+      lines.push(
+        `${e.entity_id} (${e.friendlyName})${e.areaName ? ` [${e.areaName}]` : ""}: ${status}`,
+      )
+    }
+
+    if (lines.length === 0) {
+      return "(no battery entities found in exposed entities)"
+    }
+    const low = lines.filter((l) => l.includes("low") || l.includes("LOW") || l.includes("CRITICAL"))
+    return low.length > 0
+      ? `Devices needing battery attention:\n${low.join("\n")}\n\nAll battery devices:\n${lines.join("\n")}`
+      : `All batteries ok:\n${lines.join("\n")}`
+  },
+  {
+    name: "list_battery_status",
+    description:
+      "List battery levels for all exposed battery sensor/binary_sensor entities. " +
+      "Highlights low and critical batteries. Use to answer questions about which " +
+      "devices need new batteries and what battery type/count might be needed.",
+    schema: z.object({}),
+  },
+)
+
+const getEntityMaintenanceDetails = tool(
+  async ({ entityId }) => {
+    const e = await findExposed(entityId)
+    if (!e) return `${entityId} is not available to the voice assistant.`
+    return `${describe(e)}\nAll attributes: ${JSON.stringify(e.attributes, null, 2)}`
+  },
+  {
+    name: "get_entity_maintenance_details",
+    description:
+      "Get full state and all attributes for a specific entity to find maintenance " +
+      "details like last filter change date, battery type, model number, etc.",
+    schema: z.object({ entityId: z.string() }),
+  },
+)
+
 // --- Tool sets per category ----------------------------------------------
 
 export const MUSIC_TOOLS = [
@@ -580,9 +742,15 @@ export const WEATHER_TOOLS = [getTodayForecast, getDailyForecast]
 export const LOCK_TOOLS = [listLocks, lockDoor]
 export const LIGHTING_TOOLS = [listLights, setLight]
 export const STATE_TOOLS = [
+  getCurrentTime,
   getStates,
   getEntityState,
   setTimer,
   getTimers,
   cancelTimers,
+]
+export const MAINTENANCE_TOOLS = [
+  listFilterStatus,
+  listBatteryStatus,
+  getEntityMaintenanceDetails,
 ]

@@ -34,6 +34,7 @@ import {
   LIGHTING_TOOLS,
   LIST_TOOLS,
   LOCK_TOOLS,
+  MAINTENANCE_TOOLS,
   MUSIC_TOOLS,
   STATE_TOOLS,
   WEATHER_TOOLS,
@@ -47,6 +48,7 @@ const CATEGORIES = [
   "locks",
   "lights",
   "states",
+  "maintenance",
 ] as const
 type Category = (typeof CATEGORIES)[number]
 
@@ -60,7 +62,8 @@ const RouteDecision = z.object({
         "weather = forecast questions; " +
         "locks = locking doors; " +
         "lights = control or query lights; " +
-        "states = any other device/entity state question, plus timers & alarms.",
+        "states = any other device/entity state question, plus timers, alarms, and current time; " +
+        "maintenance = filter replacement, battery levels, or any maintenance/upkeep question.",
     ),
 })
 
@@ -141,9 +144,25 @@ const subagentPrompts = (): Record<Category, string> => ({
   states:
     `You answer questions about device/entity state and manage timers & alarms. ` +
     `${areaClause()}\n` +
-    "For state questions use get_states (optionally by domain) or " +
-    "get_entity_state and report the value. For timers/alarms use set_timer, " +
-    "get_timers and cancel_timers (View Assist). " +
+    "For time questions ('what time is it?'): use get_current_time.\n" +
+    "For state questions: when you don't know the exact entity ID, call " +
+    "get_states with the relevant domain (e.g. 'sensor') to discover exposed " +
+    "entities first, then report the matching entity's state. Only call " +
+    "get_entity_state when you already have the exact entity ID from a prior " +
+    "get_states result. Never guess entity IDs. " +
+    "For timers/alarms use set_timer, get_timers and cancel_timers (View Assist). " +
+    SPEAK,
+  maintenance:
+    "You answer questions about home maintenance: filters and batteries.\n" +
+    "For filter questions (is a filter due, when was it last changed, filter life " +
+    "remaining): use list_filter_status. If the user asks for more detail about a " +
+    "specific entity, use get_entity_maintenance_details to inspect its attributes.\n" +
+    "For battery questions (which devices have low batteries, what battery is needed, " +
+    "how many): use list_battery_status. If a device's battery type or count is not " +
+    "in the sensor state, use get_entity_maintenance_details to check its attributes " +
+    "for model info that could indicate battery type.\n" +
+    "Summarise only actionable findings: report what needs attention first, then give " +
+    "context (e.g. last changed date, remaining life, battery level). " +
     SPEAK,
 })
 
@@ -167,13 +186,14 @@ export const buildGraph = () => {
   ) => createReactAgent({ llm, tools, prompt: prompts[category] })
 
   const subagents: Record<Category, ReturnType<typeof createReactAgent>> = {
-    music:   makeAgent(sonnet, MUSIC_TOOLS,    "music"),
-    lists:   makeAgent(sonnet, LIST_TOOLS,     "lists"),
-    climate: makeAgent(haiku,  CLIMATE_TOOLS,  "climate"),
-    weather: makeAgent(haiku,  WEATHER_TOOLS,  "weather"),
-    locks:   makeAgent(haiku,  LOCK_TOOLS,     "locks"),
-    lights:  makeAgent(haiku,  LIGHTING_TOOLS, "lights"),
-    states:  makeAgent(haiku,  STATE_TOOLS,    "states"),
+    music:       makeAgent(sonnet, MUSIC_TOOLS,       "music"),
+    lists:       makeAgent(sonnet, LIST_TOOLS,        "lists"),
+    climate:     makeAgent(haiku,  CLIMATE_TOOLS,     "climate"),
+    weather:     makeAgent(haiku,  WEATHER_TOOLS,     "weather"),
+    locks:       makeAgent(haiku,  LOCK_TOOLS,        "locks"),
+    lights:      makeAgent(haiku,  LIGHTING_TOOLS,    "lights"),
+    states:      makeAgent(haiku,  STATE_TOOLS,       "states"),
+    maintenance: makeAgent(haiku,  MAINTENANCE_TOOLS, "maintenance"),
   }
 
   const router = async (state: typeof AgentState.State) => {
@@ -197,6 +217,7 @@ export const buildGraph = () => {
     .addNode("locks", subagents.locks)
     .addNode("lights", subagents.lights)
     .addNode("states", subagents.states)
+    .addNode("maintenance", subagents.maintenance)
     .addEdge(START, "router")
     .addConditionalEdges("router", (state) => state.category, edgeMap)
     .addEdge("music", END)
@@ -206,6 +227,7 @@ export const buildGraph = () => {
     .addEdge("locks", END)
     .addEdge("lights", END)
     .addEdge("states", END)
+    .addEdge("maintenance", END)
 
   // MemorySaver keeps short conversation context keyed by thread_id so
   // follow-ups ("now make it warmer") have context. Swap for a persistent
