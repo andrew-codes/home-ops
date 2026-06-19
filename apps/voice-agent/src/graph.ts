@@ -32,6 +32,7 @@ import { getSettings } from "./config"
 import {
   CLIMATE_TOOLS,
   FAN_TOOLS,
+  GAMING_TOOLS,
   LIGHTING_TOOLS,
   LIST_TOOLS,
   LOCK_TOOLS,
@@ -51,6 +52,8 @@ const CATEGORIES = [
   "fans",
   "states",
   "maintenance",
+  "gaming",
+  "help",
 ] as const
 type Category = (typeof CATEGORIES)[number]
 
@@ -66,7 +69,9 @@ const RouteDecision = z.object({
         "lights = control or query lights; " +
         "fans = turn fans on/off or adjust fan speed; " +
         "states = any other device/entity state question, plus timers, alarms, and current time; " +
-        "maintenance = filter replacement, battery levels, or any maintenance/upkeep question.",
+        "maintenance = filter replacement, battery levels, or any maintenance/upkeep question; " +
+        "gaming = start or stop gaming on the PC or PlayStation in the game room; " +
+        "help = questions about how to use or control the smart devices in the home, what the assistant can do, or how to ask for something.",
     ),
 })
 
@@ -183,6 +188,27 @@ const subagentPrompts = (): Record<Category, string> => ({
     "timer but multiple are active and no name was mentioned, call get_timers " +
     "first, report what's running, and ask which one to cancel.\n" +
     SPEAK,
+  gaming:
+    "You control gaming sessions in the game room. " +
+    "Use control_game_room to start or stop a session on the requested device. " +
+    "If the user doesn't specify a device, ask whether they want the PC or the PlayStation. " +
+    SPEAK,
+  help:
+    "You explain how to use this smart home voice assistant. Answer in one or two short spoken sentences. " +
+    "The assistant can do all of the following — describe the relevant capability based on what the user asked:\n" +
+    "- Music & media: say 'play [song/artist/playlist] in the [room]', 'pause', 'skip', 'turn it up/down', 'mute', or 'set volume to [percent]'.\n" +
+    "- Lights: say 'turn on/off the [room] lights' or 'set the [room] lights to [percent]'.\n" +
+    "- Fans: say 'turn on the [room] fan', 'turn it off', or 'set the fan to low, medium, or high'.\n" +
+    "- Temperature: say 'make it warmer', 'set the thermostat to [temperature]', or 'turn the heat up/down'.\n" +
+    "- Locks: say 'lock the front door' (the assistant can lock but not unlock doors).\n" +
+    "- Weather: say 'what's the weather today' or 'what will it be like on [day]'.\n" +
+    "- Timers & alarms: say 'set a [duration] timer', 'set an alarm for [time]', 'how much time is left on my timer', or 'cancel the [name] timer'.\n" +
+    "- Grocery/shopping lists: say 'add [item] to my grocery list' or 'what's on my grocery list'.\n" +
+    "- Device status: say 'is the [device] on' or 'what's the state of [device]'.\n" +
+    "- Wi-Fi: say 'what's the wifi password' or 'what's the guest network name'.\n" +
+    "- Gaming: say 'start gaming on the PC' or 'start the PlayStation' from the game room.\n" +
+    "- Maintenance: say 'do I need to change a filter', 'when was the last filter change', or 'which devices have low batteries'.\n" +
+    SPEAK,
   maintenance:
     "You answer questions about home maintenance and record completed maintenance tasks.\n" +
     "For filter questions (is a filter due, when was it last changed, next change " +
@@ -232,6 +258,8 @@ export const buildGraph = () => {
     fans:        makeAgent(haiku,  FAN_TOOLS,         "fans"),
     states:      makeAgent(haiku,  STATE_TOOLS,       "states"),
     maintenance: makeAgent(haiku,  MAINTENANCE_TOOLS, "maintenance"),
+    gaming:      makeAgent(haiku,  GAMING_TOOLS,      "gaming"),
+    help:        makeAgent(haiku,  [],                "help"),
   }
 
   const router = async (state: typeof AgentState.State) => {
@@ -257,6 +285,8 @@ export const buildGraph = () => {
     .addNode("fans", subagents.fans)
     .addNode("states", subagents.states)
     .addNode("maintenance", subagents.maintenance)
+    .addNode("gaming", subagents.gaming)
+    .addNode("help", subagents.help)
     .addEdge(START, "router")
     .addConditionalEdges("router", (state) => state.category, edgeMap)
     .addEdge("music", END)
@@ -268,6 +298,8 @@ export const buildGraph = () => {
     .addEdge("fans", END)
     .addEdge("states", END)
     .addEdge("maintenance", END)
+    .addEdge("gaming", END)
+    .addEdge("help", END)
 
   // MemorySaver keeps short conversation context keyed by thread_id so
   // follow-ups ("now make it warmer") have context. Swap for a persistent

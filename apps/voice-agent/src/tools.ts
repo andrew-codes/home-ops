@@ -813,6 +813,39 @@ const pressButton = tool(
   },
 )
 
+// --- Gaming ---------------------------------------------------------------
+
+const GAME_ROOM_TOPIC = "9C139E02FA54/up"
+const GAME_DEVICES = { pc: 1, playstation: 2 } as const
+const GAME_KEYS = { play: 1, stop: 2 } as const
+
+const controlGameRoom = tool(
+  async ({ device, action }) => {
+    const agentArea = await getAgentArea()
+    if (agentArea?.areaName.toLowerCase() !== "game room") {
+      return "Gaming controls are only available from the Game Room."
+    }
+    const deviceId = GAME_DEVICES[device]
+    const keyId = GAME_KEYS[action]
+    await getHaClient().callService("mqtt", "publish", {
+      topic: GAME_ROOM_TOPIC,
+      payload: JSON.stringify({ device_id: deviceId, key_id: keyId }),
+    })
+    return `${action === "play" ? "Started" : "Stopped"} gaming on the ${device}.`
+  },
+  {
+    name: "control_game_room",
+    description:
+      "Start or stop gaming in the game room. Use 'play' to begin and 'stop' to end a session.",
+    schema: z.object({
+      device: z.enum(["pc", "playstation"]).describe("Which device to control"),
+      action: z.enum(["play", "stop"]),
+    }),
+  },
+)
+
+export const GAMING_TOOLS = [controlGameRoom]
+
 // --- Tool sets per category ----------------------------------------------
 
 export const MUSIC_TOOLS = [
