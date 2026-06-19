@@ -503,11 +503,18 @@ const getCurrentTime = tool(
  * Resolve the View Assist satellite entity for this agent's area. Timers attach
  * to a VA entity, not to anything the user names, so this is resolved from the
  * area rather than from the exposed set.
+ *
+ * VA satellite sensors can have any user-chosen name (e.g. "sensor.kitchen_vaca"),
+ * so we identify them by their distinctive attributes (mediaplayer_device + mic_device)
+ * rather than relying solely on the entity_id naming convention.
  */
 const resolveViewAssistEntity = async (): Promise<string | undefined> => {
   const area = await getAgentArea()
-  const candidates = (await getAllEntities()).filter((e) =>
-    /viewassist|view_assist/i.test(e.entity_id),
+  const sensors = await getAllEntities("sensor")
+  const candidates = sensors.filter(
+    (e) =>
+      /viewassist|view_assist/i.test(e.entity_id) ||
+      ("mediaplayer_device" in e.attributes && "mic_device" in e.attributes),
   )
   if (candidates.length === 0) return undefined
   const inArea = area
