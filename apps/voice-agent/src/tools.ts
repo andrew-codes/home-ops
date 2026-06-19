@@ -582,7 +582,20 @@ const cancelTimers = tool(
 
 // --- Maintenance (filters & batteries) ------------------------------------
 
-const FILTER_KEYWORDS = ["filter", "air_quality", "hvac", "furnace", "purifier"]
+const FILTER_KEYWORDS = [
+  "filter",
+  "air_quality",
+  "hvac",
+  "furnace",
+  "purifier",
+  "maintenance",
+  "service",
+  "replace",
+  "remind",
+  "next_change",
+  "last_change",
+  "change_date",
+]
 const BATTERY_ATTRS = ["battery_level", "battery"]
 
 /** True when an entity looks filter-related by id or friendly name. */
@@ -599,46 +612,28 @@ const isBatteryEntity = (e: EnrichedEntity): boolean => {
 
 const listFilterStatus = tool(
   async () => {
-    const [sensors, binary, climate] = await Promise.all([
-      getExposedEntities("sensor"),
-      getExposedEntities("binary_sensor"),
-      getExposedEntities("climate"),
-    ])
+    // Query all exposed entities regardless of domain so input_datetime,
+    // input_text, date, sensor, climate, etc. are all covered.
+    const all = await getExposedEntities()
 
-    const lines: string[] = []
-
-    // Check sensor entities with filter keywords or filter-related attributes
     const filterAttrs = [
       "filter_life",
       "filter_hours_used",
       "filter_replacement",
       "filter_life_remaining",
     ]
-    for (const e of [...sensors, ...binary]) {
-      const hasFilterAttr = filterAttrs.some((a) => e.attributes[a] != null)
-      if (isFilterRelated(e) || hasFilterAttr) {
-        const attrs = [...filterAttrs, "last_changed", "last_reset"]
-          .filter((a) => e.attributes[a] != null)
-          .map((a) => `${a}=${JSON.stringify(e.attributes[a])}`)
-          .join(", ")
-        lines.push(
-          `${e.entity_id} (${e.friendlyName})${e.areaName ? ` [${e.areaName}]` : ""}: ${e.state}${attrs ? ` {${attrs}}` : ""}`,
-        )
-      }
-    }
 
-    // Check climate entities for filter attributes in their attributes
-    for (const e of climate) {
+    const lines: string[] = []
+    for (const e of all) {
       const hasFilterAttr = filterAttrs.some((a) => e.attributes[a] != null)
-      if (hasFilterAttr || isFilterRelated(e)) {
-        const attrs = filterAttrs
-          .filter((a) => e.attributes[a] != null)
-          .map((a) => `${a}=${JSON.stringify(e.attributes[a])}`)
-          .join(", ")
-        lines.push(
-          `${e.entity_id} (${e.friendlyName})${e.areaName ? ` [${e.areaName}]` : ""}: ${e.state}${attrs ? ` {${attrs}}` : ""}`,
-        )
-      }
+      if (!isFilterRelated(e) && !hasFilterAttr) continue
+      const attrs = [...filterAttrs, "last_changed", "last_reset"]
+        .filter((a) => e.attributes[a] != null)
+        .map((a) => `${a}=${JSON.stringify(e.attributes[a])}`)
+        .join(", ")
+      lines.push(
+        `${e.entity_id} (${e.friendlyName})${e.areaName ? ` [${e.areaName}]` : ""}: ${e.state}${attrs ? ` {${attrs}}` : ""}`,
+      )
     }
 
     return lines.length > 0
@@ -649,8 +644,9 @@ const listFilterStatus = tool(
     name: "list_filter_status",
     description:
       "List filter-related exposed entities (air filters, HVAC filters, purifier " +
-      "filters). Shows filter life, hours used, and replacement status. Use to " +
-      "answer questions about filter maintenance.",
+      "filters, change-date helpers). Shows filter life, hours used, replacement " +
+      "status, and next/last change dates. Use to answer questions about filter " +
+      "maintenance including when the filter was last changed or when it is due.",
     schema: z.object({}),
   },
 )
@@ -724,6 +720,26 @@ const getEntityMaintenanceDetails = tool(
   },
 )
 
+const pressButton = tool(
+  async ({ entityId }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    await getHaClient().callService("input_button", "press", {
+      entity_id: entityId,
+    })
+    return `Pressed ${entityId}.`
+  },
+  {
+    name: "press_button",
+    description:
+      "Press an input_button entity. Use when the user reports completing a " +
+      "maintenance task, e.g. 'I just changed the HVAC filter' → press the " +
+      "'Changed HVAC filter' button. Use get_states with domain 'input_button' " +
+      "to find the right entity if unsure of the id.",
+    schema: z.object({ entityId: z.string() }),
+  },
+)
+
 // --- Tool sets per category ----------------------------------------------
 
 export const MUSIC_TOOLS = [
@@ -753,4 +769,7 @@ export const MAINTENANCE_TOOLS = [
   listFilterStatus,
   listBatteryStatus,
   getEntityMaintenanceDetails,
+  pressButton,
+  getStates,
+  getEntityState,
 ]

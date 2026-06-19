@@ -167,16 +167,22 @@ const subagentPrompts = (): Record<Category, string> => ({
     "first, report what's running, and ask which one to cancel.\n" +
     SPEAK,
   maintenance:
-    "You answer questions about home maintenance: filters and batteries.\n" +
-    "For filter questions (is a filter due, when was it last changed, filter life " +
-    "remaining): use list_filter_status. If the user asks for more detail about a " +
-    "specific entity, use get_entity_maintenance_details to inspect its attributes.\n" +
+    "You answer questions about home maintenance and record completed maintenance tasks.\n" +
+    "For filter questions (is a filter due, when was it last changed, next change " +
+    "date, filter life remaining): call list_filter_status first. It covers all " +
+    "exposed entity domains including input_datetime and sensor. If list_filter_status " +
+    "returns no relevant results, fall back to get_states with domain 'sensor' to " +
+    "search for entities whose name or id suggests a filter/HVAC maintenance date, " +
+    "then use get_entity_state or get_entity_maintenance_details for details.\n" +
+    "When the user reports completing a maintenance task (e.g. 'I just changed the " +
+    "HVAC filter', 'I replaced the filter'): use get_states with domain 'input_button' " +
+    "to find the matching button, then press_button to record it. Confirm to the user.\n" +
     "For battery questions (which devices have low batteries, what battery is needed, " +
     "how many): use list_battery_status. If a device's battery type or count is not " +
     "in the sensor state, use get_entity_maintenance_details to check its attributes " +
     "for model info that could indicate battery type.\n" +
     "Summarise only actionable findings: report what needs attention first, then give " +
-    "context (e.g. last changed date, remaining life, battery level). " +
+    "context (e.g. last changed date, next due date, remaining life, battery level). " +
     SPEAK,
 })
 
