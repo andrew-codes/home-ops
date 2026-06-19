@@ -150,6 +150,11 @@ const subagentPrompts = (): Record<Category, string> => ({
     "entities first, then report the matching entity's state. Only call " +
     "get_entity_state when you already have the exact entity ID from a prior " +
     "get_states result. Never guess entity IDs.\n" +
+    "IMPORTANT: All home information — including wifi network names, wifi " +
+    "passwords, and guest network credentials — is stored as HA sensor entities. " +
+    "When asked about wifi or network info, always call get_states with domain " +
+    "'sensor' to find the relevant sensor. Never say you don't have access to " +
+    "network or router information; use get_states to look it up.\n" +
     "For timers and alarms (View Assist):\n" +
     "- Multiple named timers can run simultaneously.\n" +
     "- set_timer: create a timer or alarm; pass the name the user gave " +
