@@ -1,0 +1,65 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voice-agent-kitchen
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: voice-agent-kitchen
+  template:
+    metadata:
+      labels:
+        app: voice-agent-kitchen
+    spec:
+      containers:
+        - name: voice-agent
+          image: ghcr.io/andrew-codes/voice-agent:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: VOICE_AGENT_HOST
+              value: "0.0.0.0"
+            - name: VOICE_AGENT_PORT
+              value: "8000"
+            # Home Assistant ClusterIP service (see deployments/base/home-assistant).
+            - name: VOICE_AGENT_HA_BASE_URL
+              value: "http://home-assistant:8123"
+            # The Home Assistant area this voice agent lives in (match the area
+            # name exactly). Used as the default room for music and to resolve
+            # the right thermostat. Leave unset to require the user to name the
+            # room explicitly.
+            - name: VOICE_AGENT_AREA
+              value: "Kitchen"
+            - name: VOICE_AGENT_HA_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: voice-agent
+                  key: ha-token
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: voice-agent
+                  key: anthropic-api-key
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi

@@ -1,8 +1,6 @@
 import { ConfigurationApi } from "@ha/configuration-api"
-import { provisionedEnvConfiguration as envConfiguration } from "@ha/configuration-env-secrets"
 import { when } from "jest-when"
 import * as sut from ".."
-jest.mock("@ha/configuration-env-secrets")
 
 describe("configuration api module exports", () => {
   const mockedProvider = jest.mocked<
@@ -25,10 +23,21 @@ describe("configuration api module exports", () => {
     getNames: () => ["k8s/ip"],
     set: jest.fn(),
   })
+  const mockedThirdProvider = jest.mocked<
+    ConfigurationApi<{
+      "k8s/ip": string
+    }>
+  >({
+    get: jest.fn(),
+    getNames: jest.fn(),
+    set: jest.fn(),
+  })
 
   beforeEach(() => {
-    when(envConfiguration.get).calledWith("k8s/ip").mockResolvedValue("k8s-ip")
-    ;(envConfiguration.getNames as jest.Mock).mockReturnValue(["k8s/ip"])
+    when(mockedThirdProvider.get)
+      .calledWith("k8s/ip")
+      .mockResolvedValue("k8s-ip")
+    ;(mockedThirdProvider.getNames as jest.Mock).mockReturnValue(["k8s/ip"])
   })
 
   test("Created configuration API will throw error if configuration value cannot be found by name.", async () => {
@@ -36,7 +45,7 @@ describe("configuration api module exports", () => {
       .calledWith("onepassword/token")
       .mockRejectedValue("not found")
     const api = await sut.createConfigurationApi([
-      envConfiguration,
+      mockedThirdProvider,
       mockedProvider,
     ])
     try {
@@ -54,7 +63,7 @@ describe("configuration api module exports", () => {
       .calledWith("k8s/ip")
       .mockResolvedValue("a different IP")
     const api = await sut.createConfigurationApi([
-      envConfiguration,
+      mockedThirdProvider,
       mockedSecondEnvProvider,
     ])
 
@@ -66,7 +75,7 @@ describe("configuration api module exports", () => {
     const api = sut.createConfigurationApi([
       mockedSecondEnvProvider,
       mockedProvider,
-      envConfiguration,
+      mockedThirdProvider,
     ])
 
     const actual = api.getNames()
@@ -80,14 +89,14 @@ describe("configuration api module exports", () => {
 
   test("Setting a value will set the value on all providers that support the value.", async () => {
     const api = sut.createConfigurationApi([
-      envConfiguration,
+      mockedThirdProvider,
       mockedProvider,
       mockedSecondEnvProvider,
     ])
 
     await api.set("k8s/ip", "test")
 
-    expect(envConfiguration.set).toHaveBeenCalledWith("k8s/ip", "test")
+    expect(mockedThirdProvider.set).toHaveBeenCalledWith("k8s/ip", "test")
     expect(mockedProvider.set).not.toHaveBeenCalled()
     expect(mockedSecondEnvProvider.set).toHaveBeenCalledWith("k8s/ip", "test")
   })

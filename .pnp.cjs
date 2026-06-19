@@ -91,10 +91,6 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:packages/configuration-api"\
     },\
     {\
-      "name": "@ha/configuration-env-secrets",\
-      "reference": "workspace:packages/configuration-env-secrets"\
-    },\
-    {\
       "name": "@ha/configuration-workspace",\
       "reference": "workspace:packages/configuration-workspace"\
     },\
@@ -228,7 +224,6 @@ const RAW_RUNTIME_STATE =
     ["@ha/configuration-1password", ["workspace:packages/configuration-1password"]],\
     ["@ha/configuration-aggregate", ["workspace:packages/configuration-aggregate"]],\
     ["@ha/configuration-api", ["workspace:packages/configuration-api"]],\
-    ["@ha/configuration-env-secrets", ["workspace:packages/configuration-env-secrets"]],\
     ["@ha/configuration-workspace", ["workspace:packages/configuration-workspace"]],\
     ["@ha/configure-jest", ["virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#workspace:packages/configure-jest", "workspace:packages/configure-jest"]],\
     ["@ha/delay", ["workspace:packages/delay"]],\
@@ -4057,7 +4052,6 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@ha/configuration-aggregate", "workspace:packages/configuration-aggregate"],\
           ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
           ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
           ["@ha/logger", "workspace:packages/logger"],\
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
@@ -4080,27 +4074,6 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@ha/configuration-api", "workspace:packages/configuration-api"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/configuration-env-secrets", [\
-      ["workspace:packages/configuration-env-secrets", {\
-        "packageLocation": "./packages/configuration-env-secrets/",\
-        "packageDependencies": [\
-          ["@ha/configuration-aggregate", "workspace:packages/configuration-aggregate"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
-          ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/secret-utils", "workspace:packages/secret-utils"],\
-          ["@types/jest", "npm:29.5.14"],\
-          ["@types/node", "npm:18.19.76"],\
-          ["jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.7.0"],\
-          ["jest-when", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:3.7.0"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
-          ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
-          ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
         ],\
         "linkType": "SOFT"\
       }]\
@@ -4469,7 +4442,6 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@ha/kubectl", "workspace:packages/kubectl"],\
           ["@ha/cli-utils", "workspace:packages/cli-utils"],\
-          ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
           ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
           ["@ha/logger", "workspace:packages/logger"],\
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
@@ -4607,7 +4579,6 @@ const RAW_RUNTIME_STATE =
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
           ["@ha/build-ts", "workspace:packages/build-ts"],\
           ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-env-secrets", "workspace:packages/configuration-env-secrets"],\
           ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
           ["@ha/configure-jest", "virtual:49f38a7372be0ac8a1c5bcc44167bf748eeed16615268d9b06faec423ae875931c8ddec3dcdf5ed01fdf407b103da0e8a675d7b32146322fca7ea300ac61f368#workspace:packages/configure-jest"],\
           ["@ha/env-utils", "workspace:packages/env-utils"],\
@@ -4775,6 +4746,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@ha/secrets", "workspace:tools/nx-secrets-generators"],\
           ["@ha/configuration-1password", "workspace:packages/configuration-1password"],\
+          ["@ha/kubectl", "workspace:packages/kubectl"],\
           ["@ha/secret-utils", "workspace:packages/secret-utils"],\
           ["@nx/devkit", "virtual:1be72f037a4446ce3fab15aeeedf5a251474db363b80dfdaeb32f088c867a44298931904ff4fb39a6b998a5310610b86f896809260c67fb3aa545845b05d9bbd#npm:20.7.0"],\
           ["@nx/jest", "npm:20.8.0"],\

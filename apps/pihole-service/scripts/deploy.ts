@@ -21,8 +21,8 @@ const run = async (
     },
   )
   const resourceJson = JSON.parse(resources)
-  const kubeConfig = (await configurationApi.get("k8s/config")).value
-  const kube = kubectl()
+  const env = await configurationApi.get("env")
+  const kube = kubectl(env)
   await Promise.all(
     resourceJson.map((resource) =>
       kube.applyToCluster(JSON.stringify(resource)),

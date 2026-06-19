@@ -11,8 +11,8 @@ const run = async (
     .value
   const coderDbPassword = (await configurationApi.get("coder/db/password"))
     .value
-  const kubeConfig = (await configurationApi.get("k8s/config")).value
-  const kube = kubectl()
+  const env = await configurationApi.get("env")
+  const kube = kubectl(env)
 
   await kube.exec(
     `kubectl create secret generic coder-db-url --from-literal=url="postgres://${coderDbUsername}:${coderDbPassword}@coder-postgres:5432/coder?sslmode=disable"`,

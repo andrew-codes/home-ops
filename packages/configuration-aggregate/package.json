@@ -10,7 +10,6 @@
   },
   "devDependencies": {
     "@ha/configuration-api": "workspace:^0.0.1",
-    "@ha/configuration-env-secrets": "workspace:^0.0.1",
     "@ha/configure-jest": "workspace:^0.0.1",
     "@ha/nx-executors": "workspace:^0.1.0",
     "@types/jest": "^29.5.14",

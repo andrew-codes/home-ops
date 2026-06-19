@@ -1,11 +1,11 @@
-import { sealedSecretEnvConfiguration } from "@ha/configuration-env-secrets"
+import { sealedOnePasswordConfiguration } from "@ha/configuration-1password"
 import { Tree } from "@nx/devkit"
 import { createTreeWithEmptyWorkspace } from "@nx/devkit/testing"
 import { uniq } from "lodash"
 import { SecretsGeneratorSchema } from "../schema"
 import { secretsSealGenerator } from "../secrets-seal"
 
-//  These tests can only be run locally as they require a kubectl context.
+//  These tests can only be run locally as they require a kubectl context and 1Password CLI.
 describe("secrets-seal generator", () => {
   let tree: Tree
   const options: SecretsGeneratorSchema = { env: "staging" }
@@ -15,11 +15,6 @@ describe("secrets-seal generator", () => {
   })
 
   test.skip("should create sealed k8s secret file for each k8s secret.", async () => {
-    tree.write(
-      `./._secrets.${options.env}.deploying.env`,
-      "MQTT_CREDENTIALS_USERNAME=12345\nMQTT_CREDENTIALS_PASSWORD=67890\n",
-    )
-
     await secretsSealGenerator(tree, options)
 
     expect(
@@ -31,7 +26,7 @@ describe("secrets-seal generator", () => {
         ?.toString(),
     ).toEqual(`resources:
 ${uniq(
-  sealedSecretEnvConfiguration.getNames().map((name) => {
+  sealedOnePasswordConfiguration.getNames().map((name) => {
     return name.split("/").shift()
   }),
 )
@@ -40,7 +35,7 @@ ${uniq(
   })
   .join("\n")}`)
 
-    sealedSecretEnvConfiguration.getNames().forEach((name) => {
+    sealedOnePasswordConfiguration.getNames().forEach((name) => {
       const k8sSecretName = name.split("/").shift()
       expect(
         tree.exists(

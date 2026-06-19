@@ -2,16 +2,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: voice-agent
+  name: voice-agent-game-room
   namespace: default
 spec:
   selector:
     matchLabels:
-      app: voice-agent
+      app: voice-agent-game-room
   template:
     metadata:
       labels:
-        app: voice-agent
+        app: voice-agent-game-room
     spec:
       containers:
         - name: voice-agent
@@ -33,8 +33,8 @@ spec:
             # name exactly). Used as the default room for music and to resolve
             # the right thermostat. Leave unset to require the user to name the
             # room explicitly.
-            # - name: VOICE_AGENT_AREA
-            #   value: "Kitchen"
+            - name: VOICE_AGENT_AREA
+              value: "Game Room"
             - name: VOICE_AGENT_HA_TOKEN
               valueFrom:
                 secretKeyRef:
