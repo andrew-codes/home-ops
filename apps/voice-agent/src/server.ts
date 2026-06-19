@@ -17,6 +17,15 @@ import { AIMessage, HumanMessage } from "@langchain/core/messages"
 import { getSettings } from "./config"
 import { buildGraph } from "./graph"
 
+// Phrases that signal the user wants to end the conversation rather than issue
+// a home-automation command. Matched case-insensitively with optional trailing
+// punctuation.
+const STOP_RE =
+  /^\s*(stop|cancel|never ?mind|forget (?:it|that)|exit|quit|end|goodbye|bye|no thanks?|that'?s (?:all|it)|done|dismiss)\s*[.!?]?\s*$/i
+
+const isStopRequest = (text: string): boolean =>
+  text.trim() === "" || STOP_RE.test(text)
+
 // Lazily build the graph on first use so the server can start and serve
 // /health (k8s probes) even if construction would fail.
 let graph: ReturnType<typeof buildGraph> | undefined
@@ -48,12 +57,18 @@ const handleChat = async (
     text?: string
     conversationId?: string
   }
-  if (!text) {
+  if (text === undefined || text === null) {
     sendJson(res, 400, { error: "missing 'text'" })
     return
   }
 
   const threadId = conversationId ?? randomUUID()
+
+  if (isStopRequest(text)) {
+    sendJson(res, 200, { text: "", conversationId: threadId })
+    return
+  }
+
   const result = await getGraph().invoke(
     { messages: [new HumanMessage(text)] },
     { configurable: { thread_id: threadId } },
