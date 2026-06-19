@@ -447,6 +447,72 @@ const setLight = tool(
   },
 )
 
+// --- Fans -----------------------------------------------------------------
+
+const FAN_ATTRS = ["percentage", "preset_mode", "oscillating"]
+
+const listFans = tool(
+  async () => list(await getExposedEntities("fan"), FAN_ATTRS),
+  {
+    name: "list_fans",
+    description:
+      "List exposed fan entities with their on/off state, speed percentage, " +
+      "and preset mode. Use this to choose the right fan.",
+    schema: z.object({}),
+  },
+)
+
+const setFan = tool(
+  async ({ entityId, on, speedPct }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    const ha = getHaClient()
+    if (on) {
+      const data: Record<string, unknown> = { entity_id: entityId }
+      if (speedPct != null) {
+        data["percentage"] = clamp(Math.round(speedPct), 0, 100)
+      }
+      await ha.callService("fan", "turn_on", data)
+      return `Turned on ${entityId}${speedPct != null ? ` at ${Math.round(speedPct)}%` : ""}.`
+    }
+    await ha.callService("fan", "turn_off", { entity_id: entityId })
+    return `Turned off ${entityId}.`
+  },
+  {
+    name: "set_fan",
+    description:
+      "Turn a fan on or off; optionally set speed when turning on. " +
+      "speedPct is 0–100 (e.g. 'low' ≈ 33, 'medium' ≈ 66, 'high' = 100).",
+    schema: z.object({
+      entityId: z.string().describe("Full fan entity id, e.g. fan.bedroom"),
+      on: z.boolean(),
+      speedPct: z.number().min(0).max(100).optional(),
+    }),
+  },
+)
+
+const changeFanSpeed = tool(
+  async ({ entityId, speedPct }) => {
+    const refusal = await refuseIfNotExposed(entityId)
+    if (refusal) return refusal
+    await getHaClient().callService("fan", "set_percentage", {
+      entity_id: entityId,
+      percentage: clamp(Math.round(speedPct), 0, 100),
+    })
+    return `Set ${entityId} speed to ${Math.round(speedPct)}%.`
+  },
+  {
+    name: "change_fan_speed",
+    description:
+      "Set a fan's speed percentage directly (0–100). Use when the fan is " +
+      "already on and only the speed needs to change.",
+    schema: z.object({
+      entityId: z.string(),
+      speedPct: z.number().min(0).max(100),
+    }),
+  },
+)
+
 // --- Entity states --------------------------------------------------------
 
 const getStates = tool(
@@ -757,6 +823,7 @@ export const CLIMATE_TOOLS = [listClimate, setTemperature]
 export const WEATHER_TOOLS = [getTodayForecast, getDailyForecast]
 export const LOCK_TOOLS = [listLocks, lockDoor]
 export const LIGHTING_TOOLS = [listLights, setLight]
+export const FAN_TOOLS = [listFans, setFan, changeFanSpeed]
 export const STATE_TOOLS = [
   getCurrentTime,
   getStates,

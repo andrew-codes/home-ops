@@ -31,6 +31,7 @@ import { z } from "zod"
 import { getSettings } from "./config"
 import {
   CLIMATE_TOOLS,
+  FAN_TOOLS,
   LIGHTING_TOOLS,
   LIST_TOOLS,
   LOCK_TOOLS,
@@ -47,6 +48,7 @@ const CATEGORIES = [
   "weather",
   "locks",
   "lights",
+  "fans",
   "states",
   "maintenance",
 ] as const
@@ -62,6 +64,7 @@ const RouteDecision = z.object({
         "weather = forecast questions; " +
         "locks = locking doors; " +
         "lights = control or query lights; " +
+        "fans = turn fans on/off or adjust fan speed; " +
         "states = any other device/entity state question, plus timers, alarms, and current time; " +
         "maintenance = filter replacement, battery levels, or any maintenance/upkeep question.",
     ),
@@ -147,6 +150,14 @@ const subagentPrompts = (): Record<Category, string> => ({
     "then set_light to turn it on/off or set brightness. If the user is vague " +
     "about which light, list the lights first. " +
     SPEAK,
+  fans:
+    `You control the home's fans. ${areaClause()}\n` +
+    "Use list_fans to find the right entity. Turn on/off with set_fan. " +
+    "When the user mentions a speed (low/medium/high or a percentage), " +
+    "map it: low ≈ 33%, medium ≈ 66%, high = 100%. " +
+    "To change only the speed of a fan already on, use change_fan_speed. " +
+    "If the user is vague about which fan, list them first. " +
+    SPEAK,
   states:
     `You answer questions about device/entity state and manage timers & alarms. ` +
     `${areaClause()}\n` +
@@ -218,6 +229,7 @@ export const buildGraph = () => {
     weather:     makeAgent(haiku,  WEATHER_TOOLS,     "weather"),
     locks:       makeAgent(haiku,  LOCK_TOOLS,        "locks"),
     lights:      makeAgent(haiku,  LIGHTING_TOOLS,    "lights"),
+    fans:        makeAgent(haiku,  FAN_TOOLS,         "fans"),
     states:      makeAgent(haiku,  STATE_TOOLS,       "states"),
     maintenance: makeAgent(haiku,  MAINTENANCE_TOOLS, "maintenance"),
   }
@@ -242,6 +254,7 @@ export const buildGraph = () => {
     .addNode("weather", subagents.weather)
     .addNode("locks", subagents.locks)
     .addNode("lights", subagents.lights)
+    .addNode("fans", subagents.fans)
     .addNode("states", subagents.states)
     .addNode("maintenance", subagents.maintenance)
     .addEdge(START, "router")
@@ -252,6 +265,7 @@ export const buildGraph = () => {
     .addEdge("weather", END)
     .addEdge("locks", END)
     .addEdge("lights", END)
+    .addEdge("fans", END)
     .addEdge("states", END)
     .addEdge("maintenance", END)
 
