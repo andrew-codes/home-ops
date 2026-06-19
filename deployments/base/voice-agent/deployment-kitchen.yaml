@@ -41,7 +41,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: voice-agent
-                  key: ha-token
+                  key: home-assistant-token
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
