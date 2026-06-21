@@ -131,6 +131,9 @@ const secretNames = [
   "home-assistant/version-control-supervisor-token",
   "homebox-oidc/issuer-url",
   "home-assistant/ssh-key-private",
+  "voice-agent/home-assistant-token",
+  "voice-agent/anthropic-api-key",
+  "voice-agent/langsmith-api-key",
 ] as const
 
 const onePasswordConfiguration = createOnePasswordConfigurationApi(secretNames)
