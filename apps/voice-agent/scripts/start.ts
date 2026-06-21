@@ -18,8 +18,7 @@ const run = async (
   const env = {
     ...process.env,
     ANTHROPIC_API_KEY: anthropicKey,
-    VOICE_AGENT_HA_BASE_URL:
-      process.env.VOICE_AGENT_HA_BASE_URL ?? "https://ha.smith-simms.family",
+    VOICE_AGENT_HA_BASE_URL: "https://ha.smith-simms.family",
     VOICE_AGENT_HA_TOKEN: haToken,
     VOICE_AGENT_AREA: process.env.VOICE_AGENT_AREA ?? "Kitchen",
     LANGCHAIN_TRACING_V2: "true",
