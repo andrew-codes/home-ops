@@ -237,7 +237,7 @@ const makeLlm = (model: string): ChatAnthropic =>
   })
 
 export const buildGraph = () => {
-  const haiku  = makeLlm("claude-haiku-4-5")
+  const haiku = makeLlm("claude-haiku-4-5")
   const sonnet = makeLlm("claude-sonnet-4-6")
   const routerLlm = haiku.withStructuredOutput(RouteDecision, { name: "route" })
   const prompts = subagentPrompts()
@@ -249,17 +249,17 @@ export const buildGraph = () => {
   ) => createReactAgent({ llm, tools, prompt: prompts[category] })
 
   const subagents: Record<Category, ReturnType<typeof createReactAgent>> = {
-    music:       makeAgent(sonnet, MUSIC_TOOLS,       "music"),
-    lists:       makeAgent(sonnet, LIST_TOOLS,        "lists"),
-    climate:     makeAgent(haiku,  CLIMATE_TOOLS,     "climate"),
-    weather:     makeAgent(haiku,  WEATHER_TOOLS,     "weather"),
-    locks:       makeAgent(haiku,  LOCK_TOOLS,        "locks"),
-    lights:      makeAgent(haiku,  LIGHTING_TOOLS,    "lights"),
-    fans:        makeAgent(haiku,  FAN_TOOLS,         "fans"),
-    states:      makeAgent(haiku,  STATE_TOOLS,       "states"),
-    maintenance: makeAgent(haiku,  MAINTENANCE_TOOLS, "maintenance"),
-    gaming:      makeAgent(haiku,  GAMING_TOOLS,      "gaming"),
-    help:        makeAgent(haiku,  [],                "help"),
+    music: makeAgent(sonnet, MUSIC_TOOLS, "music"),
+    lists: makeAgent(sonnet, LIST_TOOLS, "lists"),
+    climate: makeAgent(haiku, CLIMATE_TOOLS, "climate"),
+    weather: makeAgent(haiku, WEATHER_TOOLS, "weather"),
+    locks: makeAgent(haiku, LOCK_TOOLS, "locks"),
+    lights: makeAgent(haiku, LIGHTING_TOOLS, "lights"),
+    fans: makeAgent(haiku, FAN_TOOLS, "fans"),
+    states: makeAgent(haiku, STATE_TOOLS, "states"),
+    maintenance: makeAgent(haiku, MAINTENANCE_TOOLS, "maintenance"),
+    gaming: makeAgent(haiku, GAMING_TOOLS, "gaming"),
+    help: makeAgent(haiku, [], "help"),
   }
 
   const router = async (state: typeof AgentState.State) => {
@@ -270,9 +270,10 @@ export const buildGraph = () => {
     return { category: decision.category }
   }
 
-  const edgeMap = Object.fromEntries(
-    CATEGORIES.map((c) => [c, c]),
-  ) as Record<Category, Category>
+  const edgeMap = Object.fromEntries(CATEGORIES.map((c) => [c, c])) as Record<
+    Category,
+    Category
+  >
 
   const graph = new StateGraph(AgentState)
     .addNode("router", router)
