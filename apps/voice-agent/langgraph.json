@@ -1,0 +1,6 @@
+{
+  "node_version": "20",
+  "graphs": {
+    "voice-agent": "./src/graph.ts:graph"
+  }
+}

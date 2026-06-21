@@ -26,6 +26,13 @@
         "module": "scripts/image-push.ts",
         "cwd": "apps/voice-agent"
       }
+    },
+    "start": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "module": "scripts/start.ts",
+        "cwd": "apps/voice-agent"
+      }
     }
   },
   "tags": [],

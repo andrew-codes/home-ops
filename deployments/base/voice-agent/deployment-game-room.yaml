@@ -47,6 +47,18 @@ spec:
                 secretKeyRef:
                   name: voice-agent
                   key: anthropic-api-key
+            # LangSmith observability. Set LANGCHAIN_TRACING_V2 to "true" and
+            # add langsmith-api-key to the voice-agent SealedSecret to enable.
+            - name: LANGCHAIN_PROJECT
+              value: "voice-agent"
+            - name: LANGCHAIN_TRACING_V2
+              value: "false"
+            - name: LANGCHAIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: voice-agent
+                  key: langsmith-api-key
+                  optional: true
           livenessProbe:
             httpGet:
               path: /health

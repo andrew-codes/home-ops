@@ -312,3 +312,6 @@ export const buildGraph = () => {
   // checkpointer if you need durability across restarts.
   return graph.compile({ checkpointer: new MemorySaver() })
 }
+
+// Named export for LangGraph Studio (`langgraph.json` points here).
+export const graph = buildGraph()

@@ -75,16 +75,41 @@ curl -s localhost:8000/chat -d '{"text":"turn on the kitchen light"}'
 > The HA token must be a long-lived access token belonging to an admin user —
 > the exposed-entity list and registries are read over the WebSocket API.
 
-## Configuration (env)
+## LangGraph Studio (local graph debugging)
 
-| Var | Default | Notes |
-| --- | --- | --- |
-| `VOICE_AGENT_HA_BASE_URL` | `http://home-assistant:8123` | In-cluster ClusterIP |
-| `VOICE_AGENT_HA_TOKEN` | — | HA long-lived access token (admin) |
-| `ANTHROPIC_API_KEY` | — | Anthropic key |
-| `VOICE_AGENT_MODEL` | `claude-opus-4-8` | e.g. `claude-haiku-4-5` for lower voice latency |
-| `VOICE_AGENT_AREA` | _(unset)_ | HA area name this agent lives in; default room for music & thermostat selection |
-| `VOICE_AGENT_PORT` | `8000` | |
+LangGraph Studio lets you step through the graph node-by-node, inspect state at
+each checkpoint, replay from any node, and inject test inputs without going
+through the full HTTP server.
+
+```sh
+yarn nx run voice-agent:start
+```
+
+Secrets (`ANTHROPIC_API_KEY`, `VOICE_AGENT_HA_TOKEN`, `LANGCHAIN_API_KEY`) are
+pulled live from 1Password and injected as env vars — nothing is written to disk.
+Override `VOICE_AGENT_HA_BASE_URL` or `VOICE_AGENT_AREA` in your shell before
+running if you need a different target.
+
+## LangSmith (observability)
+
+LangSmith traces every LLM call, node execution, state transition, and tool call.
+It's picked up automatically by `@langchain/core`; no code changes are needed.
+
+**Local:** the `start` target automatically sets `LANGCHAIN_TRACING_V2=true`,
+`LANGCHAIN_PROJECT=voice-agent`, and pulls `LANGCHAIN_API_KEY` from 1Password.
+
+**In-cluster:** the deployments already include `LANGCHAIN_PROJECT` and reference
+`LANGCHAIN_API_KEY` from the `voice-agent` secret (optional — pods start fine
+without it). To enable production tracing:
+
+1. Re-seal the `voice-agent` secret to add `langsmith-api-key`:
+
+```sh
+yarn nx generate @ha/secrets:seal production
+```
+
+2. Change `LANGCHAIN_TRACING_V2` from `"false"` to `"true"` in both deployment
+   files (`deployment-kitchen.yaml` and `deployment-game-room.yaml`).
 
 ## Build & publish image
 
@@ -102,18 +127,20 @@ yarn nx run voice-agent:publish
 Manifests: `deployments/base/voice-agent` + `deployments/production/voice-agent`,
 wired into `clusters/production/apps.yaml` as the `voice-agent` Kustomization.
 
-It needs a `voice-agent` secret with `ha-token` and `anthropic-api-key`. Create a
+It needs a `voice-agent` secret with `home-assistant-token` and
+`anthropic-api-key` (and optionally `langsmith-api-key` for tracing). Create a
 SealedSecret and add it to `infrastructure/production/secrets`:
 
 ```sh
 kubectl create secret generic voice-agent -n default \
-  --from-literal=ha-token="<HA long-lived token>" \
+  --from-literal=home-assistant-token="<HA long-lived token>" \
   --from-literal=anthropic-api-key="sk-ant-..." \
+  --from-literal=langsmith-api-key="lsv2_..." \
   --dry-run=client -o yaml \
 | kubeseal --format yaml \
   > infrastructure/production/secrets/voice-agent-sealed.yaml
 
-# then add voice-agent-sealed.yaml to
+# voice-agent-sealed.yaml is already in
 # infrastructure/production/secrets/kustomization.yaml
 ```
 
