@@ -26,7 +26,6 @@ import {
   StateGraph,
 } from "@langchain/langgraph"
 import { createReactAgent } from "@langchain/langgraph/prebuilt"
-import { z } from "zod"
 
 import { getSettings } from "./config"
 import {
@@ -57,23 +56,18 @@ const CATEGORIES = [
 ] as const
 type Category = (typeof CATEGORIES)[number]
 
-const RouteDecision = z.object({
-  category: z
-    .enum(CATEGORIES)
-    .describe(
-      "music = play/control music or media playback & volume; " +
-        "lists = add to or read a todo/grocery/shopping list; " +
-        "climate = thermostats/temperature; " +
-        "weather = forecast questions; " +
-        "locks = locking doors; " +
-        "lights = control or query lights; " +
-        "fans = turn fans on/off or adjust fan speed; " +
-        "states = any other device/entity state question, plus timers, alarms, and current time; " +
-        "maintenance = filter replacement, battery levels, or any maintenance/upkeep question; " +
-        "gaming = start or stop gaming on the PC or PlayStation in the game room, or control game room volume (mute/unmute, set volume preset); " +
-        "help = questions about how to use or control the smart devices in the home, what the assistant can do, or how to ask for something.",
-    ),
-})
+const CATEGORY_DESCRIPTION =
+  "music = play/control music or media playback & volume; " +
+  "lists = add to or read a todo/grocery/shopping list; " +
+  "climate = thermostats/temperature; " +
+  "weather = forecast questions; " +
+  "locks = locking doors; " +
+  "lights = control or query lights; " +
+  "fans = turn fans on/off or adjust fan speed; " +
+  "states = any other device/entity state question, plus timers, alarms, and current time; " +
+  "maintenance = filter replacement, battery levels, or any maintenance/upkeep question; " +
+  "gaming = start or stop gaming on the PC or PlayStation in the game room, or control game room volume (mute/unmute, set volume preset); " +
+  "help = questions about how to use or control the smart devices in the home, what the assistant can do, or how to ask for something."
 
 // Custom state = the built-in message channel plus the router's decision.
 const AgentState = Annotation.Root({
@@ -244,7 +238,29 @@ const makeLlm = (model: string): ChatAnthropic =>
 export const buildGraph = () => {
   const haiku = makeLlm("claude-haiku-4-5")
   const sonnet = makeLlm("claude-sonnet-4-6")
-  const routerLlm = haiku.withStructuredOutput(RouteDecision, { name: "route" })
+  // bindTools + manual tool_call extraction avoids AnthropicToolsOutputParser,
+  // which breaks in LangGraph Studio's streaming context (receives AIMessageChunk
+  // with raw input_json_delta blocks instead of an aggregated AIMessage).
+  const routerLlm = haiku.bindTools(
+    [
+      {
+        name: "route",
+        description: "Classify the user's intent into exactly one category.",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            category: {
+              type: "string",
+              enum: [...CATEGORIES],
+              description: CATEGORY_DESCRIPTION,
+            },
+          },
+          required: ["category"],
+        },
+      },
+    ],
+    { tool_choice: { type: "tool", name: "route" } },
+  )
   const prompts = subagentPrompts()
 
   const makeAgent = (
@@ -268,11 +284,12 @@ export const buildGraph = () => {
   }
 
   const router = async (state: typeof AgentState.State) => {
-    const decision = await routerLlm.invoke([
+    const msg = await routerLlm.invoke([
       new SystemMessage(ROUTER_SYSTEM),
       ...state.messages,
     ])
-    return { category: decision.category }
+    const category = (msg.tool_calls?.[0]?.args?.category ?? "states") as Category
+    return { category }
   }
 
   const edgeMap = Object.fromEntries(CATEGORIES.map((c) => [c, c])) as Record<
