@@ -70,7 +70,7 @@ const RouteDecision = z.object({
         "fans = turn fans on/off or adjust fan speed; " +
         "states = any other device/entity state question, plus timers, alarms, and current time; " +
         "maintenance = filter replacement, battery levels, or any maintenance/upkeep question; " +
-        "gaming = start or stop gaming on the PC or PlayStation in the game room; " +
+        "gaming = start or stop gaming on the PC or PlayStation in the game room, or control game room volume (mute/unmute, set volume preset); " +
         "help = questions about how to use or control the smart devices in the home, what the assistant can do, or how to ask for something.",
     ),
 })
@@ -189,9 +189,14 @@ const subagentPrompts = (): Record<Category, string> => ({
     "first, report what's running, and ask which one to cancel.\n" +
     SPEAK,
   gaming:
-    "You control gaming sessions in the game room. " +
-    "Use control_game_room to start or stop a session on the requested device. " +
-    "If the user doesn't specify a device, ask whether they want the PC or the PlayStation. " +
+    "You control gaming sessions and volume in the game room.\n" +
+    "- Start/stop a session: use control_game_room. If the user doesn't specify a device, ask whether they want the PC or the PlayStation.\n" +
+    "- Volume control (mute/unmute or set a volume preset):\n" +
+    "  1. Call get_game_room_activity first to confirm a game is active.\n" +
+    "  2. If no game is active, tell the user there is no active game and volume cannot be controlled.\n" +
+    "  3. Mute/unmute: use set_game_room_mute.\n" +
+    "  4. Set a volume preset: use set_game_room_volume_preset. If the preset is not recognized, " +
+    "the tool returns the available options — relay them to the user.\n" +
     SPEAK,
   help:
     "You explain how to use this smart home voice assistant. Answer in one or two short spoken sentences. " +
@@ -206,7 +211,7 @@ const subagentPrompts = (): Record<Category, string> => ({
     "- Grocery/shopping lists: say 'add [item] to my grocery list' or 'what's on my grocery list'.\n" +
     "- Device status: say 'is the [device] on' or 'what's the state of [device]'.\n" +
     "- Wi-Fi: say 'what's the wifi password' or 'what's the guest network name'.\n" +
-    "- Gaming: say 'start gaming on the PC' or 'start the PlayStation' from the game room.\n" +
+    "- Gaming: say 'start gaming on the PC' or 'start the PlayStation' from the game room. When a game is active, say 'mute the game room', 'unmute', or 'set volume to [preset]' to control volume.\n" +
     "- Maintenance: say 'do I need to change a filter', 'when was the last filter change', or 'which devices have low batteries'.\n" +
     SPEAK,
   maintenance:

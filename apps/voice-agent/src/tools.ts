@@ -844,7 +844,89 @@ const controlGameRoom = tool(
   },
 )
 
-export const GAMING_TOOLS = [controlGameRoom]
+const getGameRoomActivity = tool(
+  async () => {
+    const agentArea = await getAgentArea()
+    if (agentArea?.areaName.toLowerCase() !== "game room") {
+      return "Gaming volume controls are only available from the Game Room."
+    }
+    const entity = await findExposed("input_select.game_room_active_device")
+    if (!entity) return "Game room activity entity is not available."
+    if (entity.state === "None" || entity.state === "none") {
+      return "No active game. The game room is idle."
+    }
+    return `Active game: ${entity.state}`
+  },
+  {
+    name: "get_game_room_activity",
+    description:
+      "Get the current game activity status in the game room. Returns the active device " +
+      "(PlayStation or PC) or indicates no game is active. Call this before volume " +
+      "control to confirm a game is in progress.",
+    schema: z.object({}),
+  },
+)
+
+const setGameRoomVolumePreset = tool(
+  async ({ preset }) => {
+    const agentArea = await getAgentArea()
+    if (agentArea?.areaName.toLowerCase() !== "game room") {
+      return "Gaming volume controls are only available from the Game Room."
+    }
+    const selectEntity = await findExposed("input_select.volume_level")
+    if (!selectEntity) return "Volume level entity is not available."
+    const options: string[] = (selectEntity.attributes["options"] as string[]) ?? []
+    const match = options.find((o) => o.toLowerCase() === preset.toLowerCase())
+    if (!match) {
+      return `Unknown volume preset "${preset}". Available presets: ${options.join(", ")}.`
+    }
+    await getHaClient().callService("input_select", "select_option", {
+      entity_id: "input_select.volume_level",
+      option: match,
+    })
+    return `Set game room volume to ${match}.`
+  },
+  {
+    name: "set_game_room_volume_preset",
+    description:
+      "Set the game room volume to a named preset level. If the preset is not " +
+      "recognized, the tool returns the available options — relay them to the user.",
+    schema: z.object({
+      preset: z.string().describe("The volume preset name, e.g. 'low', 'medium', 'high'"),
+    }),
+  },
+)
+
+const setGameRoomMute = tool(
+  async ({ muted }) => {
+    const agentArea = await getAgentArea()
+    if (agentArea?.areaName.toLowerCase() !== "game room") {
+      return "Gaming volume controls are only available from the Game Room."
+    }
+    const players = await getExposedEntities("media_player")
+    const gameRoomPlayer = players.find(
+      (e) => e.areaName?.toLowerCase() === "game room",
+    )
+    if (!gameRoomPlayer) return "No media player found in the game room."
+    await getHaClient().callService("media_player", "volume_mute", {
+      entity_id: gameRoomPlayer.entity_id,
+      is_volume_muted: muted,
+    })
+    return `${muted ? "Muted" : "Unmuted"} the game room.`
+  },
+  {
+    name: "set_game_room_mute",
+    description: "Mute or unmute the game room audio.",
+    schema: z.object({ muted: z.boolean() }),
+  },
+)
+
+export const GAMING_TOOLS = [
+  controlGameRoom,
+  getGameRoomActivity,
+  setGameRoomVolumePreset,
+  setGameRoomMute,
+]
 
 // --- Tool sets per category ----------------------------------------------
 
