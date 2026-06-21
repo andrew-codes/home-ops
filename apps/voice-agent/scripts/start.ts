@@ -1,8 +1,18 @@
 import type { ConfigurationApi } from "@ha/configuration-api"
 import type { Configuration } from "@ha/configuration-workspace"
+import build from "@ha/build-ts"
 import { spawn, type ChildProcess } from "node:child_process"
 import { watch } from "node:fs"
 import path from "node:path"
+
+const appDir = path.join(__dirname, "..")
+
+const buildGraph = () =>
+  build({
+    entryPoints: [path.join(appDir, "src", "graph.ts")],
+    outfile: path.join(appDir, "dist", "graph.js"),
+    external: [],
+  })
 
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
@@ -27,27 +37,28 @@ const run = async (
     LANGCHAIN_PROJECT: "voice-agent",
   }
 
-  const appDir = path.join(__dirname, "..")
-  const srcDir = path.join(appDir, "src")
-
   await new Promise<void>((resolve, reject) => {
     let child: ChildProcess | null = null
     let restarting = false
 
     const startProcess = () => {
-      child = spawn("npx", ["@langchain/langgraph-cli", "dev"], {
-        cwd: appDir,
-        stdio: "inherit",
-        env,
-      })
-      child.on("error", reject)
-      child.on("close", (code) => {
-        if (!restarting) {
-          code === 0 || code === null
-            ? resolve()
-            : reject(new Error(`langgraph-cli exited with code ${code}`))
-        }
-      })
+      buildGraph()
+        .then(() => {
+          child = spawn("yarn", ["exec", "langgraphjs", "dev"], {
+            cwd: appDir,
+            stdio: "inherit",
+            env,
+          })
+          child.on("error", reject)
+          child.on("close", (code) => {
+            if (!restarting) {
+              code === 0 || code === null
+                ? resolve()
+                : reject(new Error(`langgraphjs exited with code ${code}`))
+            }
+          })
+        })
+        .catch(reject)
     }
 
     let debounce: ReturnType<typeof setTimeout> | null = null
@@ -66,7 +77,7 @@ const run = async (
     }
 
     // fs.watch recursive is stable on macOS/Linux since Node 20.
-    watch(srcDir, { recursive: true }, (_event, filename) => {
+    watch(path.join(appDir, "src"), { recursive: true }, (_event, filename) => {
       if (filename?.endsWith(".ts")) restart()
     })
 
