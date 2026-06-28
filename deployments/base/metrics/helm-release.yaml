@@ -110,7 +110,7 @@ spec:
         mountPath: /etc/secrets/ha-bearer-token
         readOnly: true
     remoteWrite:
-      - url: "http://vminsert-vmcluster.monitoring.svc.cluster.local:8480/insert/0/prometheus/"
+      - url: "http://vminsert-vmcluster.default.svc.cluster.local:8480/insert/0/prometheus/"
     config:
       global:
         scrape_interval: "10s"
