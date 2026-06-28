@@ -22,15 +22,20 @@ spec:
           persistentVolumeClaim:
             claimName: home-assistant-config
             readOnly: true
-        - name: pgloader-cmd
-          configMap:
-            name: ha-pgloader-cmd
       containers:
         - name: pgloader
           image: dimitri/pgloader:latest
           command:
-            - pgloader
-            - /etc/pgloader/migrate.load
+            - sh
+            - -c
+            - |
+              cat > /tmp/migrate.load <<EOF
+              LOAD DATABASE
+                FROM sqlite:///config/home-assistant_v2.db
+                INTO postgresql://${PGUSER}:${PGPASSWORD}@home-assistant-postgres:5432/homeassistant
+              WITH include drop, create tables, create indexes, reset sequences;
+              EOF
+              pgloader /tmp/migrate.load
           env:
             - name: PGPASSWORD
               valueFrom:
@@ -46,27 +51,3 @@ spec:
             - name: ha-config
               mountPath: /config
               readOnly: true
-            - name: pgloader-cmd
-              mountPath: /etc/pgloader
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ha-pgloader-cmd
-  namespace: default
-data:
-  migrate.load: |
-    LOAD DATABASE
-      FROM sqlite:///config/home-assistant_v2.db
-      INTO postgresql://$(PGUSER):$(PGPASSWORD)@home-assistant-postgres:5432/homeassistant
-
-    WITH include drop, create tables, create indexes, reset sequences,
-         workers = 4, concurrency = 1
-
-    SET work_mem to '256MB',
-        maintenance_work_mem to '512MB'
-
-    EXCLUDING TABLE NAMES MATCHING 'sqlite_%', 'schema_changes'
-
-    BEFORE LOAD DO
-      $$ CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; $$;
