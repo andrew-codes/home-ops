@@ -20,7 +20,7 @@ metadata:
   name: vmcluster
   namespace: monitoring
 spec:
-  retentionPeriod: "1"
+  retentionPeriod: "2y"
   replicationFactor: 1
 
   vmstorage:

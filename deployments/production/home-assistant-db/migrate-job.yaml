@@ -1,0 +1,72 @@
+---
+# One-off migration job: copy SQLite recorder DB into Postgres.
+# Run AFTER Postgres is ready but BEFORE starting HA against Postgres.
+# Scale HA to 0 first: kubectl scale deploy/home-assistant --replicas=0
+# Apply:  kubectl apply -f migrate-job.yaml
+# Watch:  kubectl logs -f job/ha-sqlite-to-postgres
+# Clean up after success: kubectl delete job ha-sqlite-to-postgres
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ha-sqlite-to-postgres
+  namespace: default
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        kubernetes.io/hostname: k8s-main
+      volumes:
+        - name: ha-config
+          persistentVolumeClaim:
+            claimName: home-assistant-config
+            readOnly: true
+        - name: pgloader-cmd
+          configMap:
+            name: ha-pgloader-cmd
+      containers:
+        - name: pgloader
+          image: dimitri/pgloader:latest
+          command:
+            - pgloader
+            - /etc/pgloader/migrate.load
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: home-assistant-postgres
+                  key: password
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: home-assistant-postgres
+                  key: username
+          volumeMounts:
+            - name: ha-config
+              mountPath: /config
+              readOnly: true
+            - name: pgloader-cmd
+              mountPath: /etc/pgloader
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ha-pgloader-cmd
+  namespace: default
+data:
+  migrate.load: |
+    LOAD DATABASE
+      FROM sqlite:///config/home-assistant_v2.db
+      INTO postgresql://$(PGUSER):$(PGPASSWORD)@home-assistant-postgres:5432/homeassistant
+
+    WITH include drop, create tables, create indexes, reset sequences,
+         workers = 4, concurrency = 1
+
+    SET work_mem to '256MB',
+        maintenance_work_mem to '512MB'
+
+    EXCLUDING TABLE NAMES MATCHING 'sqlite_%', 'schema_changes'
+
+    BEFORE LOAD DO
+      $$ CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; $$;

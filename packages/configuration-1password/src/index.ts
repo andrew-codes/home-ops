@@ -46,6 +46,8 @@ const sealedSecretNames = [
   "grafana-admin/admin-password",
   "grafana-admin/admin",
   "home-assistant-token/token",
+  "home-assistant-postgres/username",
+  "home-assistant-postgres/password",
   "mqtt-credentials/password",
   "mqtt-credentials/username",
   "mqtt-passwd/passwd",

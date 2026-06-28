@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: home-assistant-postgres
+  namespace: default
+spec:
+  serviceName: home-assistant-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: home-assistant-postgres
+  template:
+    metadata:
+      labels:
+        app: home-assistant-postgres
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: k8s-main
+      containers:
+        - name: postgres
+          image: postgres:18.3
+          env:
+            - name: POSTGRES_DB
+              value: homeassistant
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: home-assistant-postgres
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: home-assistant-postgres
+                  key: password
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-home-assistant-postgres
+        resources:
+          requests:
+            storage: 20Gi
