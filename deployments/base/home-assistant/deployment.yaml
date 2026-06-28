@@ -5,6 +5,8 @@ metadata:
   name: home-assistant
   namespace: default
 spec:
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       name: home-assistant
