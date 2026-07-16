@@ -280,6 +280,7 @@ const RAW_RUNTIME_STATE =
           ["@eslint/js", "npm:9.25.0"],\
           ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
+          ["@ha/shell-utils", "workspace:packages/shell-utils"],\
           ["@mdx-js/loader", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:3.1.0"],\
           ["@mdx-js/mdx", "npm:3.1.0"],\
           ["@mdx-js/react", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:3.1.0"],\
@@ -297,6 +298,7 @@ const RAW_RUNTIME_STATE =
           ["@types/jest", "npm:29.5.14"],\
           ["@types/node", "npm:18.19.76"],\
           ["@types/react", "npm:18.3.20"],\
+          ["@types/shelljs", "npm:0.8.15"],\
           ["@typescript-eslint/parser", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:8.30.1"],\
           ["emotion", "npm:11.0.0"],\
           ["emotion-server", "npm:11.0.0"],\
@@ -313,9 +315,11 @@ const RAW_RUNTIME_STATE =
           ["prettier", "npm:3.5.2"],\
           ["prism-react-renderer", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:2.4.1"],\
           ["react", "npm:18.3.1"],\
+          ["shelljs", "npm:0.8.5"],\
           ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
           ["ts-node", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:10.9.1"],\
           ["tslib", "npm:2.8.1"],\
+          ["tsx", "npm:4.22.4"],\
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"],\
           ["typescript-eslint", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:8.30.1"]\
         ],\
@@ -353,6 +357,7 @@ const RAW_RUNTIME_STATE =
           ["@eslint/js", "npm:9.25.0"],\
           ["@ha/configure-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#workspace:packages/configure-jest"],\
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
+          ["@ha/shell-utils", "workspace:packages/shell-utils"],\
           ["@mdx-js/loader", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:3.1.0"],\
           ["@mdx-js/mdx", "npm:3.1.0"],\
           ["@mdx-js/react", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:3.1.0"],\
@@ -370,6 +375,7 @@ const RAW_RUNTIME_STATE =
           ["@types/jest", "npm:29.5.14"],\
           ["@types/node", "npm:18.19.76"],\
           ["@types/react", "npm:18.3.20"],\
+          ["@types/shelljs", "npm:0.8.15"],\
           ["@typescript-eslint/parser", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:8.30.1"],\
           ["emotion", "npm:11.0.0"],\
           ["emotion-server", "npm:11.0.0"],\
@@ -386,9 +392,11 @@ const RAW_RUNTIME_STATE =
           ["prettier", "npm:3.5.2"],\
           ["prism-react-renderer", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:2.4.1"],\
           ["react", "npm:18.3.1"],\
+          ["shelljs", "npm:0.8.5"],\
           ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
           ["ts-node", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:10.9.1"],\
           ["tslib", "npm:2.8.1"],\
+          ["tsx", "npm:4.22.4"],\
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"],\
           ["typescript-eslint", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:8.30.1"]\
         ],\
