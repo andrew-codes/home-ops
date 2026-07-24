@@ -53,22 +53,22 @@ spec:
   prune: true
   wait: true
   timeout: 5m0s
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: playnite-web
-  namespace: default
-spec:
-  dependsOn:
-    - name: nfs-provisioner
-    - name: sealed-secrets
-    - name: mqtt
-  interval: 10m0s
-  sourceRef:
-    kind: GitRepository
-    name: default
-  path: ./deployments/staging/playnite-web
-  prune: true
-  wait: true
-  timeout: 5m0s
+# ---
+# apiVersion: kustomize.toolkit.fluxcd.io/v1
+# kind: Kustomization
+# metadata:
+#   name: playnite-web
+#   namespace: default
+# spec:
+#   dependsOn:
+#     - name: nfs-provisioner
+#     - name: sealed-secrets
+#     - name: mqtt
+#   interval: 10m0s
+#   sourceRef:
+#     kind: GitRepository
+#     name: default
+#   path: ./deployments/staging/playnite-web
+#   prune: true
+#   wait: true
+#   timeout: 5m0s

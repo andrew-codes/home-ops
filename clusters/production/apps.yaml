@@ -108,23 +108,23 @@ spec:
   prune: true
   wait: true
   timeout: 5m0s
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: music-assistant
-  namespace: default
-spec:
-  dependsOn:
-    - name: nfs-provisioner
-  interval: 10m0s
-  sourceRef:
-    kind: GitRepository
-    name: default
-  path: ./deployments/production/music-assistant
-  prune: true
-  wait: true
-  timeout: 5m0s
+# ---
+# apiVersion: kustomize.toolkit.fluxcd.io/v1
+# kind: Kustomization
+# metadata:
+#   name: music-assistant
+#   namespace: default
+# spec:
+#   dependsOn:
+#     - name: nfs-provisioner
+#   interval: 10m0s
+#   sourceRef:
+#     kind: GitRepository
+#     name: default
+#   path: ./deployments/production/music-assistant
+#   prune: true
+#   wait: true
+#   timeout: 5m0s
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -181,82 +181,82 @@ spec:
   prune: true
   wait: true
   timeout: 5m0s
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: alexa
-  namespace: default
-spec:
-  dependsOn:
-    - name: nfs-provisioner
-    - name: sealed-secrets
-    - name: secrets
-  interval: 10m0s
-  sourceRef:
-    kind: GitRepository
-    name: default
-  path: ./deployments/production/alexa
-  prune: true
-  wait: true
-  timeout: 5m0s
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: home-assistant-version-control
-  namespace: default
-spec:
-  dependsOn:
-    - name: nfs-provisioner
-    - name: home-assistant
-    - name: sealed-secrets
-    - name: secrets
-  interval: 10m0s
-  sourceRef:
-    kind: GitRepository
-    name: default
-  path: ./deployments/production/home-assistant-version-control
-  prune: true
-  wait: true
-  timeout: 5m0s
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: home-assistant-automation-editor
-  namespace: default
-spec:
-  dependsOn:
-    - name: home-assistant
-    - name: nfs-provisioner
-    - name: sealed-secrets
-    - name: secrets
-  interval: 10m0s
-  sourceRef:
-    kind: GitRepository
-    name: default
-  path: ./deployments/production/home-assistant-automation-editor
-  prune: true
-  wait: true
-  timeout: 5m0s
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata:
-  name: voice-agent
-  namespace: default
-spec:
-  dependsOn:
-    - name: home-assistant
-    - name: sealed-secrets
-    - name: secrets
-  interval: 10m0s
-  sourceRef:
-    kind: GitRepository
-    name: default
-  path: ./deployments/production/voice-agent
-  prune: true
-  wait: true
-  timeout: 5m0s
+# ---
+# apiVersion: kustomize.toolkit.fluxcd.io/v1
+# kind: Kustomization
+# metadata:
+#   name: alexa
+#   namespace: default
+# spec:
+#   dependsOn:
+#     - name: nfs-provisioner
+#     - name: sealed-secrets
+#     - name: secrets
+#   interval: 10m0s
+#   sourceRef:
+#     kind: GitRepository
+#     name: default
+#   path: ./deployments/production/alexa
+#   prune: true
+#   wait: true
+#   timeout: 5m0s
+# ---
+# apiVersion: kustomize.toolkit.fluxcd.io/v1
+# kind: Kustomization
+# metadata:
+#   name: home-assistant-version-control
+#   namespace: default
+# spec:
+#   dependsOn:
+#     - name: nfs-provisioner
+#     - name: home-assistant
+#     - name: sealed-secrets
+#     - name: secrets
+#   interval: 10m0s
+#   sourceRef:
+#     kind: GitRepository
+#     name: default
+#   path: ./deployments/production/home-assistant-version-control
+#   prune: true
+#   wait: true
+#   timeout: 5m0s
+# ---
+# apiVersion: kustomize.toolkit.fluxcd.io/v1
+# kind: Kustomization
+# metadata:
+#   name: home-assistant-automation-editor
+#   namespace: default
+# spec:
+#   dependsOn:
+#     - name: home-assistant
+#     - name: nfs-provisioner
+#     - name: sealed-secrets
+#     - name: secrets
+#   interval: 10m0s
+#   sourceRef:
+#     kind: GitRepository
+#     name: default
+#   path: ./deployments/production/home-assistant-automation-editor
+#   prune: true
+#   wait: true
+#   timeout: 5m0s
+# ---
+# apiVersion: kustomize.toolkit.fluxcd.io/v1
+# kind: Kustomization
+# metadata:
+#   name: voice-agent
+#   namespace: default
+# spec:
+#   dependsOn:
+#     - name: home-assistant
+#     - name: sealed-secrets
+#     - name: secrets
+#   interval: 10m0s
+#   sourceRef:
+#     kind: GitRepository
+#     name: default
+#   path: ./deployments/production/voice-agent
+#   prune: true
+#   wait: true
+#   timeout: 5m0s
 ---
