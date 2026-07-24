@@ -70,6 +70,7 @@ const sealedSecretNames = [
   "home-assistant/automation-editor-supervisor-token",
   "home-assistant/version-control-supervisor-token",
   "homebox-oidc/issuer-url",
+  "homebox/api-key-pepper",
   "home-assistant/ssh-key-private",
   "voice-agent/home-assistant-token",
   "voice-agent/anthropic-api-key",
