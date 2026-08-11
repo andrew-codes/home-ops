@@ -112,7 +112,7 @@ workflow (`git pull`, re-run).
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `pre-deploy` | Prepares both ends of a deploy: installs the Mac-side Ansible prerequisites, and prints and verifies the Windows-side ones. See above. |
 | `deploy`     | Runs [`scripts/deploy.yml`](scripts/deploy.yml) against the machine over SSH.                                                          |
-| `publish`    | Packages `src/` as a GitHub Release for the machine's own self-update task. Unrelated to deploying; see below.                         |
+| `publish`    | Packages `src/` as a GitHub Release for the machine's own self-update task. Unrelated to deploying; see [below](#the-publish-target).  |
 
 `deploy` is deliberately excluded from `yarn deploy/all`
 (`--exclude=andrew-mbp,dorri-mbp,gaming-pc` in the root `package.json`, which
@@ -176,8 +176,10 @@ therefore no longer enabled on the machine - this reasoning no longer holds.
 Before changing the deploy transport further at that point, exercise the
 playbook against a throwaway Windows host first.
 
-## Other targets
+## The `publish` target
 
-`yarn nx publish gaming-pc` is unrelated to deploying. It packages the
-PowerShell scripts in `src/` as a GitHub release, which the machine's own
-`Update-Gaming-PC` scheduled task downloads to update itself.
+`yarn nx publish gaming-pc` packages the PowerShell scripts in `src/` as a
+GitHub release, which the machine's own `Update-Gaming-PC` scheduled task
+downloads to update itself. It is the machine's self-update path and is not part
+of deploying: nothing in the `deploy` target invokes it, which is why `deploy`
+pins its own `dependsOn` above.
