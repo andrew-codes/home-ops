@@ -151,6 +151,30 @@ case "$out" in
   *) fail "reconfigures when user@host and share come from different destinations" "$out" ;;
 esac
 
+# The host is bounded as well as the share: a different host whose name merely
+# starts with NAS_HOST is a stale destination, not a configured one.
+harness 'echo "URL           : smb://tmuser@nas-011/backup"' > "$WORK/prefix-host.sh"
+out="$(NAS_HOST=nas-01 NAS_USERNAME=tmuser NAS_PASSWORD="$SENTINEL" bash "$WORK/prefix-host.sh" 2>&1)"
+case "$out" in
+  *"configuring destination"*) ok "reconfigures when the configured host merely starts with NAS_HOST" ;;
+  *) fail "reconfigures when the configured host merely starts with NAS_HOST" "stale destination kept: $out" ;;
+esac
+
+harness 'echo "URL           : smb://tmuser@192.168.1.50/backup"' > "$WORK/prefix-ip.sh"
+out="$(NAS_HOST=192.168.1.5 NAS_USERNAME=tmuser NAS_PASSWORD="$SENTINEL" bash "$WORK/prefix-ip.sh" 2>&1)"
+case "$out" in
+  *"configuring destination"*) ok "reconfigures when the configured IP merely starts with NAS_HOST" ;;
+  *) fail "reconfigures when the configured IP merely starts with NAS_HOST" "stale destination kept: $out" ;;
+esac
+
+# Bounding the host must not cost the plain, non-Bonjour form.
+harness 'echo "URL           : smb://tmuser@nas-01/backup"' > "$WORK/plain-host.sh"
+out="$(NAS_HOST=nas-01 NAS_USERNAME=tmuser NAS_PASSWORD="$SENTINEL" bash "$WORK/plain-host.sh" 2>&1)"
+case "$out" in
+  *"already configured"*) ok "skips when the destination already matches (plain host)" ;;
+  *) fail "skips when the destination already matches (plain host)" "$out" ;;
+esac
+
 echo
 echo "== the password never leaks, even under xtrace"
 out="$(NAS_HOST=nas-01 NAS_USERNAME=tmuser NAS_PASSWORD="$SENTINEL" bash -x "$WORK/none.sh" 2>&1)"
@@ -166,7 +190,11 @@ if ! command -v expect >/dev/null 2>&1; then
 else
   cat > "$WORK/fake-tmutil" <<'FAKE'
 #!/bin/bash
-# Mimics tmutil's getpass prompt: echo off, prompt, read one line.
+# Mimics tmutil's getpass prompt: echo off, prompt, read one line. Records its
+# own argv first, one argument per line, so the tests can assert the command
+# form and not merely the branch that led here.
+: > "$FAKE_TMUTIL_ARGV"
+for a in "$@"; do printf '%s\n' "$a" >> "$FAKE_TMUTIL_ARGV"; done
 stty -echo 2>/dev/null
 printf 'Destination password: '
 IFS= read -r pw
@@ -176,6 +204,7 @@ printf '\n'
 exit 9
 FAKE
   chmod +x "$WORK/fake-tmutil"
+  export FAKE_TMUTIL_ARGV="$WORK/tmutil-argv"
   sed "s|/usr/bin/tmutil|$WORK/fake-tmutil|" \
     "$SRC_DIR/set-time-machine-destination.tcl" > "$WORK/script.tcl"
 
@@ -187,6 +216,21 @@ FAKE
   case "$out" in
     *"$SENTINEL"*) fail "never echoes the password" "leaked: $out" ;;
     *) ok "never echoes the password" ;;
+  esac
+
+  # The destination list must be REPLACED, not appended to: `tmutil
+  # setdestination -a` leaves a superseded destination in the rotation, so a
+  # moved NAS would keep receiving backups. Assert the argv itself, so
+  # reintroducing -a fails here rather than shipping silently.
+  argv="$(cat "$FAKE_TMUTIL_ARGV")"
+  check "invokes setdestination with the -p prompt and the given URL" \
+    "setdestination
+-p
+smb://tmuser@nas-01/backup" "$argv"
+  case "$argv" in
+    *$'\n'-a*) fail "never passes -a, which appends instead of replacing" "argv: $argv" ;;
+    -a*) fail "never passes -a, which appends instead of replacing" "argv: $argv" ;;
+    *) ok "never passes -a, which appends instead of replacing" ;;
   esac
 
   printf '%s\n' "the-wrong-password" \

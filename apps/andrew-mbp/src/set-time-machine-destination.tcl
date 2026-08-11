@@ -36,7 +36,14 @@ if {[gets stdin password] < 0} {
     exit 2
 }
 
-spawn /usr/bin/tmutil setdestination -a -p $url
+# No -a. Per `man tmutil`, without -a the current destination list is REPLACED
+# by this URL rather than appended to, so the NAS becomes the one and only
+# Time Machine destination. Appending would leave a superseded destination in
+# the list for Time Machine to keep choosing from, which is the stale-backup
+# failure the caller's idempotency check exists to prevent. The cost is that
+# any other destination configured on this machine, a local backup disk
+# included, is dropped; that is deliberate and documented in the README.
+spawn /usr/bin/tmutil setdestination -p $url
 
 # Match tmutil's exact prompt string, taken from the binary itself, rather than
 # a loose /password/ pattern that could also match an unexpected sudo prompt

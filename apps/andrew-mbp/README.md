@@ -88,6 +88,8 @@ These cannot be automated away, and are not faked:
 
 Backs up to the NAS share at `/Volume1/backup` over SMB, automatically, every hour, on battery as well as mains.
 
+> **The NAS becomes the _only_ Time Machine destination.** Configuring the destination **replaces** the destination list rather than adding to it, so any other destination already set on this machine - a local backup disk, an older NAS - is removed. That is deliberate: appending would leave a superseded destination in the rotation and Time Machine would go on choosing it, which is exactly the silent stale-backup failure this step exists to prevent. If you want a second destination, add it back by hand after the setup, and expect the next run to remove it again.
+
 ### Configuration
 
 | Variable       | Required                 | Meaning                              |
@@ -136,7 +138,7 @@ Every key written here was read off a live macOS 26.5.2 system (`defaults read /
 
 The configuration has **never been applied on a machine** - see [AGENTS.md](AGENTS.md). The real `tmutil` calls were deliberately not executed.
 
-What _is_ covered is committed and repeatable, in [`tests/time-machine-step.test.sh`](tests/time-machine-step.test.sh) (`nx run andrew-mbp:test`): the `NAS_*` validation failing closed before anything changes, the idempotency check reconfiguring on a changed host or user rather than keeping a stale destination, the password never appearing under `bash -x`, and the expect script's prompt handling, guards and exit-code propagation - all against stubs and a fake `tmutil`. It skips on anything but Apple Silicon macOS, so CI reports a skip rather than a false pass.
+What _is_ covered is committed and repeatable, in [`tests/time-machine-step.test.sh`](tests/time-machine-step.test.sh) (`nx run andrew-mbp:test`): the `NAS_*` validation failing closed before anything changes, the idempotency check reconfiguring on a changed host, user or share rather than keeping a stale destination, the destination list being replaced rather than appended to (`-a` is asserted absent, so reintroducing it fails the tests), the password never appearing under `bash -x`, and the expect script's prompt handling, guards and exit-code propagation - all against stubs and a fake `tmutil`. It skips on anything but Apple Silicon macOS, so CI reports a skip rather than a false pass.
 
 ### Re-running and `devtools-rebuild`
 
@@ -190,6 +192,8 @@ If devtools already installs the app, add it in neither place - devtools owns it
 | -------- | --------------------------------------------------------------------------------------------------------------------- |
 | `deploy` | Runs `src/setup.sh` against this machine, inheriting the environment so the `NAS_*` variables reach it.               |
 | `test`   | Runs [`tests/time-machine-step.test.sh`](tests/time-machine-step.test.sh); skips on anything but Apple Silicon macOS. |
+
+`deploy` is deliberately excluded from `yarn deploy/all` (`--exclude=andrew-mbp` in the root `package.json`), because setting up a machine is a one-at-a-time interactive action - `darwin-rebuild switch`, `mas` and `sudo tmutil` all prompt - rather than a fleet deploy, and it exits non-zero anywhere that is not an Apple Silicon Mac with the `NAS_*` variables set. Keep the exclusion; JSON cannot carry the comment, which is why it is recorded here.
 
 There is no `provision` target. Provisioning a laptop means unboxing it; this configuration only has a deployment phase.
 

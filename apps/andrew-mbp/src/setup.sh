@@ -261,17 +261,31 @@ esac
 # user@host from one and the share from another and skip on a match that exists
 # nowhere.
 #
+# The host is bounded too. The only suffix worth tolerating is the Bonjour
+# form, which always starts with a dot, so the suffix is optional and must
+# begin with one: NAS_HOST=nas-01 then matches nas-01 and
+# nas-01._smb._tcp.local. but not a different host called nas-011, and
+# NAS_HOST=192.168.1.5 does not match a stale 192.168.1.50.
+#
 # The NAS_* values are user-supplied, so escape any regex metacharacters in
 # them before they are interpolated into an extended regular expression.
 tm_re_escape() { printf '%s' "$1" | sed 's#[][^$.*+?(){}|\\/]#\\&#g'; }
 tm_pattern="$(tm_re_escape "$NAS_USERNAME")@$(tm_re_escape "$NAS_HOST")"
-tm_pattern="$tm_pattern"'[^/[:space:]]*/'"$(tm_re_escape "$NAS_SHARE")"'([[:space:]]|$)'
+tm_pattern="$tm_pattern"'(\.[^/[:space:]]*)?/'"$(tm_re_escape "$NAS_SHARE")"'([[:space:]]|$)'
 
 tm_existing="$(tmutil destinationinfo 2>/dev/null || true)"
 if printf '%s\n' "$tm_existing" | grep -qE "$tm_pattern"; then
   echo "    destination already configured, leaving it alone"
 else
   echo "    configuring destination smb://${NAS_USERNAME}@${NAS_HOST}/${NAS_SHARE}"
+  echo "    (this REPLACES the destination list; the NAS becomes the only one)"
+  # The helper below calls `tmutil setdestination` without -a, which replaces
+  # the whole destination list rather than appending to it. Appending would
+  # leave a superseded destination in the list for Time Machine to keep
+  # choosing from, so a moved NAS would go on receiving backups - the silent
+  # stale-destination failure the check above exists to prevent. Any other
+  # destination, a local backup disk included, is dropped; see the README.
+  #
   # Resolve expect BEFORE the pipeline below, never inside it. A command
   # substitution inside that pipeline would inherit the password pipe as its
   # own stdin, handing it to `nix build` and everything nix spawns, and its
