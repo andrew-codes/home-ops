@@ -101,6 +101,24 @@ two tasks deserve care when editing:
   This is safe because Win32-OpenSSH does not terminate established sessions
   when the service restarts.
 
+### Why that risk was accepted, and when it expires
+
+The SSH transport and the four tasks that configure it were verified without
+touching a real machine (syntax check, `--check --diff` against an unroutable
+RFC 5737 address, and `ansible-doc` parameter checks), so the first real
+provisioning run is also the first *runtime* execution of those tasks. That was
+accepted because a failure is recoverable rather than a lockout:
+
+- **WinRM is still enabled on the gaming PC**, because `apps/backups` deploys to
+  it over WinRM on port 5986. A provisioning run that breaks SSH still leaves a
+  working way in.
+- The machine is physically accessible.
+
+**Expiry condition:** if `apps/backups` ever stops using WinRM - and WinRM is
+therefore no longer enabled on the machine - this reasoning no longer holds.
+Before changing the provisioning transport further at that point, exercise the
+playbook against a throwaway Windows host first.
+
 ## Other targets
 
 `yarn nx publish gaming-pc` is unrelated to provisioning. It packages the

@@ -11,7 +11,10 @@ inventory that `scripts/provision.ts` generates, never in `scripts/provision.yml
 
 WinRM is still enabled on the machine: it is a backup target, and `apps/backups`
 deploys to the Windows hosts it targets over WinRM on port 5986. Only the
-provisioning prerequisite dropped WinRM.
+provisioning prerequisite dropped WinRM. That WinRM path is also the recovery
+route if an SSH change locks provisioning out - see "Why that risk was accepted,
+and when it expires" in [README.md](README.md), including the condition under
+which a live test against a throwaway Windows host becomes required.
 
 Two values must stay in step, or every task fails to connect:
 
