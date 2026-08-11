@@ -1,0 +1,18 @@
+# Coverage is uploaded as one report per Nx project; `yarn test/coverage/all`
+# runs 27 `code-coverage` targets that each upload their own lcov file from the
+# same CI job. Codecov recomputes the project status every time one of those
+# uploads lands, so while the run is still uploading the accumulated total sits
+# far below the base commit's total and codecov/project fails, then flips to
+# success once the remaining uploads arrive. That race makes the check
+# non-deterministic on pull requests even when coverage is unchanged.
+#
+# Keep publishing the coverage report and the delta, but stop the partial
+# report window from failing the pull request.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+        informational: true
+        if_not_found: success
