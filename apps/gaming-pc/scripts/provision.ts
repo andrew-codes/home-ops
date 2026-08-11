@@ -20,25 +20,32 @@ const run = async (
 
   await fs.mkdir(path.join(__dirname, "..", ".secrets"), { recursive: true })
 
+  // Transport lives here, not in the playbook, so the playbook stays connection
+  // agnostic. Ansible reaches Windows over the OpenSSH server that ships with
+  // Windows; ansible_shell_type must match the host's DefaultShell registry
+  // value, which the playbook pins to powershell.exe.
   await fs.writeFile(
     path.join(__dirname, "..", ".secrets", "hosts.yml"),
     `all:
   vars:
     ansible_user: ${username}
-    ansible_password: ${password}
-    ansible_winrm_server_cert_validation: ignore
-    ansible_port: 5986
-    ansible_winrm_transport: ntlm
+    ansible_connection: ssh
+    ansible_shell_type: powershell
+    ansible_port: 22
   hosts:
     ${ip}:
 `,
     "utf8",
   )
+  // The Windows account password is no longer the transport credential, but the
+  // playbook still needs it to elevate (become/runas) and to configure
+  // auto-login, so it is passed as a plain play variable.
   await fs.writeFile(
     path.join(__dirname, "..", ".secrets", "ansible-secrets.yml"),
     `---
 user: ${user.replace(/ /g, "/ ")}
 andrew_password: ${andrewPassword}
+windows_password: ${password}
 `,
     "utf8",
   )
@@ -56,7 +63,7 @@ ${devSshPub}`,
         "..",
         ".secrets",
         "hosts.yml",
-      )} --extra-vars "ansible_become_pass='${password}'";`,
+      )};`,
       { silent: false },
     ),
   )
