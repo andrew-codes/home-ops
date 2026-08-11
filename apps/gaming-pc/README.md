@@ -178,7 +178,7 @@ playbook prints. If they warn, install those three from the Store by hand once;
 | Hibernation off                           | `powercfg /hibernate off`                                       |
 | Sleep off                                 | `standby-timeout` 0 on AC and DC                               |
 | Automatic sign-in, including after wake   | `AutoAdminLogon`, plus no password required on wake            |
-| Wake-on-LAN                               | Magic packet only, NIC power-down disabled                     |
+| Wake-on-LAN                               | Magic packet only, armed with `powercfg /deviceenablewake`; the device power-down checkbox is left at the Windows default |
 | OS notifications off                      | `ToastEnabled`, notification centre and toast policies         |
 | Dark mode                                 | `AppsUseLightTheme` / `SystemUsesLightTheme`                   |
 | All desktop icons hidden                  | `HideIcons`                                                     |

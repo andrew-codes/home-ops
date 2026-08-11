@@ -129,6 +129,12 @@ function Remove-DiscordLeftovers {
     #>
     $removedSomething = $false
 
+    # A running Discord keeps its own files locked, which is the one failure
+    # mode that would otherwise make this step fail on a machine where the
+    # captain simply had it open - including the uninstaller below, which
+    # cannot replace its own locked files.
+    Get-Process -Name 'Discord*' -ErrorAction SilentlyContinue | Stop-Process -Force
+
     $updateExe = Join-Path $env:LOCALAPPDATA 'Discord\Update.exe'
     if (Test-Path $updateExe) {
         Write-Log '  Discord: running the Squirrel uninstaller...'
@@ -139,11 +145,6 @@ function Remove-DiscordLeftovers {
         }
         $removedSomething = $true
     }
-
-    # A running Discord keeps its own files locked, which is the one failure
-    # mode that would otherwise make this step fail on a machine where the
-    # captain simply had it open.
-    Get-Process -Name 'Discord*' -ErrorAction SilentlyContinue | Stop-Process -Force
 
     foreach ($directory in @(
             (Join-Path $env:LOCALAPPDATA 'Discord'),

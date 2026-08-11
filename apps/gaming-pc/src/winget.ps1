@@ -180,7 +180,20 @@ function Install-WingetPackage {
     $result = Invoke-Winget $arguments
 
     if (-not (Test-WingetSuccess -ExitCode $result.ExitCode)) {
-        throw "winget install of $Name ($Id) failed with exit code $($result.ExitCode).`n$($result.Output)"
+        # Name the source and the scope that were asked for: the likeliest
+        # cause of an unrecognised code is a manifest that no longer publishes
+        # an installer matching them, and a bare code does not say that.
+        throw "winget install of $Name ($Id) from source '$Source' with scope '$Scope' failed with exit code $($result.ExitCode).`n$($result.Output)"
+    }
+
+    # winget reporting the package as already installed, or as having no
+    # applicable update, is a genuine no-op - Test-WingetPackageInstalled
+    # cannot see an installed MSIX by its Store product id, so this is the
+    # path the msstore entries take on every deploy after the first.
+    if ($result.ExitCode -eq $script:WingetPackageAlreadyInstalled -or
+        $result.ExitCode -eq $script:WingetNoApplicableUpdate) {
+        Write-Log "  $Name ($Id): already installed"
+        return 'Present'
     }
 
     if ($script:WingetRebootRequiredCodes -contains $result.ExitCode) {

@@ -208,19 +208,18 @@
             }
 
             # Wake only on a magic packet, not on pattern match, which avoids
-            # waking on ordinary broadcast traffic. AllowComputerToTurnOffDevice
-            # is the "allow the computer to turn off this device to save power"
-            # checkbox: left on, Windows powers the NIC down and the magic
-            # packet never arrives.
+            # waking on ordinary broadcast traffic. The deploy does not manage
+            # the "allow the computer to turn off this device to save power"
+            # checkbox: it is left at the Windows default, which is the state
+            # Wake-on-LAN needs. What the deploy does assert is wake on magic
+            # packet here, plus arming the device to wake via powercfg below.
             $wanted = $power.WakeOnMagicPacket -ne 'Enabled' -or
-              $power.WakeOnPattern -ne 'Disabled' -or
-              $power.AllowComputerToTurnOffDevice -ne 'Disabled'
+              $power.WakeOnPattern -ne 'Disabled'
             if ($wanted) {
               $changed = $true
               if (-not $Ansible.CheckMode) {
                 Set-NetAdapterPowerManagement -Name $adapter.Name `
-                  -WakeOnMagicPacket Enabled -WakeOnPattern Disabled `
-                  -AllowComputerToTurnOffDevice Disabled
+                  -WakeOnMagicPacket Enabled -WakeOnPattern Disabled
               }
             }
 
@@ -811,6 +810,14 @@
         pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\software.ps1" -Phase User
       register: software_user
       changed_when: "'changed=0 ' not in software_user.stdout"
+
+    # Microsoft Store installs are deliberately non-fatal, so a failure leaves
+    # the task green and Ansible hides win_shell stdout on a green task. Print
+    # it when the run recorded any warning, so a failed Store app is visible.
+    - name: Show the user-scope software output when it recorded warnings
+      ansible.builtin.debug:
+        var: software_user.stdout_lines
+      when: "'warnings=0' not in software_user.stdout"
 
     # Zed registers itself as *a* handler for these types when winget installs
     # it; this policy is what makes it the default. Windows applies it at user

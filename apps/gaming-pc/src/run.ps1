@@ -108,6 +108,14 @@ function UpdateNVIDIADriver {
             }
         }
         else {
+            # nvidia-smi.exe is not in the DriverStore for every driver package,
+            # so fall back to the signed display driver Windows has registered.
+            # DeviceClass, Manufacturer and DriverVersion are documented
+            # properties of Win32_PnPSignedDriver.
+            $CurrentDriver = Get-CimInstance -ClassName Win32_PnPSignedDriver -ErrorAction SilentlyContinue |
+                Where-Object { $_.DeviceClass -eq 'DISPLAY' -and $_.Manufacturer -match 'NVIDIA' } |
+                Select-Object -First 1
+
             if ($CurrentDriver -and $CurrentDriver.DriverVersion) {
                 [System.Version]$ver = $CurrentDriver.DriverVersion
                 $CurrentVersion = ("{0}{1}" -f $ver.Build, $ver.Revision)
@@ -271,9 +279,21 @@ function UpdateNVIDIADriver {
                     $InstallArgs = if ($Clean) { "-passive -clean -noeula -nofinish" } else { "-passive -noeula -nofinish" }
                     Write-Log "Installing driver..."
 
-                    Start-Process -FilePath (Join-Path $ExtractedPath 'setup.exe') -ArgumentList $InstallArgs -Wait
-                    
-                    Write-Log "Installation complete!"
+                    $setup = Start-Process -FilePath (Join-Path $ExtractedPath 'setup.exe') `
+                        -ArgumentList $InstallArgs -Wait -PassThru
+
+                    # 3010 and 1641 are the documented Windows installer
+                    # "success, reboot required" codes; anything else non-zero
+                    # is a real failure and must not pass for a green deploy.
+                    if ($setup.ExitCode -eq 0) {
+                        Write-Log "Installation complete!"
+                    }
+                    elseif (@(3010, 1641) -contains $setup.ExitCode) {
+                        Write-Log "Installation complete; the machine needs a reboot to finish (exit code $($setup.ExitCode))."
+                    }
+                    else {
+                        throw "NVIDIA driver setup failed with exit code: $($setup.ExitCode)"
+                    }
 
                     #
                     # TODO: CLEANUP THE FILES! :D
