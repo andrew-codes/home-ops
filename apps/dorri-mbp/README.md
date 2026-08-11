@@ -255,7 +255,7 @@ curl -s https://formulae.brew.sh/api/cask/<token>.json | head
 | `deploy` | Runs `src/setup.sh` against this machine, inheriting the environment so the `ADMIN_*` variables reach it. |
 | `test`   | Runs [`tests/setup.test.sh`](tests/setup.test.sh); skips on anything but Apple Silicon macOS.             |
 
-`deploy` is deliberately excluded from `yarn deploy/all` (`--exclude=andrew-mbp,dorri-mbp` in the root `package.json`), because setting up a machine is a one-at-a-time interactive action - `darwin-rebuild switch`, `sudo` and account creation all prompt - rather than a fleet deploy, and it exits non-zero anywhere that is not an Apple Silicon Mac with the `ADMIN_*` variables set. Keep the exclusion; JSON cannot carry the comment, which is why it is recorded here.
+`deploy` is deliberately excluded from `yarn deploy/all` (`--exclude=andrew-mbp,dorri-mbp,gaming-pc` in the root `package.json`, which also excludes [`apps/andrew-mbp`](../andrew-mbp) and [`apps/gaming-pc`](../gaming-pc) for the same reason), because setting up a machine is a one-at-a-time interactive action - `darwin-rebuild switch`, `sudo` and account creation all prompt - rather than a fleet deploy, and it exits non-zero anywhere that is not an Apple Silicon Mac with the `ADMIN_*` variables set. Keep the exclusion; JSON cannot carry the comment, which is why it is recorded here.
 
 There is no `provision` target. Provisioning a laptop means unboxing it; this configuration only has a deployment phase.
 

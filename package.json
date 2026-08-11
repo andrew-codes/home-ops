@@ -18,7 +18,7 @@
     "compile": "nx run-many --target=compile --parallel --projects",
     "compile/all": "nx run-many --target=compile --parallel --all",
     "manual-deploy": "nx run manual-deployment:deploy --skip-nx-cache --target-projects",
-    "deploy/all": "nx run-many --target=deploy --parallel --all --exclude=andrew-mbp,dorri-mbp",
+    "deploy/all": "nx run-many --target=deploy --parallel --all --exclude=andrew-mbp,dorri-mbp,gaming-pc",
     "initialize-secrets": "nx run-many --target=initialize-secrets --parallel --all",
     "provision": "nx run-many --target=provision --projects",
     "start": "nx run-many --target=serve --parallel --verbose --projects",

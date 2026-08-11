@@ -4,11 +4,19 @@
   "sourceRoot": "apps/gaming-pc",
   "projectType": "application",
   "targets": {
-    "provision": {
+    "pre-deploy": {
       "executor": "@ha/nx-executors:invoke",
       "options": {
         "cwd": "{projectRoot}",
-        "module": "scripts/provision.ts"
+        "module": "scripts/pre-deploy.ts"
+      }
+    },
+    "deploy": {
+      "executor": "@ha/nx-executors:invoke",
+      "dependsOn": ["^prepare", "prepare", "^deploy"],
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/deploy.ts"
       }
     },
     "publish": {
