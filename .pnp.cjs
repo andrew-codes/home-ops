@@ -19,6 +19,10 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/alexa"\
     },\
     {\
+      "name": "@ha/andrew-mbp",\
+      "reference": "workspace:apps/andrew-mbp"\
+    },\
+    {\
       "name": "@ha/backups",\
       "reference": "workspace:apps/backups"\
     },\
@@ -217,6 +221,7 @@ const RAW_RUNTIME_STATE =
   "fallbackExclusionList": [\
     ["@andrew-codes/home-ops", ["workspace:."]],\
     ["@ha/alexa", ["workspace:apps/alexa"]],\
+    ["@ha/andrew-mbp", ["workspace:apps/andrew-mbp"]],\
     ["@ha/ansible", ["workspace:packages/ansible"]],\
     ["@ha/backups", ["workspace:apps/backups"]],\
     ["@ha/build-ts", ["workspace:packages/build-ts"]],\
@@ -4198,6 +4203,17 @@ const RAW_RUNTIME_STATE =
           ["@ha/docker", "workspace:packages/docker"],\
           ["@ha/jsonnet", "workspace:packages/jsonnet"],\
           ["@ha/kubectl", "workspace:packages/kubectl"],\
+          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
+          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
+    ["@ha/andrew-mbp", [\
+      ["workspace:apps/andrew-mbp", {\
+        "packageLocation": "./apps/andrew-mbp/",\
+        "packageDependencies": [\
+          ["@ha/andrew-mbp", "workspace:apps/andrew-mbp"],\
           ["@ha/nx-executors", "workspace:packages/nx-executors"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
         ],\
