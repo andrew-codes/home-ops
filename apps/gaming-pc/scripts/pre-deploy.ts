@@ -158,7 +158,7 @@ New-ItemProperty -Path HKLM:\\SOFTWARE\\OpenSSH -Name DefaultShell \`
 
 # Authorize this Mac's public key. Until the playbook installs its own
 # sshd_config, administrators share one key file.
-$key = '${publicKey.trim()}'
+$key = '${publicKey.trim().replace(/'/g, "''")}'
 $adminKeys = "$env:ProgramData\\ssh\\administrators_authorized_keys"
 if (-not (Select-String -Path $adminKeys -SimpleMatch $key -ErrorAction SilentlyContinue)) {
   Add-Content -Path $adminKeys -Value $key
@@ -168,7 +168,12 @@ icacls $adminKeys /inheritance:r /grant 'Administrators:F' /grant 'SYSTEM:F'`
 interface Reachability {
   readonly satisfied: boolean
   readonly summary: string
-  readonly remedy?: string
+  readonly remedy: string
+  /**
+   * Whether the paste block is the remedy. It is not when the blocker is on
+   * this Mac rather than on the Windows machine.
+   */
+  readonly needsWindowsBlock: boolean
 }
 
 /**
@@ -197,6 +202,12 @@ const checkWindowsPrerequisites = (
     return {
       satisfied: false,
       summary: "`ssh` is not on PATH, so reachability could not be checked.",
+      remedy:
+        "This one is on the Mac, not on the gaming PC. Restore an SSH client\n" +
+        "on PATH (macOS ships `/usr/bin/ssh`; `brew install openssh` provides\n" +
+        "one too) and re-run this target. Nothing on the gaming PC has been\n" +
+        "checked yet, so nothing about it can be reported.",
+      needsWindowsBlock: false,
     }
   }
 
@@ -216,18 +227,41 @@ const checkWindowsPrerequisites = (
         : `Either the OpenSSH server is not installed or running, or the\n` +
           `machine is off or on a different address than 1Password's\n` +
           `\`gaming-pc/ip\`. Run the whole block below.\n\n${stderr}`,
+      needsWindowsBlock: true,
     }
   }
 
   if (!succeeded(result)) {
+    const stderr = redact(result.stderr).trim()
+    const stdout = redact(result.stdout).trim()
+    // `reg query` says exactly this when the key or the value is absent, which
+    // is the one non-zero status that has a known remedy. Anything else is an
+    // unclassified remote failure and must not be reported as a missing value.
+    const valueMissing =
+      /unable to find the specified registry (key|value)/i.test(
+        `${stderr}\n${stdout}`,
+      )
+    if (valueMissing) {
+      return {
+        satisfied: false,
+        summary:
+          "SSH authenticated, but the DefaultShell registry value is not set.",
+        remedy:
+          "Ansible would land in cmd while the generated inventory declares\n" +
+          "`ansible_shell_type: powershell`, and every task would fail. Run the\n" +
+          "`New-ItemProperty ... DefaultShell` line of the block below.",
+        needsWindowsBlock: true,
+      }
+    }
     return {
       satisfied: false,
-      summary:
-        "SSH authenticated, but the DefaultShell registry value is not set.",
+      summary: `SSH authenticated, but the \`reg query\` command failed with an unclassified error (exit ${result.status}).`,
       remedy:
-        "Ansible would land in cmd while the generated inventory declares\n" +
-        "`ansible_shell_type: powershell`, and every task would fail. Run the\n" +
-        "`New-ItemProperty ... DefaultShell` line of the block below.",
+        "This is not one of the known prerequisite failures, so no specific\n" +
+        "remedy can be given. The remote output follows; investigate it before\n" +
+        "deploying.\n\n" +
+        [stderr, stdout].filter(Boolean).join("\n\n"),
+      needsWindowsBlock: false,
     }
   }
 
@@ -238,6 +272,7 @@ const checkWindowsPrerequisites = (
       remedy:
         "Re-run the `New-ItemProperty ... DefaultShell` line of the block\n" +
         `below so it reads ${POWERSHELL_DEFAULT_SHELL}.`,
+      needsWindowsBlock: true,
     }
   }
 
@@ -245,6 +280,8 @@ const checkWindowsPrerequisites = (
     satisfied: true,
     summary:
       "SSH answers, this Mac's key authenticates, DefaultShell is PowerShell.",
+    remedy: "",
+    needsWindowsBlock: false,
   }
 }
 
@@ -281,6 +318,13 @@ const run = async (
       "\nNothing left to do by hand. Run `yarn nx deploy gaming-pc`.\n",
     )
     return
+  }
+
+  if (!windows.needsWindowsBlock) {
+    console.log(`\n${windows.remedy}\n`)
+    throw new Error(
+      "Windows prerequisites could not be confirmed. Resolve the problem printed above, then re-run `yarn nx pre-deploy gaming-pc`.",
+    )
   }
 
   console.log(
