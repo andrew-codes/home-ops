@@ -5,9 +5,13 @@ transport-sensitive tasks to be careful with when editing `scripts/provision.yml
 
 # Connection Configuration
 
-Ansible reaches the machine over the OpenSSH server built into Windows, not
+Provisioning reaches the machine over the OpenSSH server built into Windows, not
 WinRM. Keep the playbook connection-agnostic: transport settings belong in the
 inventory that `scripts/provision.ts` generates, never in `scripts/provision.yml`.
+
+WinRM is still enabled on the machine: it is a backup target, and `apps/backups`
+deploys to the Windows hosts it targets over WinRM on port 5986. Only the
+provisioning prerequisite dropped WinRM.
 
 Two values must stay in step, or every task fails to connect:
 

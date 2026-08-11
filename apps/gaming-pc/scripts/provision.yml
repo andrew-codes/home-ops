@@ -442,8 +442,10 @@
           if ($capability.State -eq 'Installed') {
             $Ansible.Changed = $false
           } else {
-            Add-WindowsCapability -Online -Name $capability.Name | Out-Null
             $Ansible.Changed = $true
+            if (-not $Ansible.CheckMode) {
+              Add-WindowsCapability -Online -Name $capability.Name | Out-Null
+            }
           }
       become: yes
       become_method: runas
@@ -511,6 +513,28 @@
       vars:
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
+
+    # The profile folder the authorized keys are written to comes from the
+    # 1Password entry `gaming-pc/user`, which is a separate entry from the
+    # `gaming-pc/username` that supplies `ansible_user`. The deployed
+    # `src/sshd_config` authenticates administrators from their own
+    # `%USERPROFILE%\.ssh\authorized_keys`, so keys written to a non-existent
+    # profile would silently lock every later run out of the machine.
+    - name: Locate the Windows profile directory the SSH keys belong to
+      ansible.windows.win_stat:
+        path: C:\Users\{{ user }}
+      register: ssh_profile_directory
+
+    - name: Fail when the SSH key profile directory does not exist
+      ansible.builtin.fail:
+        msg: >-
+          The 1Password entry `gaming-pc/user` resolved to "{{ user }}", but
+          C:\Users\{{ user }} does not exist on this host. Writing
+          authorized_keys there would leave the connecting account without a
+          key and break every subsequent provisioning run. Set `gaming-pc/user`
+          to the Windows profile folder of the account in
+          `gaming-pc/username`.
+      when: not ssh_profile_directory.stat.exists
 
     - name: Ensure .ssh directory exists
       win_file:

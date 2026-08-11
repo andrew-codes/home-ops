@@ -1,3 +1,8 @@
+# WinRM bootstrap for the `apps/backups` flow, which deploys to Windows hosts
+# over WinRM on port 5986. Gaming PC provisioning no longer uses this script: it
+# reaches Windows over the built-in OpenSSH server (see apps/gaming-pc/README.md),
+# so do not run this to set up provisioning.
+
 $username = "Administrator"
 $password = ""
 

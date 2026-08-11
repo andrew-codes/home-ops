@@ -51,9 +51,14 @@ ansible-galaxy collection install ansible.windows
 ansible-galaxy collection install community.windows
 ```
 
-`pywinrm` is no longer required. The Mac authenticates with the private key
-whose public half is `dev/ssh-key/public`, so that key must be loaded in the SSH
-agent or be the default identity.
+`pywinrm` is not required *for provisioning*. The Mac authenticates with the
+private key whose public half is `dev/ssh-key/public`, so that key must be
+loaded in the SSH agent or be the default identity.
+
+Note that WinRM is not gone from the gaming PC. The machine is a backup target,
+and `apps/backups` still reaches the Windows hosts it targets over WinRM on port
+5986 (see `apps/backups/scripts/deploy.ts`), so WinRM must remain enabled there
+and `pywinrm` is still needed to deploy backups.
 
 ## Running
 
@@ -68,11 +73,14 @@ workflow (`git pull`, re-run).
 
 ## Why SSH rather than WinRM
 
-WinRM required downloading and running `ConfigureRemotingForAnsible.ps1` from
-the internet on every fresh machine, which set up a self-signed certificate, an
-HTTPS listener on port 5986, and a firewall rule. The OpenSSH server is already
-part of Windows, so the prerequisite is now four built-in commands and the
-machine ends up with one SSH implementation instead of two.
+Provisioning over WinRM required downloading and running
+`ConfigureRemotingForAnsible.ps1` from the internet on every fresh machine,
+which set up a self-signed certificate, an HTTPS listener on port 5986, and a
+firewall rule. The OpenSSH server is already part of Windows, so the
+provisioning prerequisite is now four built-in commands and the machine ends up
+with one SSH implementation instead of two. `scripts/powershell/setup_ansible_windows.ps1`
+still performs the WinRM bootstrap, but it now belongs to the `apps/backups`
+flow only.
 
 Running Ansible *on* the gaming PC was evaluated and rejected: Ansible cannot
 run on Windows as a control node, so every local option needs WSL, which costs a

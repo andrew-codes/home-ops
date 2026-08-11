@@ -43,9 +43,9 @@ const run = async (
   await fs.writeFile(
     path.join(__dirname, "..", ".secrets", "ansible-secrets.yml"),
     `---
-user: ${user.replace(/ /g, "/ ")}
-andrew_password: ${andrewPassword}
-windows_password: ${password}
+user: ${JSON.stringify(user)}
+andrew_password: ${JSON.stringify(andrewPassword)}
+windows_password: ${JSON.stringify(password)}
 `,
     "utf8",
   )
