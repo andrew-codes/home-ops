@@ -58,7 +58,7 @@ ${devSshPub}`,
 
   await throwIfError(
     sh.exec(
-      `ansible-playbook ${path.join(__dirname, "provision.yml")} -i ${path.join(
+      `ansible-playbook ${path.join(__dirname, "deploy.yml")} -i ${path.join(
         __dirname,
         "..",
         ".secrets",
