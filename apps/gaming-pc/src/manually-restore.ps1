@@ -21,7 +21,7 @@ $DestRoot = "Z:\"
 
 $Sources = @(
     # "C:\Program Files (x86)\Steam\userdata",
-    $env:USERPROFILE,
+    $env:USERPROFILE
 ) | Select-Object -Unique | Where-Object { $_ -and $_ -ne "" }
 
 foreach ($Source in $Sources) {

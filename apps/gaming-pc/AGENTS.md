@@ -30,6 +30,45 @@ and setting that variable makes the SSH connection plugin demand `sshpass`. The
 Windows account password is a plain play variable, `windows_password`, used for
 `become`/`runas` and auto-login.
 
+# Software and Windows settings
+
+The software list is [src/software.ps1](src/software.ps1), not the playbook.
+Add and remove packages there. Prefer winget; the three exceptions and why they
+are exceptions are in [README.md](README.md).
+
+`software.ps1` runs twice, `-Phase Machine` elevated and `-Phase User` not.
+Elevation is per-process, so a package goes in the phase that matches where it
+must install - machine-scope installers elevated, MSIX and per-user installers
+not. Putting one in the wrong phase installs it into the wrong hive.
+
+Every step must be idempotent, and `win_shell` is the usual way that breaks:
+it reports `changed` on every run. Where a setting has no naturally idempotent
+module, use `ansible.windows.win_powershell` and set `$Ansible.Changed` from a
+real comparison, as `Disable sleep and hibernation` and `Auto-hide taskbar` do.
+
+# Validating without the machine
+
+Nothing here can be run against the real gaming PC (see above), so validate
+statically. From the repo root:
+
+```bash
+# Playbook parses and every module name resolves.
+ansible-playbook apps/gaming-pc/scripts/deploy.yml -i <inventory> --syntax-check
+
+# Every PowerShell file parses. Needs pwsh; there is none on the Mac by
+# default, and a standalone build unpacked into a temp directory is enough.
+pwsh -NoProfile -Command '
+  Get-ChildItem apps/gaming-pc/src -Filter *.ps1 | ForEach-Object {
+    $e = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$e)
+    if ($e.Count) { $_.Name; $e | ForEach-Object { $_.Message } }
+  }'
+```
+
+The PowerShell embedded in `deploy.yml` is not covered by either: it is only
+parsed on the target host at run time, so extract the `script:` blocks and parse
+them the same way before trusting a change to them.
+
 # Confluence Sync
 
 When making changes to `scripts/deploy.yml`, update the Confluence page
