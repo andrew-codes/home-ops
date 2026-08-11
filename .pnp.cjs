@@ -31,6 +31,10 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/coder"\
     },\
     {\
+      "name": "@ha/dorri-mbp",\
+      "reference": "workspace:apps/dorri-mbp"\
+    },\
+    {\
       "name": "@ha/gaming-pc",\
       "reference": "workspace:apps/gaming-pc"\
     },\
@@ -235,6 +239,7 @@ const RAW_RUNTIME_STATE =
     ["@ha/delay", ["workspace:packages/delay"]],\
     ["@ha/deployment-utils", ["workspace:packages/deployment-utils"]],\
     ["@ha/docker", ["workspace:packages/docker"]],\
+    ["@ha/dorri-mbp", ["workspace:apps/dorri-mbp"]],\
     ["@ha/env-utils", ["workspace:packages/env-utils"]],\
     ["@ha/fluxcd", ["workspace:packages/fluxcd"]],\
     ["@ha/gaming-pc", ["workspace:apps/gaming-pc"]],\
@@ -4509,6 +4514,17 @@ const RAW_RUNTIME_STATE =
           ["shelljs", "npm:0.8.5"],\
           ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
+    ["@ha/dorri-mbp", [\
+      ["workspace:apps/dorri-mbp", {\
+        "packageLocation": "./apps/dorri-mbp/",\
+        "packageDependencies": [\
+          ["@ha/dorri-mbp", "workspace:apps/dorri-mbp"],\
+          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
+          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
         ],\
         "linkType": "SOFT"\
       }]\
