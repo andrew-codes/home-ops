@@ -2,7 +2,9 @@ This project configures the captain's actual, in-use MacBook Pro. Read [README.m
 
 # Never Deploy From An Agent Session
 
-`nx run andrew-mbp:deploy` mutates the machine the agent is running on: it installs Nix, switches the nix-darwin system generation, installs applications, and changes the default browser. Never run it, and never run `darwin-rebuild switch`, the Nix installer, `brew install`, `mas install`, or `src/setup.sh`.
+`nx run andrew-mbp:deploy` mutates the machine the agent is running on: it installs Nix, switches the nix-darwin system generation, installs applications, changes the default browser, and reconfigures Time Machine. Never run it, and never run `darwin-rebuild switch`, the Nix installer, `brew install`, `mas install`, `sudo tmutil ...`, or `src/setup.sh`.
+
+This machine already has a working Time Machine destination. `tmutil setdestination` would overwrite it, so never invoke it - not even with a bogus URL to "see what happens". Test the Time Machine path against stubs instead: point a copy of `src/set-time-machine-destination.tcl` at a fake `tmutil`, and stub `sudo`/`tmutil` when exercising `setup.sh`'s step 5.
 
 Validate with non-mutating commands only:
 
@@ -12,7 +14,11 @@ cd apps/andrew-mbp/src && nix flake check
 nix eval --json '.#darwinConfigurations.andrew-mbp.config.homebrew.casks' --apply 'cs: map (c: c.name) cs'
 ```
 
-`nix eval` and `nix flake check` evaluate and instantiate derivations without building or activating them, so they are safe.
+`nix eval` and `nix flake check` evaluate and instantiate derivations without building or activating them, so they are safe. `tmutil destinationinfo`, `tmutil isexcluded` and `defaults read /Library/Preferences/com.apple.TimeMachine` are read-only and safe; anything that writes is not.
+
+# Never Print The NAS Password
+
+`NAS_PASSWORD` reaches `setup.sh` through the environment and must never appear on a command line, on disk, or in output - `man tmutil` warns that arguments are world-visible via `ps`. When changing step 5, re-run the leak check: run the step under `bash -x` with a sentinel password and assert the sentinel appears nowhere in stdout or stderr.
 
 # Never Publish A Real Release
 

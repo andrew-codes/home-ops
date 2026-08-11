@@ -17,12 +17,50 @@ DEVTOOLS_DIR="${REPO_HOME:-$HOME/developer/repos}/devtools"
 DEVTOOLS_BRANCH="zsh"
 DEVTOOLS_REMOTE="https://github.com/andrew-codes/devtools.git"
 
+# Time Machine backs up to the NAS over SMB. The share defaults to `backup`,
+# which is what the NAS path /Volume1/backup means in SMB terms: on a Synology,
+# /volume1 is the underlying volume and `backup` is the shared folder, which is
+# what an SMB URL addresses. NAS_SHARE overrides it if that ever stops holding.
+NAS_SHARE="${NAS_SHARE:-backup}"
+
 os_type="$OSTYPE"
 arch_type="$(uname -m)"
 [[ $OSTYPE == darwin* ]] && os_type="macos"
 if [[ $os_type != "macos" || $arch_type != "arm64" ]]; then
   echo "Error: andrew-mbp supports macOS on Apple Silicon only." >&2
   echo "Detected: $os_type / $arch_type" >&2
+  exit 1
+fi
+
+# Validate the NAS credentials up front, before anything has been installed or
+# changed, so a missing variable costs nothing to recover from. Report every
+# missing variable at once rather than failing on the first and making the user
+# re-run three times. Never prompt, never guess a default: the Time Machine
+# step configures a real backup destination, and a wrong guess there fails
+# silently later.
+#
+# Deliberately no arrays: /bin/bash on macOS is still 3.2, and `set -u` with an
+# empty array is an unbound-variable error there.
+missing=""
+[ -n "${NAS_HOST:-}" ] || missing="$missing NAS_HOST"
+[ -n "${NAS_USERNAME:-}" ] || missing="$missing NAS_USERNAME"
+[ -n "${NAS_PASSWORD:-}" ] || missing="$missing NAS_PASSWORD"
+if [ -n "$missing" ]; then
+  echo "Error: Time Machine needs the NAS credentials, but these environment" >&2
+  echo "variables are not set:" >&2
+  for var in $missing; do
+    echo "  - $var" >&2
+  done
+  echo "" >&2
+  echo "Set all three and re-run. Nothing has been changed on this machine." >&2
+  echo "" >&2
+  echo "  NAS_HOST      hostname or IP of the NAS" >&2
+  echo "  NAS_USERNAME  NAS account Time Machine backs up as" >&2
+  echo "  NAS_PASSWORD  that account's password" >&2
+  echo "  NAS_SHARE     optional, defaults to '$NAS_SHARE'" >&2
+  echo "" >&2
+  echo "Keep NAS_PASSWORD out of your shell history - read it from your" >&2
+  echo "password manager, e.g. NAS_PASSWORD=\"\$(op read op://...)\"." >&2
   exit 1
 fi
 
@@ -172,5 +210,71 @@ else
     echo "      System Settings > Desktop & Dock > Default web browser > Dia"
   fi
 fi
+
+echo "==> Step 5: Time Machine backups to the NAS"
+# Every setting below was verified against a live macOS 26.5.2 configuration
+# (`defaults read /Library/Preferences/com.apple.TimeMachine`) rather than
+# recalled, because these keys have moved across releases.
+#
+# tmutil requires root, and also Full Disk Access for the process invoking it -
+# see the README. Failures here are surfaced, never swallowed.
+TM_URL="smb://${NAS_USERNAME}@${NAS_HOST}/${NAS_SHARE}"
+
+# Turn off xtrace for the whole credential path, so running this under
+# `bash -x` cannot dump the password into a terminal or a log.
+tm_xtrace=""
+case "$-" in
+  *x*) tm_xtrace=1; set +x ;;
+esac
+
+# destinationinfo needs no privileges, so re-runs cost nothing when the
+# destination is already set. Matching on user and share rather than on the
+# whole URL is deliberate: macOS reports the host back in its Bonjour form, so
+# a destination set as <host> reads back as <host>._smb._tcp.local. and an
+# exact URL comparison would never match, reconfiguring on every single run.
+tm_existing="$(tmutil destinationinfo 2>/dev/null || true)"
+if printf '%s' "$tm_existing" | grep -qF "${NAS_USERNAME}@" &&
+  printf '%s' "$tm_existing" | grep -qF "/${NAS_SHARE}"; then
+  echo "    destination already configured, leaving it alone"
+else
+  echo "    configuring destination smb://${NAS_USERNAME}@${NAS_HOST}/${NAS_SHARE}"
+  # The password goes over a pipe into expect, which hands it to tmutil's
+  # non-echoing prompt. It is never a command-line argument, so it never
+  # appears in `ps`; it is never written to disk; and tmutil itself stores it
+  # in the system keychain, which is what lets backupd remount the share
+  # unattended after a reboot or a network drop.
+  #
+  # `printf` is a bash builtin, so even this does not fork a process carrying
+  # the password in its arguments. sudo reads its own password from /dev/tty
+  # rather than stdin, so it does not consume the pipe.
+  printf '%s\n' "$NAS_PASSWORD" \
+    | sudo "$(nix_tool expect)/bin/expect" -f \
+      "$SCRIPT_DIR/set-time-machine-destination.tcl" "$TM_URL"
+fi
+
+# Plain `[ -n "$tm_xtrace" ] && set -x` would return non-zero when xtrace was
+# never on, and `set -e` would abort the script on it.
+if [ -n "$tm_xtrace" ]; then
+  set -x
+fi
+
+echo "    enabling automatic hourly backups, on battery as well as AC"
+sudo tmutil enable
+# AutoBackupInterval is in seconds; 3600 is hourly and is Time Machine's own
+# default, set explicitly so the value is declared rather than assumed.
+sudo defaults write /Library/Preferences/com.apple.TimeMachine \
+  AutoBackupInterval -int 3600
+# Without this macOS defers backups until the machine is on mains power.
+sudo defaults write /Library/Preferences/com.apple.TimeMachine \
+  RequiresACPower -bool false
+
+# No exclusions are added here, and none are removed: everything this script
+# configures is included by default, so there is nothing of ours to take back
+# out. macOS enforces its own exclusions (the sealed system volume, swap,
+# caches) which cannot be removed by any tool - see the README. Print the
+# current verdict for a couple of representative paths so the outcome is
+# visible rather than asserted.
+echo "    exclusions (none added by this script; macOS enforces its own):"
+tmutil isexcluded / /Users /System 2>/dev/null | sed 's/^/      /' || true
 
 echo "==> Done."
