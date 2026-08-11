@@ -1,7 +1,6 @@
 ---
 - hosts: all
   gather_facts: yes
-  connection: winrm
   vars_files:
     - ../.secrets/ansible-secrets.yml
 
@@ -12,7 +11,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Configure Windows Update scheduled installs at 3 AM daily
       win_regedit:
@@ -30,7 +29,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Enable automatic login
       win_regedit:
@@ -41,12 +40,12 @@
       loop:
         - { name: AutoAdminLogon, data: "1" }
         - { name: DefaultUserName, data: "{{ ansible_user }}" }
-        - { name: DefaultPassword, data: "{{ ansible_password }}" }
+        - { name: DefaultPassword, data: "{{ windows_password }}" }
       become: yes
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Disable hibernation
       win_shell: |
@@ -59,7 +58,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Do not require password on wake from sleep
       win_regedit:
@@ -74,7 +73,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Enable Wake-on-LAN on wired network adapters
       win_shell: |
@@ -96,7 +95,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Disable notifications
       win_regedit:
@@ -142,7 +141,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Disable taskbar task view and search box
       win_regedit:
@@ -180,7 +179,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Disable Edge password manager
       win_regedit:
@@ -192,7 +191,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Disable UAC
       win_regedit:
@@ -204,7 +203,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure Chocolatey is installed
       win_shell: |
@@ -217,7 +216,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure PowerShell 7 is installed
       win_chocolatey:
@@ -227,7 +226,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Install AudioDeviceCmdlets PowerShell module
       win_shell: |
@@ -236,7 +235,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure Steam is installed
       win_chocolatey:
@@ -246,7 +245,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Set Steam Big Picture as default shell for gaming user
       win_regedit:
@@ -263,7 +262,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure Playnite is not installed
       win_chocolatey:
@@ -273,7 +272,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure Discord is not installed
       win_shell: |
@@ -292,7 +291,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
       ignore_errors: yes
 
     - name: Ensure 7-Zip is installed
@@ -303,7 +302,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure Apollo is installed
       win_chocolatey:
@@ -313,7 +312,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure NVIDIA App is installed
       win_chocolatey:
@@ -323,7 +322,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure 1Password is installed
       win_chocolatey:
@@ -333,7 +332,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure Logi Options+ is installed
       win_chocolatey:
@@ -343,7 +342,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     # - name: Ensure Raycast is installed
     #   win_shell: winget install Raycast --accept-source-agreements --accept-package-agreements --silent --source msstore
@@ -353,7 +352,7 @@
     #   become_method: runas
     #   vars:
     #     ansible_become_user: "{{ ansible_user }}"
-    #     ansible_become_password: "{{ ansible_password }}"
+    #     ansible_become_password: "{{ windows_password }}"
 
     # - name: Ensure Windows HDR Calibration is installed
     #   win_shell: winget install "Windows HDR Calibration" --accept-source-agreements --accept-package-agreements --silent --source msstore
@@ -363,7 +362,7 @@
     #   become_method: runas
     #   vars:
     #     ansible_become_user: "{{ ansible_user }}"
-    #     ansible_become_password: "{{ ansible_password }}"
+    #     ansible_become_password: "{{ windows_password }}"
 
     # - name: Ensure Dolby Access is installed
     #   win_shell: winget install "Dolby Access" --accept-source-agreements --accept-package-agreements --silent --source msstore
@@ -373,7 +372,7 @@
     #   become_method: runas
     #   vars:
     #     ansible_become_user: "{{ ansible_user }}"
-    #     ansible_become_password: "{{ ansible_password }}"
+    #     ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure Tailscale is installed
       win_chocolatey:
@@ -383,7 +382,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure rsync is installed
       win_chocolatey:
@@ -393,7 +392,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure rsync is installed
       win_chocolatey:
@@ -403,7 +402,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     # - name: Ensure node is installed
     #   win_chocolatey:
@@ -424,18 +423,78 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
-    - name: Install the Win32-OpenSSH service
-      win_chocolatey:
-        name: openssh
-        package_params: /SSHServerFeature /AlsoLogToFile
+    # SSH is both the machine's remote access method and Ansible's own
+    # transport, so these tasks re-assert the configuration the connection
+    # depends on. Use the OpenSSH server that ships with Windows: Ansible
+    # officially supports only that implementation, not the upstream build
+    # the Chocolatey `openssh` package installs.
+    - name: Ensure the OpenSSH server that ships with Windows is installed
+      ansible.windows.win_powershell:
+        script: |
+          $ErrorActionPreference = 'Stop'
+          $capability = Get-WindowsCapability -Online -Name 'OpenSSH.Server*' |
+            Select-Object -First 1
+          if (-not $capability) {
+            throw 'OpenSSH.Server is unavailable on this Windows build.'
+          }
+          if ($capability.State -eq 'Installed') {
+            $Ansible.Changed = $false
+          } else {
+            $Ansible.Changed = $true
+            if (-not $Ansible.CheckMode) {
+              Add-WindowsCapability -Online -Name $capability.Name | Out-Null
+            }
+          }
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    # Must stay in step with ansible_shell_type in the generated inventory.
+    - name: Use PowerShell as the default shell for SSH sessions
+      ansible.windows.win_regedit:
+        path: HKLM:\SOFTWARE\OpenSSH
+        name: DefaultShell
+        data: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+        type: string
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    - name: Ensure the sshd service is running and starts on boot
+      ansible.windows.win_service:
+        name: sshd
+        start_mode: auto
+        state: started
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    # Left on every profile, matching the rule Add-WindowsCapability creates. A
+    # private-only rule would lock provisioning out of a fresh machine whose
+    # network is still classified Public.
+    - name: Enable SSH through firewall
+      community.windows.win_firewall_rule:
+        name: OpenSSH-Server-In-TCP
+        description: "Inbound rule for the OpenSSH server (sshd) on TCP port 22"
+        direction: In
+        protocol: tcp
+        localport: 22
+        action: Allow
+        enabled: yes
         state: present
       become: yes
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Enable HA Ping through firewall
       win_firewall_rule:
@@ -453,15 +512,57 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    # The profile folder the authorized keys are written to comes from the
+    # 1Password entry `gaming-pc/user`, which is a separate entry from the
+    # `gaming-pc/username` that supplies `ansible_user`. The deployed
+    # `src/sshd_config` authenticates administrators from their own
+    # `%USERPROFILE%\.ssh\authorized_keys`, so keys written to a non-existent
+    # profile would silently lock every later run out of the machine.
+    - name: Resolve the profile directory the SSH keys belong to
+      ansible.builtin.set_fact:
+        ssh_profile_path: 'C:\Users\{{ user }}'
+
+    - name: Locate the Windows profile directory the SSH keys belong to
+      ansible.windows.win_stat:
+        path: "{{ ssh_profile_path }}"
+      register: ssh_profile_directory
+
+    - name: Fail when the SSH key profile directory does not exist
+      ansible.builtin.fail:
+        msg: >-
+          The 1Password entry `gaming-pc/user` resolved to "{{ user }}", but
+          {{ ssh_profile_path }} does not exist on this host. Writing
+          authorized_keys there would leave the connecting account without a
+          key and break every subsequent provisioning run. Set `gaming-pc/user`
+          to the Windows profile folder of the account in
+          `gaming-pc/username`.
+      when: not ssh_profile_directory.stat.exists
+
+    - name: Fail when the profile directory is not the connecting account's own
+      ansible.builtin.fail:
+        msg: >-
+          The 1Password entry `gaming-pc/user` resolved to "{{ user }}", giving
+          the profile path {{ ssh_profile_path }}, but the connecting account
+          "{{ ansible_user }}" reports USERPROFILE as
+          "{{ ansible_env.USERPROFILE | default('<not reported by the host>') }}".
+          That folder exists but belongs to a different account, so the keys
+          would be installed where nobody authenticates from and the deployed
+          sshd_config would then remove the shared
+          administrators_authorized_keys fallback, locking later runs out. Set
+          `gaming-pc/user` to the profile folder of `gaming-pc/username`.
+      when: >-
+        ansible_env.USERPROFILE | default('') | lower
+        != ssh_profile_path | lower
 
     - name: Ensure .ssh directory exists
       win_file:
-        path: C:\Users\{{ user }}\.ssh
+        path: '{{ ssh_profile_path }}\.ssh'
         state: directory
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Read authorized_keys source
       set_fact:
@@ -469,13 +570,13 @@
 
     - name: Ensure authorized_keys contains each required key
       win_lineinfile:
-        path: C:\Users\{{ user }}\.ssh\authorized_keys
+        path: '{{ ssh_profile_path }}\.ssh\authorized_keys'
         line: "{{ item }}"
         create: yes
       loop: "{{ authorized_keys_content.splitlines() | select('match', '.+') | list }}"
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Copy sshd_config
       ansible.windows.win_copy:
@@ -485,7 +586,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
         ansible_remote_tmp: 'C:\tmp'
 
     - name: Restart SSH Service
@@ -495,7 +596,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Enable Remote Desktop
       win_regedit:
@@ -507,7 +608,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Enable RDP through firewall
       win_shell: |
@@ -516,7 +617,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure andrew local user exists
       win_user:
@@ -531,7 +632,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure andrew .ssh directory exists
       win_file:
@@ -541,7 +642,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure andrew authorized_keys contains each required key
       win_lineinfile:
@@ -553,7 +654,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Add users to Remote Desktop Users group
       win_group_membership:
@@ -566,7 +667,7 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure developer/tools directory exists
       win_file:
@@ -574,7 +675,7 @@
         state: directory
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Get latest gsync-toggle release info
       win_uri:
@@ -591,7 +692,7 @@
         dest: C:\Users\{{ user }}\developer\tools\gsync.exe
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
 
     - name: Add developer/tools to user PATH
       win_path:
@@ -605,7 +706,7 @@
         dest: C:\Users\{{ user }}\developer\tools\
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
         ansible_remote_tmp: 'C:\tmp'
 
     - name: Run install.ps1
@@ -615,4 +716,4 @@
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ ansible_password }}"
+        ansible_become_password: "{{ windows_password }}"
