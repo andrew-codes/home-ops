@@ -7,4 +7,6 @@ This mono-repo consists of all the applications and services used in my home lab
 - service configuration and secrets are managed by a 1Password vault
 - centralized logging, metrics, and monitoring
 
-See the [documentation site](https://docs.smith-simms.family) for more details or review the [docs files](./docs/index.mdx)
+## Documentation
+
+Full project documentation lives on the [Home Ops docs site](https://docs.home.smith-simms.family/wiki/spaces/HA/overview).
