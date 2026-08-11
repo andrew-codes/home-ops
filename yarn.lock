@@ -2578,6 +2578,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@ha/dorri-mbp@workspace:apps/dorri-mbp":
+  version: 0.0.0-use.local
+  resolution: "@ha/dorri-mbp@workspace:apps/dorri-mbp"
+  dependencies:
+    "@ha/nx-executors": "workspace:^0.1.0"
+    nx: "npm:^20.7.0"
+  languageName: unknown
+  linkType: soft
+
 "@ha/env-utils@workspace:^0.0.1, @ha/env-utils@workspace:packages/env-utils":
   version: 0.0.0-use.local
   resolution: "@ha/env-utils@workspace:packages/env-utils"
