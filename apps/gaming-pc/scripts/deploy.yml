@@ -213,8 +213,8 @@
             # checkbox: it is left at the Windows default, which is the state
             # Wake-on-LAN needs. What the deploy does assert is wake on magic
             # packet here, plus arming the device to wake via powercfg below.
-            $wanted = $power.WakeOnMagicPacket -ne 'Enabled' -or
-              $power.WakeOnPattern -ne 'Disabled'
+            $wanted = "$($power.WakeOnMagicPacket)" -ne 'Enabled' -or
+              "$($power.WakeOnPattern)" -ne 'Disabled'
             if ($wanted) {
               $changed = $true
               if (-not $Ansible.CheckMode) {

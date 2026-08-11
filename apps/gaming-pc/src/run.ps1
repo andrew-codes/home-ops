@@ -117,15 +117,17 @@ function UpdateNVIDIADriver {
                 Select-Object -First 1
 
             if ($CurrentDriver -and $CurrentDriver.DriverVersion) {
-                [System.Version]$ver = $CurrentDriver.DriverVersion
-                $CurrentVersion = ("{0}{1}" -f $ver.Build, $ver.Revision)
+                $ver = $null
+                $parsed = [System.Version]::TryParse($CurrentDriver.DriverVersion, [ref]$ver)
+                $digits = if ($parsed) { "{0}{1}" -f $ver.Build, $ver.Revision } else { '' }
 
-                # Ensure the combined string is long enough
-                if ($CurrentVersion.Length -ge 1) {
-                    $CurrentVersion = $CurrentVersion.Substring(1).Insert(3, '.')
+                # Substring(1) then Insert(3, '.') needs at least four digits,
+                # and Build/Revision are -1 when the version has fewer parts.
+                if ($parsed -and $ver.Build -ge 0 -and $ver.Revision -ge 0 -and $digits.Length -ge 4) {
+                    $CurrentVersion = $digits.Substring(1).Insert(3, '.')
                 }
                 else {
-                    Write-Log "Driver version format is invalid. Unable to parse version."
+                    Write-Log "Driver version '$($CurrentDriver.DriverVersion)' could not be parsed into an NVIDIA version. Treating the current version as unknown."
                     $CurrentVersion = "Unknown"
                 }
             }
