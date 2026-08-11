@@ -51,11 +51,19 @@
   # see README.md, including how to turn it back on.
   #
   # mdutil needs Full Disk Access for the calling process. Activation runs as
-  # root out of launchd, which has it, so this half of Spotlight is genuinely
-  # automated; the setup.sh half is the part that can need an approval.
+  # root out of launchd, which normally has it, but that is not guaranteed, so
+  # the attempt is best-effort: it is retried on every activation and warns
+  # instead of failing. A Spotlight preference must not be able to abort the
+  # switch and leave Homebrew and every application uninstalled.
   system.activationScripts.postActivation.text = ''
     echo "disabling Spotlight indexing on /"
-    mdutil -i off -d / >/dev/null
+    if ! mdutil -i off -d / >/dev/null; then
+      echo "warning: Spotlight indexing was NOT disabled - 'mdutil -i off -d /' failed." >&2
+      echo "warning: mdutil generally requires Full Disk Access on current macOS." >&2
+      echo "warning: finish this by hand with 'sudo mdutil -i off -d /' from a terminal" >&2
+      echo "warning: granted Full Disk Access (System Settings > Privacy and Security >" >&2
+      echo "warning: Full Disk Access). The rest of the activation continued." >&2
+    fi
   '';
 
   # Homebrew itself, installed and pinned by nix-darwin rather than by the

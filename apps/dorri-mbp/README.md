@@ -94,7 +94,7 @@ The same contract applies whether `setup.sh` is run directly or through `nx run 
 
 One line, holding the macOS short name of the account that **owns** this machine - the one that runs the setup, and the one nix-darwin installs Homebrew for. It ships as `dorri`.
 
-It is a committed file rather than an environment variable because `flake.nix` has to read it, and a flake cannot read the environment without `--impure`; making a whole system configuration impure to learn one username is a bad trade. `setup.sh` reads the same file with `cat` before Nix is even installed and **refuses to run** when it does not match the account invoking it, so a wrong value is a clear message rather than a Homebrew installation owned by an account that does not exist.
+It is a committed file rather than an environment variable because `flake.nix` has to read it, and a flake cannot read the environment without `--impure`; making a whole system configuration impure to learn one username is a bad trade. `setup.sh` reads the same file with `tr -d '[:space:]'` before Nix is even installed and **refuses to run** when it does not match the account invoking it, so a wrong value is a clear message rather than a Homebrew installation owned by an account that does not exist.
 
 If the machine's account is not called `dorri`, edit that file and commit the change.
 
@@ -151,10 +151,10 @@ Raycast is bound to **cmd+space**, and Spotlight is turned off. Those are couple
 
 **Both halves of "Spotlight off" are implemented**, per the captain's decision:
 
-| Half              | Where                                             | What it turns off                                                        |
-| ----------------- | ------------------------------------------------- | ------------------------------------------------------------------------ |
-| Indexing          | `mdutil -i off -d /` during nix-darwin activation | The Spotlight index itself                                               |
-| Keyboard shortcut | `com.apple.symbolichotkeys` keys 64 and 65        | cmd+space (Spotlight search) and cmd+option+space (Finder search window) |
+| Half              | Where                                                           | What it turns off                                                        |
+| ----------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Indexing          | `mdutil -i off -d /` during nix-darwin activation (best-effort) | The Spotlight index itself                                               |
+| Keyboard shortcut | `com.apple.symbolichotkeys` keys 64 and 65                      | cmd+space (Spotlight search) and cmd+option+space (Finder search window) |
 
 ### What disabling indexing also breaks
 
@@ -177,6 +177,14 @@ sudo mdutil -E /           # rebuild the index from scratch (takes a while)
 Re-enabling the shortcuts is _System Settings > Keyboard > Keyboard Shortcuts > Spotlight_, ticking both boxes back on. Note that re-running the deploy turns both back off.
 
 ### What is automated, and what is not
+
+**Turning indexing off is best-effort.** `mdutil` generally requires Full Disk Access, and activation is not guaranteed to have it, so a failure there prints a warning and lets the rest of the switch finish rather than aborting it and leaving Homebrew and the applications uninstalled. If the deploy prints `warning: Spotlight indexing was NOT disabled`, indexing is still on; finish the job by hand from a terminal granted Full Disk Access (_System Settings > Privacy and Security > Full Disk Access_):
+
+```bash
+sudo mdutil -i off -d /
+```
+
+Every subsequent deploy tries again, so nothing has to be remembered once the access is granted.
 
 Automated, for **both** accounts:
 
@@ -270,5 +278,5 @@ Not verified, because it cannot be without a real machine:
 
 - that `sysadminctl`'s prompt string is `User password:` on every macOS version. Both strings this matches came out of the binary on macOS 26, and a mismatch fails loudly on a timeout rather than silently.
 - that Raycast's onboarding respects a hotkey written before its first launch.
-- that `mdutil` succeeds without a Full Disk Access prompt when run from activation. Activation runs as root out of launchd, which has it, but that has not been observed here.
+- that `mdutil` succeeds without a Full Disk Access prompt when run from activation. Activation runs as root out of launchd, which normally has it, but that has not been observed here. Because it is unverified, the call is best-effort: on failure it warns and the switch continues, and the warning names the manual `sudo mdutil -i off -d /` fallback.
 - that the first `darwin-rebuild switch` on this particular machine finds no `/etc` file it wants to manage but did not create. nix-darwin refuses to clobber one, and names the file and the fix (`sudo mv <file> <file>.before-nix-darwin`) when it happens. It is a loud, one-time, first-run failure, not a silent one.

@@ -87,6 +87,19 @@ case "$ADMIN_USERNAME" in
     ;;
 esac
 
+# The full name is a human display name, so spaces, apostrophes and accents all
+# belong in it. A leading hyphen does not: it reaches sysadminctl where an
+# option is expected, and the argv parse there is ambiguous rather than an
+# error. Only that one shape is rejected.
+case "$ADMIN_FULL_NAME" in
+  -*)
+    echo "Error: ADMIN_FULL_NAME must not start with a hyphen - it is passed to" >&2
+    echo "sysadminctl, which would read it as an option." >&2
+    echo "Got: '$ADMIN_FULL_NAME'. Nothing has been changed on this machine." >&2
+    exit 1
+    ;;
+esac
+
 # primary-user.txt names the account that owns this machine. flake.nix reads
 # the same file to decide which account Homebrew belongs to, and a flake cannot
 # read the environment without going impure. Checking it here means a mismatch

@@ -138,6 +138,27 @@ case "$out" in
 esac
 
 echo
+echo "== the full name only rejects the leading hyphen sysadminctl would misread"
+out="$(ADMIN_USERNAME=andrewsmith ADMIN_PASSWORD="$SENTINEL" ADMIN_FULL_NAME="-admin" \
+  bash "$WORK/preflight.sh" 2>&1)"
+status=$?
+case "$out:$status" in
+  *REACHED_STEP_1*) fail "rejects a full name starting with a hyphen" "it was accepted" ;;
+  *:0) fail "rejects a full name starting with a hyphen" "exited 0" ;;
+  *"Nothing has been changed on this machine."*) ok "rejects a full name starting with a hyphen" ;;
+  *) fail "rejects a full name starting with a hyphen" "$out" ;;
+esac
+
+for good in "Andrew Smith" "Dorri O'Neill" "Renée Müller"; do
+  out="$(ADMIN_USERNAME=andrewsmith ADMIN_PASSWORD="$SENTINEL" ADMIN_FULL_NAME="$good" \
+    bash "$WORK/preflight.sh" 2>&1)"
+  case "$out" in
+    *REACHED_STEP_1*) ok "accepts the ordinary display name '$good'" ;;
+    *) fail "accepts the ordinary display name '$good'" "$out" ;;
+  esac
+done
+
+echo
 echo "== the primary account named in primary-user.txt has to be the one running it"
 printf '%s\n' "somebody-else" > "$WORK/primary-user.txt"
 out="$(ADMIN_USERNAME=andrewsmith ADMIN_PASSWORD="$SENTINEL" bash "$WORK/preflight.sh" 2>&1)"
