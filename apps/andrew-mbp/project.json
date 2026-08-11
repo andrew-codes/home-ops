@@ -1,0 +1,33 @@
+{
+  "name": "andrew-mbp",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/andrew-mbp",
+  "projectType": "application",
+  "targets": {
+    "package": {
+      "executor": "@ha/nx-executors:invoke",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/package.ts"
+      }
+    },
+    "publish": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/publish-github-release.ts"
+      }
+    },
+    "deploy": {
+      "executor": "@ha/nx-executors:invoke",
+      "dependsOn": ["^prepare", "prepare", "package"],
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/deploy.ts"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}
