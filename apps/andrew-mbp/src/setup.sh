@@ -76,11 +76,13 @@ echo "==> Step 1: devtools ($DEVTOOLS_BRANCH branch)"
 if [ -d "$DEVTOOLS_DIR/.git" ]; then
   echo "    checkout exists, fetching $DEVTOOLS_BRANCH"
   git -C "$DEVTOOLS_DIR" fetch --quiet origin "$DEVTOOLS_BRANCH"
-  git -C "$DEVTOOLS_DIR" checkout --quiet "$DEVTOOLS_BRANCH"
   # Only fast-forward. Never discard uncommitted local work: devtools is a
   # working checkout the captain edits in place (its configs are symlinked out
-  # of it), so a hard reset here would throw away real changes.
+  # of it), so a hard reset here would throw away real changes. The check comes
+  # before the checkout because `git checkout` itself refuses to run when local
+  # edits would be overwritten, and that refusal is fatal under `set -e`.
   if git -C "$DEVTOOLS_DIR" diff --quiet && git -C "$DEVTOOLS_DIR" diff --cached --quiet; then
+    git -C "$DEVTOOLS_DIR" checkout --quiet "$DEVTOOLS_BRANCH"
     git -C "$DEVTOOLS_DIR" merge --quiet --ff-only "origin/$DEVTOOLS_BRANCH" \
       || echo "    WARNING: could not fast-forward $DEVTOOLS_BRANCH; leaving the checkout as-is."
   else
@@ -149,19 +151,27 @@ MAS_BIN="$(nix_tool mas)/bin/mas"
       # </dev/null on every command in this loop body: the loop's stdin is the
       # `nix eval` pipe, so anything in here that read from stdin would swallow
       # the remaining app entries and silently skip them with no error.
-      "$MAS_BIN" get "$id" </dev/null \
-        || echo "    WARNING: could not acquire $name. Check that the App Store is signed in (mas needs an admin password here)."
-
-      # `mas get` hands the download to the App Store and can return before the
-      # app is on disk, so wait for it to land rather than reporting success on
-      # a download still in flight. Match on id: the store's display name often
-      # differs from the name used here.
-      for _ in $(seq 1 60); do
-        "$MAS_BIN" list </dev/null 2>/dev/null | grep -q "^$id " && break
-        sleep 5
-      done
-      "$MAS_BIN" list </dev/null 2>/dev/null | grep -q "^$id " \
-        || echo "    WARNING: $name still not installed after 5 minutes."
+      #
+      # Match on id, not name: the store's display name often differs from the
+      # name used here.
+      if "$MAS_BIN" list </dev/null 2>/dev/null | grep -q "^$id "; then
+        echo "      already installed"
+      elif ! "$MAS_BIN" get "$id" </dev/null; then
+        # Nothing was acquired, so there is nothing to wait for. Warn and move
+        # on rather than sleeping out the full wait below for every app - not
+        # being signed in to the App Store is the common case here.
+        echo "    WARNING: could not acquire $name. Check that the App Store is signed in (mas needs an admin password here)."
+      else
+        # `mas get` hands the download to the App Store and can return before
+        # the app is on disk, so wait for it to land rather than reporting
+        # success on a download still in flight.
+        for _ in $(seq 1 60); do
+          "$MAS_BIN" list </dev/null 2>/dev/null | grep -q "^$id " && break
+          sleep 5
+        done
+        "$MAS_BIN" list </dev/null 2>/dev/null | grep -q "^$id " \
+          || echo "    WARNING: $name still not installed after 5 minutes."
+      fi
     done
 
 echo "==> Step 3: apply the andrew-mbp configuration"
@@ -239,13 +249,26 @@ esac
 # Match on "user@host" and the share, not on the whole URL. macOS reports the
 # host back in its Bonjour form, so a destination set as <host> reads back as
 # <host>._smb._tcp.local. and an exact URL comparison would never match,
-# reconfiguring on every single run. A substring match still matches that form
-# while catching a host change - which matters, because ignoring the host
-# entirely would leave a moved or corrected NAS silently backing up to the old
-# destination forever, the exact silent failure this step exists to prevent.
+# reconfiguring on every single run. Tolerating that suffix still catches a
+# host change - which matters, because ignoring the host entirely would leave a
+# moved or corrected NAS silently backing up to the old destination forever,
+# the exact silent failure this step exists to prevent.
+#
+# One anchored match, not three independent substring searches: user, host and
+# share all have to come from the same URL, and the share is bounded at the end
+# so a stale ".../backup-old" is not read as a configured ".../backup". With
+# several destinations configured, an unbounded search could otherwise take the
+# user@host from one and the share from another and skip on a match that exists
+# nowhere.
+#
+# The NAS_* values are user-supplied, so escape any regex metacharacters in
+# them before they are interpolated into an extended regular expression.
+tm_re_escape() { printf '%s' "$1" | sed 's#[][^$.*+?(){}|\\/]#\\&#g'; }
+tm_pattern="$(tm_re_escape "$NAS_USERNAME")@$(tm_re_escape "$NAS_HOST")"
+tm_pattern="$tm_pattern"'[^/[:space:]]*/'"$(tm_re_escape "$NAS_SHARE")"'([[:space:]]|$)'
+
 tm_existing="$(tmutil destinationinfo 2>/dev/null || true)"
-if printf '%s' "$tm_existing" | grep -qF "${NAS_USERNAME}@${NAS_HOST}" &&
-  printf '%s' "$tm_existing" | grep -qF "/${NAS_SHARE}"; then
+if printf '%s\n' "$tm_existing" | grep -qE "$tm_pattern"; then
   echo "    destination already configured, leaving it alone"
 else
   echo "    configuring destination smb://${NAS_USERNAME}@${NAS_HOST}/${NAS_SHARE}"

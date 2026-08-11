@@ -132,6 +132,25 @@ case "$out" in
   *) fail "reconfigures when the NAS user changed" "$out" ;;
 esac
 
+# A stale share whose name merely starts with the wanted one must not be read
+# as already configured; the share has to be bounded at the end of the URL.
+harness 'echo "URL           : smb://tmuser@nas-01._smb._tcp.local./backup-old"' \
+  > "$WORK/wrong-share.sh"
+out="$(NAS_HOST=nas-01 NAS_USERNAME=tmuser NAS_PASSWORD="$SENTINEL" bash "$WORK/wrong-share.sh" 2>&1)"
+case "$out" in
+  *"configuring destination"*) ok "reconfigures when the share changed" ;;
+  *) fail "reconfigures when the share changed" "stale destination kept: $out" ;;
+esac
+
+# user@host from one destination plus the share from another is not a match.
+harness 'echo "URL           : smb://tmuser@nas-01._smb._tcp.local./backup-old"
+      echo "Mount Point   : /Volumes/backup"' > "$WORK/split.sh"
+out="$(NAS_HOST=nas-01 NAS_USERNAME=tmuser NAS_PASSWORD="$SENTINEL" bash "$WORK/split.sh" 2>&1)"
+case "$out" in
+  *"configuring destination"*) ok "reconfigures when user@host and share come from different destinations" ;;
+  *) fail "reconfigures when user@host and share come from different destinations" "$out" ;;
+esac
+
 echo
 echo "== the password never leaks, even under xtrace"
 out="$(NAS_HOST=nas-01 NAS_USERNAME=tmuser NAS_PASSWORD="$SENTINEL" bash -x "$WORK/none.sh" 2>&1)"
