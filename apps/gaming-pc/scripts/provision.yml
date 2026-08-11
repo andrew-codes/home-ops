@@ -520,25 +520,45 @@
     # `src/sshd_config` authenticates administrators from their own
     # `%USERPROFILE%\.ssh\authorized_keys`, so keys written to a non-existent
     # profile would silently lock every later run out of the machine.
+    - name: Resolve the profile directory the SSH keys belong to
+      ansible.builtin.set_fact:
+        ssh_profile_path: 'C:\Users\{{ user }}'
+
     - name: Locate the Windows profile directory the SSH keys belong to
       ansible.windows.win_stat:
-        path: C:\Users\{{ user }}
+        path: "{{ ssh_profile_path }}"
       register: ssh_profile_directory
 
     - name: Fail when the SSH key profile directory does not exist
       ansible.builtin.fail:
         msg: >-
           The 1Password entry `gaming-pc/user` resolved to "{{ user }}", but
-          C:\Users\{{ user }} does not exist on this host. Writing
+          {{ ssh_profile_path }} does not exist on this host. Writing
           authorized_keys there would leave the connecting account without a
           key and break every subsequent provisioning run. Set `gaming-pc/user`
           to the Windows profile folder of the account in
           `gaming-pc/username`.
       when: not ssh_profile_directory.stat.exists
 
+    - name: Fail when the profile directory is not the connecting account's own
+      ansible.builtin.fail:
+        msg: >-
+          The 1Password entry `gaming-pc/user` resolved to "{{ user }}", giving
+          the profile path {{ ssh_profile_path }}, but the connecting account
+          "{{ ansible_user }}" reports USERPROFILE as
+          "{{ ansible_env.USERPROFILE | default('<not reported by the host>') }}".
+          That folder exists but belongs to a different account, so the keys
+          would be installed where nobody authenticates from and the deployed
+          sshd_config would then remove the shared
+          administrators_authorized_keys fallback, locking later runs out. Set
+          `gaming-pc/user` to the profile folder of `gaming-pc/username`.
+      when: >-
+        ansible_env.USERPROFILE | default('') | lower
+        != ssh_profile_path | lower
+
     - name: Ensure .ssh directory exists
       win_file:
-        path: C:\Users\{{ user }}\.ssh
+        path: '{{ ssh_profile_path }}\.ssh'
         state: directory
       vars:
         ansible_become_user: "{{ ansible_user }}"
@@ -550,7 +570,7 @@
 
     - name: Ensure authorized_keys contains each required key
       win_lineinfile:
-        path: C:\Users\{{ user }}\.ssh\authorized_keys
+        path: '{{ ssh_profile_path }}\.ssh\authorized_keys'
         line: "{{ item }}"
         create: yes
       loop: "{{ authorized_keys_content.splitlines() | select('match', '.+') | list }}"
