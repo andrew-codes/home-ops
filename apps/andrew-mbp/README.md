@@ -52,13 +52,13 @@ NAS_PASSWORD="$(op read 'op://…')" \
   nx run andrew-mbp:deploy
 ```
 
-That builds the self-contained package and runs its `setup.sh` against this machine.
+That runs `src/setup.sh` straight out of the working tree against this machine.
 
 The three `NAS_*` variables configure the Time Machine destination and are **required** - see [Time Machine](#time-machine-backups-to-the-nas). `setup.sh` checks all three before it changes anything, and if any is missing it names every missing one at once and exits non-zero without touching the machine. Read `NAS_PASSWORD` from your password manager rather than typing it, so it never lands in shell history.
 
 ### What the bootstrap does on a clean machine
 
-Nothing needs to be preinstalled - not Nix, not Homebrew, not `mas`, not the Xcode Command Line Tools. `setup.sh`:
+Beyond the `git` used to clone this repo, nothing needs to be preinstalled - not Nix, not Homebrew, not `mas`, not Nx. `setup.sh`:
 
 1. **devtools.** Clones `andrew-codes/devtools` (`zsh` branch) to `~/developer/repos/devtools`, or fast-forwards it if it is already there, then runs devtools' own `setup.sh` exactly as devtools' README documents. That is what installs [Determinate Nix](https://determinate.systems/) on a machine with no Nix, symlinks the checkout to `~/.dotfiles`, trusts Homebrew taps, acquires devtools' own App Store apps, and runs the first `darwin-rebuild switch`. Homebrew itself is installed by `nix-homebrew` during that switch.
 2. **Mac App Store apps.** Runs `mas get` for each entry in `mas-apps.nix`, then waits for the download to land.
@@ -99,7 +99,7 @@ Backs up to the NAS share at `/Volume1/backup` over SMB, automatically, every ho
 
 All three required variables are validated **before any change is made**. If any is unset, `setup.sh` names every missing one in a single message and exits non-zero. It never prompts and never guesses a default, because a wrong Time Machine destination fails silently rather than loudly.
 
-The same environment-variable contract is used from the monorepo and from the unzipped release artifact, so there is one thing to learn. The repo's 1Password-backed configuration API has a `nas/ip` entry but no NAS username or password, so wiring the in-repo path through it would mean inventing secrets that do not exist yet; if those are added later, `scripts/deploy.ts` is the place to read them and export them into the environment.
+The same environment-variable contract applies whether `setup.sh` is run directly or through `nx run andrew-mbp:deploy`, which inherits the environment. The repo's 1Password-backed configuration API has a `nas/ip` entry but no NAS username or password, so wiring the deploy through it would mean inventing secrets that do not exist yet; if those are added later, `scripts/deploy.ts` is the place to read them and export them into the environment.
 
 **Protocol and share name.** `/Volume1/backup` is read as SMB share `backup` - on a Synology, `/volume1` is the underlying volume and `backup` is the shared folder, and an SMB URL addresses the share, not the volume path. This is not a guess: it matches the destination already configured on this machine, whose URL ends in `/backup`. `NAS_SHARE` overrides it if that ever stops holding.
 
@@ -112,7 +112,7 @@ Instead `setup.sh` pipes it to [`set-time-machine-destination.tcl`](src/set-time
 The result:
 
 - never on a command line, so never in `ps`
-- never written to disk, and never committed or included in `andrew-mbp.zip`
+- never written to disk, and never committed
 - never echoed or logged; `xtrace` is turned off around the whole credential path, so `bash -x setup.sh` cannot leak it either
 - stored by `tmutil` itself in the **system keychain**, which is what lets `backupd` remount the share unattended
 
@@ -134,24 +134,34 @@ tmutil isexcluded /path/to/check
 
 Every key written here was read off a live macOS 26.5.2 system (`defaults read /Library/Preferences/com.apple.TimeMachine`) rather than recalled, because these have moved between releases: `AutoBackupInterval` (seconds, `3600` for hourly) and `RequiresACPower` (`false` to keep backing up on battery).
 
-The configuration has **never been applied on a machine** - see [AGENTS.md](AGENTS.md). The environment-variable validation, the idempotency check, the password handling and the exit-code propagation were all tested against stubs and a fake `tmutil`; the real `tmutil` calls were deliberately not executed.
+The configuration has **never been applied on a machine** - see [AGENTS.md](AGENTS.md). The real `tmutil` calls were deliberately not executed.
+
+What _is_ covered is committed and repeatable, in [`tests/time-machine-step.test.sh`](tests/time-machine-step.test.sh) (`nx run andrew-mbp:test`): the `NAS_*` validation failing closed before anything changes, the idempotency check reconfiguring on a changed host or user rather than keeping a stale destination, the password never appearing under `bash -x`, and the expect script's prompt handling, guards and exit-code propagation - all against stubs and a fake `tmutil`. It skips on anything but Apple Silicon macOS, so CI reports a skip rather than a false pass.
 
 ### Re-running and `devtools-rebuild`
 
 Both the deploy and `devtools-rebuild` switch this machine's nix-darwin generation, and `andrew-mbp` is the superset of the two. Running `devtools-rebuild` afterwards drops the andrew-mbp layer from the active generation. Because devtools sets `homebrew.onActivation.cleanup = "none"`, the applications themselves stay installed - nothing is uninstalled - and re-running the deploy restores the layer. Prefer the deploy command above on this machine.
 
-## From a release instead of the monorepo
+## On a brand-new MacBook
 
-The motivating case is a brand-new MacBook with no clone of home-ops and no Nx:
+There is no release artifact to download - the repo is the source of truth, and updating is `git pull`. On a machine with nothing installed, `git` comes from the Xcode Command Line Tools, which macOS offers to install the first time you run `git`:
 
-1. Download `andrew-mbp.zip` from the [latest release](https://github.com/andrew-codes/home-ops/releases).
-2. Unzip it.
-3. ```bash
-   cd andrew-mbp
-   NAS_HOST=<nas-ip> NAS_USERNAME=<nas-user> NAS_PASSWORD='<password>' ./setup.sh
-   ```
+```bash
+git clone https://github.com/andrew-codes/home-ops.git
+cd home-ops/apps/andrew-mbp
+NAS_HOST=<nas-ip> NAS_USERNAME=<nas-user> NAS_PASSWORD='<password>' ./src/setup.sh
+```
 
-The package is self-contained: the flake, its lock, the nix modules, `setup.sh` and this README are all inside it, and nothing in it references the monorepo or assumes Nx exists.
+`setup.sh` reads only files sitting next to it, so it runs directly from the clone with no build, packaging or Nx install needed. Nx is only how the deploy is invoked from an already-set-up machine.
+
+## Updating an already-configured machine
+
+```bash
+git pull
+NAS_HOST=<nas-ip> NAS_USERNAME=<nas-user> NAS_PASSWORD='<password>' ./src/setup.sh
+```
+
+or, equivalently, `nx run andrew-mbp:deploy` from the repo root. Re-running is the whole update mechanism: every step is idempotent and skips work already done, so pulling a change that adds one cask installs that cask and leaves everything else alone.
 
 ## Adding a new application
 
@@ -176,12 +186,11 @@ If devtools already installs the app, add it in neither place - devtools owns it
 
 ## Nx targets
 
-| Target    | What it does                                                                                           |
-| --------- | ------------------------------------------------------------------------------------------------------ |
-| `package` | Builds the self-contained `dist/andrew-mbp/` and zips it to `dist/andrew-mbp.zip`.                     |
-| `publish` | Uploads `dist/andrew-mbp.zip` as a GitHub Release asset via `gh-axi`. Skips if the tag already exists. |
-| `deploy`  | Runs the packaged `setup.sh` against this machine.                                                     |
+| Target   | What it does                                                                                                          |
+| -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `deploy` | Runs `src/setup.sh` against this machine, inheriting the environment so the `NAS_*` variables reach it.               |
+| `test`   | Runs [`tests/time-machine-step.test.sh`](tests/time-machine-step.test.sh); skips on anything but Apple Silicon macOS. |
 
 There is no `provision` target. Provisioning a laptop means unboxing it; this configuration only has a deployment phase.
 
-`deploy` declares its own `dependsOn` rather than inheriting the workspace default, which chains `publish` ahead of `deploy`. Deploying a laptop should not cut a GitHub release, so here `deploy` depends on `package` only.
+There are no `package` or `publish` targets either. These setups are not shipped as GitHub Release artifacts - a downloadable bundle makes re-running awkward, and `git pull` plus a re-run keeps one obvious source of truth.

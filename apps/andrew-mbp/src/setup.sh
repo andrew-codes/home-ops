@@ -3,8 +3,9 @@
 # andrew-mbp - take a stock MacBook Pro to a fully configured machine.
 #
 # Safe to re-run: every step is idempotent and skips work that is already done.
-# Nothing outside this directory is read, so this works the same whether it is
-# run from a clone of home-ops or from an unzipped release artifact.
+# Updating the machine is `git pull` followed by re-running this script; there
+# is no build or packaging step in between. Every file it reads sits next to
+# it in this directory.
 
 set -euo pipefail
 
@@ -144,7 +145,11 @@ MAS_BIN="$(nix_tool mas)/bin/mas"
       # Run as the invoking user, NOT under sudo -- that is the whole reason
       # this step exists. mas escalates by itself when it has real work to do.
       # Not fatal on failure; setup should still finish.
-      "$MAS_BIN" get "$id" \
+      #
+      # </dev/null on every command in this loop body: the loop's stdin is the
+      # `nix eval` pipe, so anything in here that read from stdin would swallow
+      # the remaining app entries and silently skip them with no error.
+      "$MAS_BIN" get "$id" </dev/null \
         || echo "    WARNING: could not acquire $name. Check that the App Store is signed in (mas needs an admin password here)."
 
       # `mas get` hands the download to the App Store and can return before the
@@ -152,10 +157,10 @@ MAS_BIN="$(nix_tool mas)/bin/mas"
       # a download still in flight. Match on id: the store's display name often
       # differs from the name used here.
       for _ in $(seq 1 60); do
-        "$MAS_BIN" list 2>/dev/null | grep -q "^$id " && break
+        "$MAS_BIN" list </dev/null 2>/dev/null | grep -q "^$id " && break
         sleep 5
       done
-      "$MAS_BIN" list 2>/dev/null | grep -q "^$id " \
+      "$MAS_BIN" list </dev/null 2>/dev/null | grep -q "^$id " \
         || echo "    WARNING: $name still not installed after 5 minutes."
     done
 
@@ -172,11 +177,12 @@ echo "==> Step 3: apply the andrew-mbp configuration"
 # symlinks resolved through the checkout, and the two could drift.
 #
 # Both flake refs are `path:` on purpose. A bare path inside a git working
-# tree makes nix read the *git* tree instead of the directory, and then refuse
-# every file git does not track -- which is exactly what happens when this runs
-# from the monorepo, where dist/ is gitignored. `path:` reads the directory as
-# it is on disk, and is also what makes the devtools override pick up
-# uncommitted local edits to that checkout.
+# tree makes nix read the *git* tree rather than the directory as it is on
+# disk, so an uncommitted edit to applications.nix would be silently ignored
+# and the switch would apply the last committed version instead. Since the
+# update path here is "edit, or git pull, then re-run", that silent staleness
+# is exactly the wrong behaviour. `path:` reads the working tree, and is also
+# what makes the devtools override pick up local edits to that checkout.
 DARWIN_REBUILD="$(command -v darwin-rebuild || echo /run/current-system/sw/bin/darwin-rebuild)"
 sudo "$DARWIN_REBUILD" switch \
   --flake "path:$SCRIPT_DIR#andrew-mbp" \
@@ -228,16 +234,28 @@ case "$-" in
 esac
 
 # destinationinfo needs no privileges, so re-runs cost nothing when the
-# destination is already set. Matching on user and share rather than on the
-# whole URL is deliberate: macOS reports the host back in its Bonjour form, so
-# a destination set as <host> reads back as <host>._smb._tcp.local. and an
-# exact URL comparison would never match, reconfiguring on every single run.
+# destination is already set.
+#
+# Match on "user@host" and the share, not on the whole URL. macOS reports the
+# host back in its Bonjour form, so a destination set as <host> reads back as
+# <host>._smb._tcp.local. and an exact URL comparison would never match,
+# reconfiguring on every single run. A substring match still matches that form
+# while catching a host change - which matters, because ignoring the host
+# entirely would leave a moved or corrected NAS silently backing up to the old
+# destination forever, the exact silent failure this step exists to prevent.
 tm_existing="$(tmutil destinationinfo 2>/dev/null || true)"
-if printf '%s' "$tm_existing" | grep -qF "${NAS_USERNAME}@" &&
+if printf '%s' "$tm_existing" | grep -qF "${NAS_USERNAME}@${NAS_HOST}" &&
   printf '%s' "$tm_existing" | grep -qF "/${NAS_SHARE}"; then
   echo "    destination already configured, leaving it alone"
 else
   echo "    configuring destination smb://${NAS_USERNAME}@${NAS_HOST}/${NAS_SHARE}"
+  # Resolve expect BEFORE the pipeline below, never inside it. A command
+  # substitution inside that pipeline would inherit the password pipe as its
+  # own stdin, handing it to `nix build` and everything nix spawns, and its
+  # progress output would interleave with the credential path. Only `sudo
+  # expect` may ever see that stdin.
+  EXPECT_BIN="$(nix_tool expect)/bin/expect"
+
   # The password goes over a pipe into expect, which hands it to tmutil's
   # non-echoing prompt. It is never a command-line argument, so it never
   # appears in `ps`; it is never written to disk; and tmutil itself stores it
@@ -248,7 +266,7 @@ else
   # the password in its arguments. sudo reads its own password from /dev/tty
   # rather than stdin, so it does not consume the pipe.
   printf '%s\n' "$NAS_PASSWORD" \
-    | sudo "$(nix_tool expect)/bin/expect" -f \
+    | sudo "$EXPECT_BIN" -f \
       "$SCRIPT_DIR/set-time-machine-destination.tcl" "$TM_URL"
 fi
 

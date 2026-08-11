@@ -4,12 +4,12 @@ This project configures the captain's actual, in-use MacBook Pro. Read [README.m
 
 `nx run andrew-mbp:deploy` mutates the machine the agent is running on: it installs Nix, switches the nix-darwin system generation, installs applications, changes the default browser, and reconfigures Time Machine. Never run it, and never run `darwin-rebuild switch`, the Nix installer, `brew install`, `mas install`, `sudo tmutil ...`, or `src/setup.sh`.
 
-This machine already has a working Time Machine destination. `tmutil setdestination` would overwrite it, so never invoke it - not even with a bogus URL to "see what happens". Test the Time Machine path against stubs instead: point a copy of `src/set-time-machine-destination.tcl` at a fake `tmutil`, and stub `sudo`/`tmutil` when exercising `setup.sh`'s step 5.
+This machine already has a working Time Machine destination. `tmutil setdestination` would overwrite it, so never invoke it - not even with a bogus URL to "see what happens". [`tests/time-machine-step.test.sh`](tests/time-machine-step.test.sh) already exercises that path against stubs and a fake `tmutil`; extend it rather than running anything for real.
 
 Validate with non-mutating commands only:
 
 ```bash
-nx run andrew-mbp:package                                        # builds dist/, touches nothing else
+nx run andrew-mbp:test                                           # stubbed; skips off Apple Silicon macOS
 cd apps/andrew-mbp/src && nix flake check
 nix eval --json '.#darwinConfigurations.andrew-mbp.config.homebrew.casks' --apply 'cs: map (c: c.name) cs'
 ```
@@ -18,11 +18,7 @@ nix eval --json '.#darwinConfigurations.andrew-mbp.config.homebrew.casks' --appl
 
 # Never Print The NAS Password
 
-`NAS_PASSWORD` reaches `setup.sh` through the environment and must never appear on a command line, on disk, or in output - `man tmutil` warns that arguments are world-visible via `ps`. When changing step 5, re-run the leak check: run the step under `bash -x` with a sentinel password and assert the sentinel appears nowhere in stdout or stderr.
-
-# Never Publish A Real Release
-
-`nx run andrew-mbp:publish` creates a public GitHub Release. Treat it as outward-facing and leave it to the captain. `gh-axi release list` and `gh-axi release view` are read-only and safe.
+`NAS_PASSWORD` reaches `setup.sh` through the environment and must never appear on a command line, on disk, or in output - `man tmutil` warns that arguments are world-visible via `ps`. Beware command substitutions inside the credential pipeline: they inherit the password on stdin. `nx run andrew-mbp:test` includes the sentinel leak check; re-run it after any change to step 5.
 
 # Verify Every Package Identifier
 
