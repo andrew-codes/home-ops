@@ -106,6 +106,115 @@ yarn nx deploy gaming-pc
 The playbook is idempotent and safe to re-run; that is the intended update
 workflow (`git pull`, re-run).
 
+## Software the deploy installs
+
+The list itself lives in [`src/software.ps1`](src/software.ps1), which is the
+file to edit when something is added or dropped. It is driven twice from the
+playbook, once elevated and once not, because elevation is a property of the
+process: machine-scope installers need it, and MSIX packages from the Store and
+the per-user MoonDeck Buddy installer must not have it or they land in the wrong
+hive.
+
+winget is preferred over Chocolatey throughout. Every entry checks for presence
+before acting, so a second deploy installs nothing.
+
+| Software                  | Source                    | Package                      |
+| ------------------------- | ------------------------- | ---------------------------- |
+| Steam                     | winget                    | `Valve.Steam`                |
+| Apollo (streaming server) | winget                    | `ClassicOldSong.Apollo`      |
+| Logi Options+             | winget                    | `Logitech.OptionsPlus`       |
+| 1Password                 | winget                    | `AgileBits.1Password`        |
+| Tailscale                 | winget                    | `Tailscale.Tailscale`        |
+| Zed                       | winget                    | `ZedIndustries.Zed`          |
+| Raycast                   | Microsoft Store           | `9PFXXSHC64H3`               |
+| Windows HDR Calibration   | Microsoft Store           | `9N7F2SM5D1LR`               |
+| Dolby Access              | Microsoft Store           | `9N0866FS04W8`               |
+| MoonDeck Buddy            | GitHub release            | `FrogTheFrog/moondeck-buddy` |
+| NVIDIA App                | Chocolatey                | `nvidia-app`                 |
+| NVIDIA game-ready driver  | NVIDIA, via `src/run.ps1` | -                            |
+
+Kept absent: **Playnite** and **Discord**. Discord needs more than a package
+removal - its Squirrel installer drops a working copy in `%LOCALAPPDATA%` that
+no package manager can see - so `software.ps1` also runs that uninstaller and
+clears the leftover directories.
+
+Three of those rows are not winget, and each for its own reason:
+
+- **NVIDIA App** has no manifest in the community winget source (the `Nvidia`
+  publisher there carries CUDA, FrameView, PhysX and so on, but not the app), so
+  Chocolatey stays for it alone.
+- **MoonDeck Buddy** is published to neither winget nor Chocolatey. It is
+  fetched from its GitHub releases - the same way `gsync-toggle` already is, and
+  from the same author. Re-running downloads nothing: the installed Inno Setup
+  `DisplayVersion` is compared against the latest release tag first.
+- **The NVIDIA game-ready driver** is not a package at all.
+  [`src/run.ps1`](src/run.ps1) asks NVIDIA for the latest version for this GPU,
+  compares it against what `nvidia-smi` reports, and returns without downloading
+  anything when they match - which is what "only install if not already on
+  latest" asks for. It is also the payload of the nightly `Update-Gaming-PC`
+  task, so the deploy-time run exists only so a freshly rebuilt machine gets its
+  driver during setup rather than at the next midnight.
+
+### The Microsoft Store apps are best-effort
+
+Raycast, Windows HDR Calibration and Dolby Access are the only entries allowed
+to fail without failing the deploy, matching the ticket's own "if possible".
+An MSIX install can require an interactive, signed-in Microsoft Store session,
+which a deploy driven over SSH does not necessarily have.
+
+They are not silent about it: a failure is logged as `WARNING`, repeated in the
+run's `SUMMARY` lines, and counted in the `RESULT ... warnings=` line the
+playbook prints. If they warn, install those three from the Store by hand once;
+`AutoDownload` keeps them updated afterwards.
+
+## Windows settings the deploy applies
+
+| Setting                                    | How                                                                                                                       |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Auto-hide the taskbar                      | `StuckRects3` byte 8, Explorer restarted only when it changed                                                             |
+| Auto-update Windows and Microsoft software | `AllowMUUpdateService`, installs at 03:00 daily                                                                           |
+| Updates restart only late at night         | Active hours pinned to 08:00-01:00                                                                                        |
+| Microsoft Store apps auto-update           | `WindowsStore\AutoDownload`                                                                                               |
+| Hibernation off                            | `powercfg /hibernate off`                                                                                                 |
+| Sleep off                                  | `standby-timeout` 0 on AC and DC                                                                                          |
+| Automatic sign-in, including after wake    | `AutoAdminLogon`, plus no password required on wake                                                                       |
+| Wake-on-LAN                                | Magic packet only, armed with `powercfg /deviceenablewake`; the device power-down checkbox is left at the Windows default |
+| OS notifications off                       | `ToastEnabled`, notification centre and toast policies                                                                    |
+| Dark mode                                  | `AppsUseLightTheme` / `SystemUsesLightTheme`                                                                              |
+| All desktop icons hidden                   | `HideIcons`                                                                                                               |
+| Taskbar widgets off                        | `Dsh\AllowNewsAndInterests` policy, plus `TaskbarDa`                                                                      |
+| UAC off                                    | `EnableLUA`, `ConsentPromptBehaviorAdmin`, `PromptOnSecureDesktop`                                                        |
+| Zed as the default text and code editor    | `DefaultAssociationsConfiguration` policy, 139 file types                                                                 |
+
+Four of these need something the ticket did not ask for, or do not take effect
+the moment the deploy finishes:
+
+- **Auto sign-in additionally clears `DevicePasswordLessBuildVersion`.** Windows
+  11 ships with passwordless sign-in for Microsoft accounts on, and while it is
+  on, Winlogon ignores `DefaultPassword` and stops at the sign-in screen anyway.
+  Auto-login does not work without this.
+- **Disabling hibernation is what makes Wake-on-LAN work from a full
+  shutdown.** Fast Startup is built on hibernation, and it leaves the NIC in a
+  state that ignores magic packets. Turning hibernation off disables both.
+- **`EnableLUA=0` only takes effect after a reboot.** The other two UAC values
+  suppress the consent prompt in the meantime.
+- **Zed becomes the default at the next sign-in, not immediately.** Windows
+  evaluates `DefaultAssociationsConfiguration` when a user logs on. The file
+  itself is [`src/default-associations.xml`](src/default-associations.xml),
+  generated from the associations Zed's own installer registers, so the list
+  tracks what Zed actually claims to handle rather than a hand-picked guess.
+
+### The auto-login password
+
+It comes from 1Password (`gaming-pc/password`), reaches the playbook as the
+`windows_password` play variable, and the task that writes it sets `no_log` so
+it stays out of Ansible's output. It is never committed.
+
+Windows stores it in the registry in plaintext regardless - that is what
+`AutoAdminLogon` is, not a shortcut taken here. Anyone with administrative
+access to the machine can read it back. The account is a local gaming account on
+a machine behind Tailscale, which is the trade the ticket accepts.
+
 ## Targets
 
 | Target       | What it does                                                                                                                           |

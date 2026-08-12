@@ -74,26 +74,22 @@ function UpdateNVIDIADriver {
     }
 
     try {
-        Clear-Host
         Write-Log "Starting NVIDIA driver update process..."
 
         # Check Windows version
         if ([System.Version][Environment]::OSVersion.Version.ToString() -lt [System.Version]"10.0") {
-            Write-Log "Your Windows version is unsupported. Upgrade to Windows 10 or higher."
-            return
+            throw "Your Windows version is unsupported. Upgrade to Windows 10 or higher."
         }
 
         # Check Windows bitness
         if (-not [Environment]::Is64BitOperatingSystem) {
-            Write-Log "Your Windows architecture is x86. x64 is required."
-            return
+            throw "Your Windows architecture is x86. x64 is required."
         }
 
         # Check for NVIDIA GPU
         $NvidiaGpuInfo = Get-NvidiaGpuInfo
         if (-not $NvidiaGpuInfo) {
-            Write-Log "Exiting script as no NVIDIA GPU was detected or selected."
-            return
+            throw "No NVIDIA GPU was detected, and config.json did not name one either."
         }
 
         #Write-Log "GPU: $($NvidiaGpuInfo.Name)"
@@ -112,16 +108,26 @@ function UpdateNVIDIADriver {
             }
         }
         else {
-            if ($CurrentDriver -and $CurrentDriver.DriverVersion) {
-                [System.Version]$ver = $CurrentDriver.DriverVersion
-                $CurrentVersion = ("{0}{1}" -f $ver.Build, $ver.Revision)
+            # nvidia-smi.exe is not in the DriverStore for every driver package,
+            # so fall back to the signed display driver Windows has registered.
+            # DeviceClass, Manufacturer and DriverVersion are documented
+            # properties of Win32_PnPSignedDriver.
+            $CurrentDriver = Get-CimInstance -ClassName Win32_PnPSignedDriver -ErrorAction SilentlyContinue |
+                Where-Object { $_.DeviceClass -eq 'DISPLAY' -and $_.Manufacturer -match 'NVIDIA' } |
+                Select-Object -First 1
 
-                # Ensure the combined string is long enough
-                if ($CurrentVersion.Length -ge 1) {
-                    $CurrentVersion = $CurrentVersion.Substring(1).Insert(3, '.')
+            if ($CurrentDriver -and $CurrentDriver.DriverVersion) {
+                $ver = $null
+                $parsed = [System.Version]::TryParse($CurrentDriver.DriverVersion, [ref]$ver)
+                $digits = if ($parsed) { "{0}{1}" -f $ver.Build, $ver.Revision } else { '' }
+
+                # Substring(1) then Insert(3, '.') needs at least four digits,
+                # and Build/Revision are -1 when the version has fewer parts.
+                if ($parsed -and $ver.Build -ge 0 -and $ver.Revision -ge 0 -and $digits.Length -ge 4) {
+                    $CurrentVersion = $digits.Substring(1).Insert(3, '.')
                 }
                 else {
-                    Write-Log "Driver version format is invalid. Unable to parse version."
+                    Write-Log "Driver version '$($CurrentDriver.DriverVersion)' could not be parsed into an NVIDIA version. Treating the current version as unknown."
                     $CurrentVersion = "Unknown"
                 }
             }
@@ -149,8 +155,7 @@ function UpdateNVIDIADriver {
         }
 
         if (-not $NvidiaGpuInfo) {
-            Write-Log "Failed to find a matching GPU entry in NVIDIA's database for '$GPUName' or '$GPUNameNormalized'. Exiting."
-            return
+            throw "Failed to find a matching GPU entry in NVIDIA's database for '$GPUName' or '$GPUNameNormalized'."
         }
 
         Write-Log "GPU SID: $($NvidiaGpuInfo.ParentID), PFID: $($NvidiaGpuInfo.Value)"
@@ -190,7 +195,7 @@ function UpdateNVIDIADriver {
                     # Compare current driver version with the latest version
                     if ($LatestDriverVersion -eq $CurrentVersion) {
                         Write-Log "The latest NVIDIA driver ($LatestDriverVersion) is already installed. No update needed."
-                        exit
+                        return
                     }
                     Write-Log "A newer NVIDIA driver ($LatestDriverVersion) is available. Proceeding with the download and installation..."
                 }
@@ -276,9 +281,21 @@ function UpdateNVIDIADriver {
                     $InstallArgs = if ($Clean) { "-passive -clean -noeula -nofinish" } else { "-passive -noeula -nofinish" }
                     Write-Log "Installing driver..."
 
-                    Start-Process -FilePath (Join-Path $ExtractedPath 'setup.exe') -ArgumentList $InstallArgs -Wait
-                    
-                    Write-Log "Installation complete!"
+                    $setup = Start-Process -FilePath (Join-Path $ExtractedPath 'setup.exe') `
+                        -ArgumentList $InstallArgs -Wait -PassThru
+
+                    # 3010 and 1641 are the documented Windows installer
+                    # "success, reboot required" codes; anything else non-zero
+                    # is a real failure and must not pass for a green deploy.
+                    if ($setup.ExitCode -eq 0) {
+                        Write-Log "Installation complete!"
+                    }
+                    elseif (@(3010, 1641) -contains $setup.ExitCode) {
+                        Write-Log "Installation complete; the machine needs a reboot to finish (exit code $($setup.ExitCode))."
+                    }
+                    else {
+                        throw "NVIDIA driver setup failed with exit code: $($setup.ExitCode)"
+                    }
 
                     #
                     # TODO: CLEANUP THE FILES! :D
@@ -286,22 +303,34 @@ function UpdateNVIDIADriver {
 
                 }
                 else {
-                    Write-Log "Extraction failed with exit code: $($process.ExitCode)"
+                    throw "Extraction failed with exit code: $($process.ExitCode)"
                 }
             }
             else {
-                Write-Log "Failed to get download URL from NVIDIA."
+                throw "Failed to get download URL from NVIDIA."
             }
         }
         else {
-            Write-Log "Failed to parse driver information."
+            throw "Failed to parse driver information from NVIDIA's response: $Response"
         }
     }
     catch {
         Write-Log "Error: $($_.Exception.Message)"
         Write-Log "Stack Trace: $($_.ScriptStackTrace)"
+        # Rethrow so the caller - the deploy task and the nightly scheduled
+        # task alike - sees a non-zero exit rather than a green run that
+        # quietly left the driver alone.
+        throw
     }
 }
 
-# Actually run the function
-UpdateNVIDIADriver -Clean
+# Actually run the function. A failure must reach the exit code: this script is
+# invoked both by scripts/deploy.yml and by the Update-Gaming-PC scheduled task,
+# and neither can tell "up to date" from "blew up" without it.
+try {
+    UpdateNVIDIADriver -Clean
+}
+catch {
+    exit 1
+}
+exit 0

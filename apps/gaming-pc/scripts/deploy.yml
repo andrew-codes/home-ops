@@ -13,6 +13,9 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
+    # AllowMUUpdateService is what widens this from "Windows" to "and all other
+    # Microsoft software" - it opts the machine into Microsoft Update rather
+    # than Windows Update alone.
     - name: Configure Windows Update scheduled installs at 3 AM daily
       win_regedit:
         path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU
@@ -31,6 +34,45 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
+    # Windows 11 largely drives restart timing from active hours rather than
+    # from ScheduledInstallTime above, and left to itself it *learns* them from
+    # usage - which on a machine that is awake 24/7 can settle anywhere. Pinning
+    # 08:00-01:00 leaves 01:00-08:00 as the only window it may restart in, which
+    # is where ScheduledInstallTime=3 already sits. 17 hours is inside the 18
+    # hour maximum Windows accepts.
+    - name: Restrict Windows Update restarts to the small hours
+      win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate
+        name: "{{ item.name }}"
+        data: "{{ item.data }}"
+        type: dword
+      loop:
+        - { name: SetActiveHours, data: 1 }
+        - { name: ActiveHoursStart, data: 8 }
+        - { name: ActiveHoursEnd, data: 1 }
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    # Microsoft Store apps update on their own schedule, outside Windows Update.
+    # The three Store apps this playbook installs are covered by this rather
+    # than by the policy above.
+    - name: Keep Microsoft Store apps updating automatically
+      win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore
+        name: AutoDownload
+        data: 4
+        type: dword
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    # The password is never logged: no_log covers the whole loop because the
+    # DefaultPassword item would otherwise appear in Ansible's task output.
     - name: Enable automatic login
       win_regedit:
         path: HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
@@ -40,20 +82,81 @@
       loop:
         - { name: AutoAdminLogon, data: "1" }
         - { name: DefaultUserName, data: "{{ ansible_user }}" }
+        - { name: DefaultDomainName, data: "{{ ansible_hostname }}" }
         - { name: DefaultPassword, data: "{{ windows_password }}" }
+      become: yes
+      become_method: runas
+      no_log: true
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    # Beyond the ticket, but auto-login does not work without it: Windows 11
+    # ships with passwordless sign-in for Microsoft accounts turned on, and
+    # while it is on, Winlogon ignores DefaultPassword and stops at the sign-in
+    # screen anyway. Setting this to 0 restores the password path that
+    # AutoAdminLogon depends on.
+    - name: Allow password-based sign-in so auto-login is honoured
+      win_regedit:
+        path: HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device
+        name: DevicePasswordLessBuildVersion
+        data: 0
+        type: dword
       become: yes
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
-    - name: Disable hibernation
-      win_shell: |
-        powercfg /change hibernate-timeout-ac 0
-        powercfg /change hibernate-timeout-dc 0
-        powercfg /hibernate off
-        powercfg /change monitor-timeout-ac 0
-        powercfg /change monitor-timeout-dc 0
+    # Sleep and hibernation both off, on AC and on battery. Turning hibernation
+    # off also disables Fast Startup, which is what makes Wake-on-LAN work from
+    # a full shutdown further down - Fast Startup puts the NIC into a state that
+    # ignores magic packets.
+    #
+    # `powercfg /change` is silent and always exits 0, so the current value is
+    # read first. Without that this task would report "changed" on every deploy
+    # and there would be no way to tell a real drift from a re-run.
+    - name: Disable sleep and hibernation
+      ansible.windows.win_powershell:
+        script: |
+          $ErrorActionPreference = 'Stop'
+          $changed = $false
+
+          # powercfg's aliases are accepted as input in every locale; only its
+          # *output* is localised, which is why a parse failure below falls
+          # back to applying the setting rather than assuming it is correct.
+          $timeouts = @(
+            @{ Sub = 'SUB_SLEEP'; Setting = 'STANDBYIDLE'; Change = 'standby-timeout' },
+            @{ Sub = 'SUB_SLEEP'; Setting = 'HIBERNATEIDLE'; Change = 'hibernate-timeout' },
+            @{ Sub = 'SUB_VIDEO'; Setting = 'VIDEOIDLE'; Change = 'monitor-timeout' }
+          )
+
+          foreach ($timeout in $timeouts) {
+            $query = & powercfg /query SCHEME_CURRENT $timeout.Sub $timeout.Setting 2>&1 | Out-String
+            $indexes = [regex]::Matches($query, 'Setting Index:\s*(0x[0-9a-fA-F]+)')
+            $alreadyZero = $indexes.Count -eq 2 -and
+              ($indexes | ForEach-Object { [convert]::ToInt64($_.Groups[1].Value, 16) } |
+                Where-Object { $_ -ne 0 } | Measure-Object).Count -eq 0
+
+            if (-not $alreadyZero) {
+              $changed = $true
+              if (-not $Ansible.CheckMode) {
+                & powercfg /change "$($timeout.Change)-ac" 0
+                & powercfg /change "$($timeout.Change)-dc" 0
+              }
+            }
+          }
+
+          $hibernate = Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Power' `
+            -Name HibernateEnabled -ErrorAction SilentlyContinue
+          if ((-not $hibernate) -or $hibernate.HibernateEnabled -ne 0) {
+            $changed = $true
+            if (-not $Ansible.CheckMode) {
+              & powercfg /hibernate off
+            }
+          }
+
+          $Ansible.Changed = $changed
       become: yes
       become_method: runas
       vars:
@@ -76,21 +179,63 @@
         ansible_become_password: "{{ windows_password }}"
 
     - name: Enable Wake-on-LAN on wired network adapters
-      win_shell: |
-        $ErrorActionPreference = 'Stop'
-        $adapters = Get-NetAdapter -Physical |
-          Where-Object { $_.Status -eq 'Up' -and $_.MediaType -eq '802.3' }
-        foreach ($adapter in $adapters) {
-          # Wake only on a magic packet, not on pattern match (avoids spurious wakes)
-          try {
-            Set-NetAdapterPowerManagement -Name $adapter.Name `
-              -WakeOnMagicPacket Enabled -WakeOnPattern Disabled
-          } catch {
-            Write-Host "WakeOnMagicPacket not supported on $($adapter.Name): $_"
+      ansible.windows.win_powershell:
+        script: |
+          $ErrorActionPreference = 'Stop'
+          $changed = $false
+          $adapters = @(Get-NetAdapter -Physical |
+            Where-Object { $_.Status -eq 'Up' -and $_.MediaType -eq '802.3' })
+
+          if ($adapters.Count -eq 0) {
+            throw 'No wired adapter is up, so Wake-on-LAN cannot be configured.'
           }
-          # "Allow this device to wake the computer"
-          powercfg /deviceenablewake "$($adapter.InterfaceDescription)"
-        }
+
+          foreach ($adapter in $adapters) {
+            $power = Get-NetAdapterPowerManagement -Name $adapter.Name -ErrorAction SilentlyContinue
+            if (-not $power) {
+              # Some virtual and USB NICs expose no power management at all.
+              # That is a fact about the hardware, not a failure, but it must
+              # not be silent either.
+              Write-Warning "$($adapter.Name) exposes no power management; Wake-on-LAN not configured on it."
+              continue
+            }
+            if ("$($power.WakeOnMagicPacket)" -eq 'Unsupported') {
+              # Likewise hardware, not misconfiguration - and setting it anyway
+              # would throw. Warn rather than fail so one incapable NIC beside a
+              # capable one does not stop the deploy.
+              Write-Warning "$($adapter.Name) does not support wake on magic packet; Wake-on-LAN not configured on it."
+              continue
+            }
+
+            # Wake only on a magic packet, not on pattern match, which avoids
+            # waking on ordinary broadcast traffic. The deploy does not manage
+            # the "allow the computer to turn off this device to save power"
+            # checkbox: it is left at the Windows default, which is the state
+            # Wake-on-LAN needs. What the deploy does assert is wake on magic
+            # packet here, plus arming the device to wake via powercfg below.
+            $wanted = "$($power.WakeOnMagicPacket)" -ne 'Enabled' -or
+              "$($power.WakeOnPattern)" -ne 'Disabled'
+            if ($wanted) {
+              $changed = $true
+              if (-not $Ansible.CheckMode) {
+                Set-NetAdapterPowerManagement -Name $adapter.Name `
+                  -WakeOnMagicPacket Enabled -WakeOnPattern Disabled
+              }
+            }
+
+            # "Allow this device to wake the computer". powercfg has no query
+            # that answers per-device cheaply, so this is compared against the
+            # list of devices already armed to wake.
+            $armed = @(& powercfg /devicequery wake_armed 2>&1 | ForEach-Object { "$_".Trim() })
+            if ($armed -notcontains $adapter.InterfaceDescription.Trim()) {
+              $changed = $true
+              if (-not $Ansible.CheckMode) {
+                & powercfg /deviceenablewake "$($adapter.InterfaceDescription)"
+              }
+            }
+          }
+
+          $Ansible.Changed = $changed
       become: yes
       become_method: runas
       vars:
@@ -106,6 +251,9 @@
       loop:
         - { path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications', name: ToastEnabled, data: 0 }
         - { path: 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer', name: DisableNotificationCenter, data: 1 }
+        # ToastEnabled above is the user-facing toggle and apps can prompt to
+        # re-enable it; this is the policy that stops toasts outright.
+        - { path: 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications', name: NoToastApplicationNotification, data: 1 }
 
     - name: Enable dark mode
       win_regedit:
@@ -152,16 +300,34 @@
       loop:
         - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: ShowTaskViewButton, data: 0 }
         - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search', name: SearchboxTaskbarMode, data: 0 }
+        # The per-user half of the widgets removal. The machine policy above is
+        # what actually forbids them; this clears the button for this user so
+        # the taskbar looks right without waiting for a policy refresh.
+        - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: TaskbarDa, data: 0 }
 
+    # Auto-hide lives in one byte of an opaque blob, and applying it needs
+    # Explorer restarted to be visible. Restarting Explorer unconditionally
+    # would make every deploy "changed" - and would kill the captain's session
+    # mid-game on a re-run - so the byte is compared first.
     - name: Auto-hide taskbar
-      win_shell: |
-        $path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
-        $settings = (Get-ItemProperty -Path $path).Settings
-        $settings[8] = 0x03
-        Set-ItemProperty -Path $path -Name Settings -Value $settings
-        if (Get-Process -Name explorer -ErrorAction SilentlyContinue) {
-          Stop-Process -Name explorer -Force
-        }
+      ansible.windows.win_powershell:
+        script: |
+          $ErrorActionPreference = 'Stop'
+          $path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'
+          $settings = (Get-ItemProperty -Path $path -Name Settings).Settings
+
+          # Byte 8 is a flags byte; bit 0 is auto-hide.
+          if (($settings[8] -band 0x01) -eq 0x01) {
+            $Ansible.Changed = $false
+            return
+          }
+
+          $Ansible.Changed = $true
+          if (-not $Ansible.CheckMode) {
+            $settings[8] = $settings[8] -bor 0x01
+            Set-ItemProperty -Path $path -Name Settings -Value $settings
+            Get-Process -Name explorer -ErrorAction SilentlyContinue | Stop-Process -Force
+          }
 
     - name: Remove unwanted Microsoft apps
       win_shell: |
@@ -193,12 +359,20 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
+    # The captain's explicit instruction for this dedicated gaming machine
+    # (HO-239). EnableLUA=0 only takes effect after a reboot; the other two
+    # values stop the consent prompt in the meantime, and keep it gone if a
+    # Windows update ever restores EnableLUA.
     - name: Disable UAC
       win_regedit:
         path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
-        name: EnableLUA
-        data: 0
+        name: "{{ item.name }}"
+        data: "{{ item.data }}"
         type: dword
+      loop:
+        - { name: EnableLUA, data: 0 }
+        - { name: ConsentPromptBehaviorAdmin, data: 0 }
+        - { name: PromptOnSecureDesktop, data: 0 }
       become: yes
       become_method: runas
       vars:
@@ -237,16 +411,9 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
-    - name: Ensure Steam is installed
-      win_chocolatey:
-        name: steam
-        state: present
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ windows_password }}"
-
+    # Steam itself is installed by src/software.ps1 through winget, further
+    # down. This only needs the path Valve.Steam installs to, which is the same
+    # one the Chocolatey package used.
     - name: Set Steam Big Picture as default shell for gaming user
       win_regedit:
         path: HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
@@ -264,35 +431,8 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
-    - name: Ensure Playnite is not installed
-      win_chocolatey:
-        name: playnite
-        state: absent
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ windows_password }}"
-
-    - name: Ensure Discord is not installed
-      win_shell: |
-        $chocoInstalled = choco list --local-only 2>&1 | Select-String "discord"
-        if ($chocoInstalled) {
-          choco uninstall discord -y 2>&1 | Out-Null
-        }
-        $discordUpdate = "$env:LOCALAPPDATA\Discord\Update.exe"
-        if (Test-Path $discordUpdate) {
-          Start-Process $discordUpdate -ArgumentList "--uninstall" -Wait -ErrorAction SilentlyContinue
-        }
-        @("$env:LOCALAPPDATA\Discord", "$env:APPDATA\discord") | ForEach-Object {
-          if (Test-Path $_) { Remove-Item $_ -Recurse -Force -ErrorAction SilentlyContinue }
-        }
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ windows_password }}"
-      ignore_errors: yes
+    # Playnite and Discord are kept absent by src/software.ps1 further down,
+    # which also hunts the per-user Discord that no package manager can see.
 
     - name: Ensure 7-Zip is installed
       win_chocolatey:
@@ -304,16 +444,11 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
-    - name: Ensure Apollo is installed
-      win_chocolatey:
-        name: apollo
-        state: present
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ windows_password }}"
-
+    # The one package on HO-239's list that winget cannot deliver: NVIDIA
+    # publishes no NVIDIA App manifest to the community winget source (the
+    # Nvidia publisher there carries CUDA, FrameView, PhysX and friends, but not
+    # the app), so Chocolatey stays for this one. The *driver* is a separate
+    # concern and is handled by src/run.ps1 further down.
     - name: Ensure NVIDIA App is installed
       win_chocolatey:
         name: nvidia-app
@@ -324,65 +459,9 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
-    - name: Ensure 1Password is installed
-      win_chocolatey:
-        name: 1password
-        state: present
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ windows_password }}"
-
-    - name: Ensure Logi Options+ is installed
-      win_chocolatey:
-        name: logitech-options-plus
-        state: present
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ windows_password }}"
-
-    # - name: Ensure Raycast is installed
-    #   win_shell: winget install Raycast --accept-source-agreements --accept-package-agreements --silent --source msstore
-    #   failed_when: result.rc != 0 and 'No newer package versions are available' not in result.stdout
-    #   register: result
-    #   become: yes
-    #   become_method: runas
-    #   vars:
-    #     ansible_become_user: "{{ ansible_user }}"
-    #     ansible_become_password: "{{ windows_password }}"
-
-    # - name: Ensure Windows HDR Calibration is installed
-    #   win_shell: winget install "Windows HDR Calibration" --accept-source-agreements --accept-package-agreements --silent --source msstore
-    #   failed_when: result2.rc != 0 and 'No newer package versions are available' not in result2.stdout
-    #   register: result2
-    #   become: yes
-    #   become_method: runas
-    #   vars:
-    #     ansible_become_user: "{{ ansible_user }}"
-    #     ansible_become_password: "{{ windows_password }}"
-
-    # - name: Ensure Dolby Access is installed
-    #   win_shell: winget install "Dolby Access" --accept-source-agreements --accept-package-agreements --silent --source msstore
-    #   args:
-    #     creates: C:\Program Files\WindowsApps\DolbyLaboratories.DolbyAccess_*
-    #   become: yes
-    #   become_method: runas
-    #   vars:
-    #     ansible_become_user: "{{ ansible_user }}"
-    #     ansible_become_password: "{{ windows_password }}"
-
-    - name: Ensure Tailscale is installed
-      win_chocolatey:
-        name: tailscale
-        state: present
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ windows_password }}"
+    # Apollo, 1Password, Logi Options+, Tailscale, Zed and Steam are installed
+    # by src/software.ps1 via winget, and Raycast, Windows HDR Calibration and
+    # Dolby Access from the Microsoft Store by the same script.
 
     - name: Ensure rsync is installed
       win_chocolatey:
@@ -709,9 +788,93 @@
         ansible_become_password: "{{ windows_password }}"
         ansible_remote_tmp: 'C:\tmp'
 
+    # HO-239's software list. Split in two because elevation is a property of
+    # the process: machine-scope winget installers need it, and the Microsoft
+    # Store's MSIX packages plus the per-user MoonDeck Buddy installer must not
+    # have it or they land in the wrong place. Both phases are idempotent and
+    # report what they changed on their last line, which is what changed_when
+    # reads; see src/software.ps1.
+    - name: Install and remove software (machine scope)
+      win_shell: |
+        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\software.ps1" -Phase Machine
+      register: software_machine
+      changed_when: "'changed=0 ' not in software_machine.stdout"
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    - name: Install software (user scope, including Microsoft Store apps)
+      win_shell: |
+        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\software.ps1" -Phase User
+      register: software_user
+      changed_when: "'changed=0 ' not in software_user.stdout"
+
+    # Microsoft Store installs are deliberately non-fatal, so a failure leaves
+    # the task green and Ansible hides win_shell stdout on a green task. Print
+    # it when the run recorded any warning, so a failed Store app is visible.
+    - name: Show the user-scope software output when it recorded warnings
+      ansible.builtin.debug:
+        var: software_user.stdout_lines
+      when: "'warnings=0' not in software_user.stdout"
+
+    # Zed registers itself as *a* handler for these types when winget installs
+    # it; this policy is what makes it the default. Windows applies it at user
+    # sign-in, so it takes effect on the next login rather than immediately.
+    - name: Ensure the default-associations directory exists
+      ansible.windows.win_file:
+        path: C:\ProgramData\gaming-pc
+        state: directory
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    - name: Copy the Zed default file associations
+      ansible.windows.win_copy:
+        src: ../src/default-associations.xml
+        dest: C:\ProgramData\gaming-pc\default-associations.xml
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+        ansible_remote_tmp: 'C:\tmp'
+
+    - name: Make Zed the default application for text and code files
+      ansible.windows.win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\System
+        name: DefaultAssociationsConfiguration
+        data: C:\ProgramData\gaming-pc\default-associations.xml
+        type: string
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
     - name: Run install.ps1
       win_shell: |
-        pwsh -File "C:\Users\{{ user }}\developer\tools\install.ps1"
+        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\install.ps1"
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    # The NVIDIA game-ready driver. src/run.ps1 compares the installed version
+    # against NVIDIA's latest and returns without downloading anything when they
+    # match, which is what "only install if not already on latest" asks for.
+    # It is also the payload of the nightly Update-Gaming-PC task that
+    # install.ps1 registers above; running it here means a freshly rebuilt
+    # machine gets its driver during the deploy instead of at the next midnight.
+    - name: Update the NVIDIA game-ready driver if one is available
+      win_shell: |
+        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\run.ps1"
+      register: nvidia_driver
+      changed_when: "'No update needed' not in nvidia_driver.stdout"
       become: yes
       become_method: runas
       vars:
