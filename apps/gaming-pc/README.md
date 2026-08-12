@@ -118,20 +118,20 @@ hive.
 winget is preferred over Chocolatey throughout. Every entry checks for presence
 before acting, so a second deploy installs nothing.
 
-| Software                 | Source                    | Package                 |
-| ------------------------ | ------------------------- | ----------------------- |
-| Steam                    | winget                    | `Valve.Steam`           |
-| Apollo (streaming server)| winget                    | `ClassicOldSong.Apollo` |
-| Logi Options+            | winget                    | `Logitech.OptionsPlus`  |
-| 1Password                | winget                    | `AgileBits.1Password`   |
-| Tailscale                | winget                    | `Tailscale.Tailscale`   |
-| Zed                      | winget                    | `ZedIndustries.Zed`     |
-| Raycast                  | Microsoft Store           | `9PFXXSHC64H3`          |
-| Windows HDR Calibration  | Microsoft Store           | `9N7F2SM5D1LR`          |
-| Dolby Access             | Microsoft Store           | `9N0866FS04W8`          |
-| MoonDeck Buddy           | GitHub release            | `FrogTheFrog/moondeck-buddy` |
-| NVIDIA App               | Chocolatey                | `nvidia-app`            |
-| NVIDIA game-ready driver | NVIDIA, via `src/run.ps1` | -                       |
+| Software                  | Source                    | Package                      |
+| ------------------------- | ------------------------- | ---------------------------- |
+| Steam                     | winget                    | `Valve.Steam`                |
+| Apollo (streaming server) | winget                    | `ClassicOldSong.Apollo`      |
+| Logi Options+             | winget                    | `Logitech.OptionsPlus`       |
+| 1Password                 | winget                    | `AgileBits.1Password`        |
+| Tailscale                 | winget                    | `Tailscale.Tailscale`        |
+| Zed                       | winget                    | `ZedIndustries.Zed`          |
+| Raycast                   | Microsoft Store           | `9PFXXSHC64H3`               |
+| Windows HDR Calibration   | Microsoft Store           | `9N7F2SM5D1LR`               |
+| Dolby Access              | Microsoft Store           | `9N0866FS04W8`               |
+| MoonDeck Buddy            | GitHub release            | `FrogTheFrog/moondeck-buddy` |
+| NVIDIA App                | Chocolatey                | `nvidia-app`                 |
+| NVIDIA game-ready driver  | NVIDIA, via `src/run.ps1` | -                            |
 
 Kept absent: **Playnite** and **Discord**. Discord needs more than a package
 removal - its Squirrel installer drops a working copy in `%LOCALAPPDATA%` that
@@ -169,22 +169,22 @@ playbook prints. If they warn, install those three from the Store by hand once;
 
 ## Windows settings the deploy applies
 
-| Setting                                   | How                                                            |
-| ----------------------------------------- | -------------------------------------------------------------- |
-| Auto-hide the taskbar                     | `StuckRects3` byte 8, Explorer restarted only when it changed  |
-| Auto-update Windows and Microsoft software| `AllowMUUpdateService`, installs at 03:00 daily                |
-| Updates restart only late at night        | Active hours pinned to 08:00-01:00                             |
-| Microsoft Store apps auto-update          | `WindowsStore\AutoDownload`                                    |
-| Hibernation off                           | `powercfg /hibernate off`                                       |
-| Sleep off                                 | `standby-timeout` 0 on AC and DC                               |
-| Automatic sign-in, including after wake   | `AutoAdminLogon`, plus no password required on wake            |
-| Wake-on-LAN                               | Magic packet only, armed with `powercfg /deviceenablewake`; the device power-down checkbox is left at the Windows default |
-| OS notifications off                      | `ToastEnabled`, notification centre and toast policies         |
-| Dark mode                                 | `AppsUseLightTheme` / `SystemUsesLightTheme`                   |
-| All desktop icons hidden                  | `HideIcons`                                                     |
-| Taskbar widgets off                       | `Dsh\AllowNewsAndInterests` policy, plus `TaskbarDa`           |
-| UAC off                                   | `EnableLUA`, `ConsentPromptBehaviorAdmin`, `PromptOnSecureDesktop` |
-| Zed as the default text and code editor   | `DefaultAssociationsConfiguration` policy, 139 file types      |
+| Setting                                    | How                                                                                                                       |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Auto-hide the taskbar                      | `StuckRects3` byte 8, Explorer restarted only when it changed                                                             |
+| Auto-update Windows and Microsoft software | `AllowMUUpdateService`, installs at 03:00 daily                                                                           |
+| Updates restart only late at night         | Active hours pinned to 08:00-01:00                                                                                        |
+| Microsoft Store apps auto-update           | `WindowsStore\AutoDownload`                                                                                               |
+| Hibernation off                            | `powercfg /hibernate off`                                                                                                 |
+| Sleep off                                  | `standby-timeout` 0 on AC and DC                                                                                          |
+| Automatic sign-in, including after wake    | `AutoAdminLogon`, plus no password required on wake                                                                       |
+| Wake-on-LAN                                | Magic packet only, armed with `powercfg /deviceenablewake`; the device power-down checkbox is left at the Windows default |
+| OS notifications off                       | `ToastEnabled`, notification centre and toast policies                                                                    |
+| Dark mode                                  | `AppsUseLightTheme` / `SystemUsesLightTheme`                                                                              |
+| All desktop icons hidden                   | `HideIcons`                                                                                                               |
+| Taskbar widgets off                        | `Dsh\AllowNewsAndInterests` policy, plus `TaskbarDa`                                                                      |
+| UAC off                                    | `EnableLUA`, `ConsentPromptBehaviorAdmin`, `PromptOnSecureDesktop`                                                        |
+| Zed as the default text and code editor    | `DefaultAssociationsConfiguration` policy, 139 file types                                                                 |
 
 Four of these need something the ticket did not ask for, or do not take effect
 the moment the deploy finishes:
