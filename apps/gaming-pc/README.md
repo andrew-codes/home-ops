@@ -223,13 +223,12 @@ a machine behind Tailscale, which is the trade the ticket accepts.
 | `deploy`     | Runs [`scripts/deploy.yml`](scripts/deploy.yml) against the machine over SSH.                                                          |
 | `publish`    | Packages `src/` as a GitHub Release for the machine's own self-update task. Unrelated to deploying; see [below](#the-publish-target).  |
 
-`deploy` is deliberately excluded from `yarn deploy/all`
-(`--exclude=andrew-mbp,dorri-mbp,gaming-pc` in the root `package.json`, which
-also excludes [`apps/andrew-mbp`](../andrew-mbp) and
-[`apps/dorri-mbp`](../dorri-mbp) for the same reason), because setting a machine
-up is a deliberate one-at-a-time action rather than a fleet deploy, and this one
-fails the whole fan-out whenever the PC is off, asleep, or unreachable. Keep the
-exclusion; JSON cannot carry the comment, which is why it is recorded here.
+`deploy` is deliberately excluded from `yarn deploy/all`; the exclusion list
+lives on that script in the root `package.json`, and the rule behind it is
+written up under [Deploy exclusions](../../README.md#deploy-exclusions). This
+machine is on the list because setting it up is a deliberate one-at-a-time
+action rather than a fleet deploy, and it fails the whole fan-out whenever the
+PC is off, asleep, or unreachable.
 
 `deploy` also pins its own `dependsOn` rather than inheriting the `nx.json`
 default, which ends in `publish`. This is the only project with both targets, so

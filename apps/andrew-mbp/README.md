@@ -193,7 +193,7 @@ If devtools already installs the app, add it in neither place - devtools owns it
 | `deploy` | Runs `src/setup.sh` against this machine, inheriting the environment so the `NAS_*` variables reach it.               |
 | `test`   | Runs [`tests/time-machine-step.test.sh`](tests/time-machine-step.test.sh); skips on anything but Apple Silicon macOS. |
 
-`deploy` is deliberately excluded from `yarn deploy/all` (`--exclude=andrew-mbp,dorri-mbp,gaming-pc` in the root `package.json`, which also excludes the sibling [`apps/dorri-mbp`](../dorri-mbp) and [`apps/gaming-pc`](../gaming-pc) for the same reason), because setting up a machine is a one-at-a-time interactive action - `darwin-rebuild switch`, `mas` and `sudo tmutil` all prompt - rather than a fleet deploy, and it exits non-zero anywhere that is not an Apple Silicon Mac with the `NAS_*` variables set. Keep the exclusion; JSON cannot carry the comment, which is why it is recorded here.
+`deploy` is deliberately excluded from `yarn deploy/all`; the exclusion list lives on that script in the root `package.json`, and the rule behind it is written up under [Deploy exclusions](../../README.md#deploy-exclusions). This machine is on the list because setting it up is a one-at-a-time interactive action - `darwin-rebuild switch`, `mas` and `sudo tmutil` all prompt - rather than a fleet deploy, and it exits non-zero anywhere that is not an Apple Silicon Mac with the `NAS_*` variables set.
 
 There is no `provision` target. Provisioning a laptop means unboxing it; this configuration only has a deployment phase.
 
