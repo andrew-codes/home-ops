@@ -10,15 +10,18 @@ Takes a stock Apple Silicon Mac to a fully configured machine with one command, 
 
 `andrew-mbp` extends [devtools](https://github.com/andrew-codes/devtools), which hardcodes `user = "andrew"` and layers the captain's shell, dotfiles, git identity, CLI toolchain and agent harness onto the machine. That is right for the captain's Mac and wrong for anybody else's, so `dorri-mbp` declares its own small nix-darwin system instead. The Nix release branches are pinned to the same values devtools uses, so both Macs track one generation.
 
+What the two Macs **do** share is the [Time Machine arrangement](#time-machine-backups-to-the-nas): the same NAS, the same share, the same `NAS_*` variable names and the same behaviour, so one runbook covers both. The implementation is duplicated rather than shared - [see why](#why-this-step-is-duplicated-from-andrew-mbp-rather-than-shared).
+
 ## What it manages
 
-| Concern                                      | Where                                                                                    |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Nix, nix-darwin, Homebrew                    | [`src/setup.sh`](src/setup.sh), [`src/configuration.nix`](src/configuration.nix)         |
-| Applications                                 | [`src/applications.nix`](src/applications.nix)                                           |
-| Spotlight indexing off                       | [`src/configuration.nix`](src/configuration.nix)                                         |
-| Second administrator account                 | [`src/setup.sh`](src/setup.sh), [`src/create-admin-user.tcl`](src/create-admin-user.tcl) |
-| Raycast on cmd+space, Spotlight's hotkey off | [`src/setup.sh`](src/setup.sh)                                                           |
+| Concern                                      | Where                                                                                                          |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Nix, nix-darwin, Homebrew                    | [`src/setup.sh`](src/setup.sh), [`src/configuration.nix`](src/configuration.nix)                               |
+| Applications                                 | [`src/applications.nix`](src/applications.nix)                                                                 |
+| Spotlight indexing off                       | [`src/configuration.nix`](src/configuration.nix)                                                               |
+| Second administrator account                 | [`src/setup.sh`](src/setup.sh), [`src/create-admin-user.tcl`](src/create-admin-user.tcl)                       |
+| Raycast on cmd+space, Spotlight's hotkey off | [`src/setup.sh`](src/setup.sh)                                                                                 |
+| Time Machine backups to the NAS              | [`src/setup.sh`](src/setup.sh), [`src/set-time-machine-destination.tcl`](src/set-time-machine-destination.tcl) |
 
 ### Applications
 
@@ -69,6 +72,9 @@ Homebrew has no per-account cask install. Its `--appdir` is a property of the Ho
 ```bash
 ADMIN_USERNAME=andrewsmith \
 ADMIN_PASSWORD="$(op read 'op://…')" \
+NAS_HOST=<nas-ip-or-hostname> \
+NAS_USERNAME=<nas-user> \
+NAS_PASSWORD="$(op read 'op://…')" \
   nx run dorri-mbp:deploy
 ```
 
@@ -81,12 +87,20 @@ That runs [`src/setup.sh`](src/setup.sh) straight out of the working tree agains
 | `ADMIN_USERNAME`  | yes                              | macOS short name of the second administrator account |
 | `ADMIN_PASSWORD`  | yes                              | that account's login password                        |
 | `ADMIN_FULL_NAME` | no, defaults to `ADMIN_USERNAME` | name shown at the login window                       |
+| `NAS_HOST`        | yes                              | hostname or IP of the NAS                            |
+| `NAS_USERNAME`    | yes                              | NAS account Time Machine backs up as                 |
+| `NAS_PASSWORD`    | yes                              | that account's password                              |
+| `NAS_SHARE`       | no, defaults to `backup`         | SMB share name on the NAS                            |
+
+The `NAS_*` names are **the same as [`apps/andrew-mbp`](../andrew-mbp)'s** on purpose, so one runbook covers both Macs rather than each machine needing its own. See [Time Machine](#time-machine-backups-to-the-nas).
 
 `andrewsmith` above is an example, not a default. **No username or password is hardcoded anywhere in this app**, and there is no fallback if a variable is unset.
 
-Both required variables are validated **before any change is made**. If either is missing, `setup.sh` names every missing one in a single message and exits non-zero. It never prompts and never guesses: this creates a real login account with administrator rights, so a guessed value is a security problem rather than an inconvenience. `ADMIN_USERNAME` is additionally bounded to a macOS short name - letters, digits, underscore and hyphen - because it reaches `dseditgroup`, `createhomedir` and a `/Users` path.
+All five required variables are validated **in one pass, before any change is made**. If any is missing, `setup.sh` names every missing one - account and NAS together - in a single message and exits non-zero, so a run short of two credentials fails once rather than twice. It never prompts and never guesses: this creates a real login account with administrator rights and points a real backup destination, so a guessed value is a security problem or a silent backup failure rather than an inconvenience. `ADMIN_USERNAME` is additionally bounded to a macOS short name - letters, digits, underscore and hyphen - because it reaches `dseditgroup`, `createhomedir` and a `/Users` path.
 
-Read `ADMIN_PASSWORD` from your password manager rather than typing it, so it never lands in shell history.
+Read both passwords from your password manager rather than typing them, so they never land in shell history.
+
+The repo's 1Password-backed configuration API has a `nas/ip` entry but **no** NAS username or password, so those two are supplied by hand - exactly as on `andrew-mbp`. If they are added to 1Password later, [`scripts/deploy.ts`](scripts/deploy.ts) is the place to read them and export them into the environment.
 
 The same contract applies whether `setup.sh` is run directly or through `nx run dorri-mbp:deploy`, which inherits the environment.
 
@@ -102,11 +116,12 @@ If the machine's account is not called `dorri`, edit that file and commit the ch
 
 Beyond the `git` used to clone this repo, nothing needs to be preinstalled - not Nix, not Homebrew, not Nx. `setup.sh`:
 
-1. **Validation.** Platform, both `ADMIN_*` variables, the username's shape, and `primary-user.txt`. All of it before anything is touched.
+1. **Validation.** Platform, all five `ADMIN_*` and `NAS_*` variables, the username's shape, and `primary-user.txt`. All of it before anything is touched.
 2. **Nix.** Installs [Determinate Nix](https://determinate.systems/) if it is not already there - the same Nix the sibling machine runs. Skipped on a machine that has it.
 3. **The dorri-mbp configuration.** Builds this flake's own `darwin-rebuild` if nix-darwin is not installed yet, then `darwin-rebuild switch`. That installs Homebrew (via `nix-homebrew`), every application in `applications.nix`, and turns Spotlight indexing off.
 4. **The second administrator account.** Creates it if it does not exist, and puts it in the `admin` group.
 5. **Keyboard shortcuts.** Releases cmd+space from Spotlight and gives it to Raycast, for both accounts.
+6. **Time Machine.** Points Time Machine at the NAS and enables hourly backups on battery as well as AC.
 
 The switch passes `path:` flake references on purpose. A bare path inside a git working tree makes Nix read the _git_ tree rather than the directory on disk, so an uncommitted edit to `applications.nix` would be silently ignored and the last committed version applied instead. Since the update path here is "edit, or `git pull`, then re-run", that silent staleness is exactly the wrong behaviour.
 
@@ -197,11 +212,65 @@ Not automated, and genuinely not automatable:
 - **Raycast has to be launched once per account.** Until then Raycast is not running, so nothing is listening on cmd+space, and Raycast's first-run onboarding may offer to set a hotkey of its own. Launch it, confirm cmd+space opens it, and if it does not, either set it in Raycast's own settings or re-run the deploy with Raycast quit.
 - **Raycast rewrites its preferences when it quits.** If Raycast is running while the deploy writes the hotkey, that write can be undone. `setup.sh` detects a running Raycast and warns; quit it and re-run.
 
+## Time Machine backups to the NAS
+
+Backs up to the NAS share at `/Volume1/backup` over SMB, automatically, every hour, on battery as well as mains.
+
+This is **machine-wide, not per-account**: the destination and its keychain entry live in `/Library`, so one configuration covers both accounts' data. It is the same backup arrangement the sibling [`apps/andrew-mbp`](../andrew-mbp) uses, with the same variable names and the same behaviour - this machine is a real, in-use laptop with documents on it, and having no backup was a gap rather than a decision.
+
+> **The NAS becomes the _only_ Time Machine destination.** Configuring the destination **replaces** the destination list rather than adding to it, so any other destination already set on this machine - a local backup disk, an older NAS - is removed. That is deliberate: appending would leave a superseded destination in the rotation and Time Machine would go on choosing it, which is exactly the silent stale-backup failure this step exists to prevent. If you want a second destination, add it back by hand after the setup, and expect the next run to remove it again.
+
+### The NAS variables
+
+The `NAS_*` variables are in the [configuration table](#configuration) above. The three required ones - `NAS_HOST`, `NAS_USERNAME` and `NAS_PASSWORD` - are validated in the same up-front pass as the `ADMIN_*` ones, and `setup.sh` never prompts and never guesses a value for them, because a wrong Time Machine destination fails silently rather than loudly. `NAS_SHARE` is the one exception: it is optional and defaults to `backup`, the share both Macs already back up to.
+
+**Protocol and share name.** `/Volume1/backup` is read as SMB share `backup` - on a Synology, `/volume1` is the underlying volume and `backup` is the shared folder, and an SMB URL addresses the share, not the volume path. `NAS_SHARE` overrides it if that ever stops holding.
+
+### Idempotency, including a moved NAS
+
+Re-running does **not** reconfigure a destination that is already right. The check matches user, host and share out of one and the same URL, tolerating the Bonjour form macOS reports back (`<host>._smb._tcp.local.`) and nothing wider, and bounding the user, the host and the share so `nas-01` does not match `nas-011` or `nas-01.old-site.example.com`, and `backup` does not match `backup-old`.
+
+A changed host, user or share **does** trigger reconfiguration. That matters: ignoring the host would leave a moved or corrected NAS silently backing up to the old destination forever.
+
+### How the NAS password is handled
+
+`tmutil setdestination` accepts the password inside the destination URL, and its own man page warns against exactly that: "all arguments provided to a program are visible by all users on the system via the `ps` tool". So the password is never put on a command line.
+
+Instead `setup.sh` pipes it to [`src/set-time-machine-destination.tcl`](src/set-time-machine-destination.tcl), which feeds it to `tmutil`'s `-p` non-echoing prompt. That prompt is `getpass(3)`, which reads from `/dev/tty` rather than stdin, which is why driving it needs a pty rather than a plain pipe. It is the same mechanism this app already uses to hand `sysadminctl` the account password.
+
+The result:
+
+- never on a command line, so never in `ps`
+- never written to disk, and never committed
+- never echoed or logged; `xtrace` is turned off around the whole credential path, so `bash -x setup.sh` cannot leak it either
+- stored by `tmutil` itself in the **system keychain**, which is what lets `backupd` remount the share unattended
+
+### Keeping the destination available
+
+A network Time Machine destination is mounted by `backupd` when a backup is due, using that system-keychain credential, and unmounted afterwards. That is the macOS-native mechanism for surviving reboots and network drops - so there is deliberately no separate automount or persistent mount here, which would only contend with `backupd` over the same share.
+
+### Exclusions
+
+This configuration **adds no exclusions**, and there are none of its own to remove.
+
+That is not the same as nothing being excluded. macOS enforces its own exclusion list - the sealed system volume, swap, and various caches - and no tool can remove those. `setup.sh` prints the verdict for a few representative paths after configuring; check any path yourself with:
+
+```bash
+tmutil isexcluded /path/to/check
+```
+
+### Why this step is duplicated from `andrew-mbp` rather than shared
+
+The step and its `expect` script are near-copies of the sibling's, on the same reasoning already recorded in [`scripts/deploy.ts`](scripts/deploy.ts). `setup.sh`'s contract is that **every file it reads sits next to it**, which is what lets `./src/setup.sh` run straight out of a fresh clone with no build, packaging or path-resolution step. Sharing would mean either breaking that contract for both machines or standing up a workspace package that the `@ha/nx-executors:invoke` executor then has to resolve through - more indirection than the duplication costs. The two copies also differ where it matters: `nix_tool` here resolves `expect` from this app's own pinned flake, not from devtools'. Change one and change the other; each app's tests cover its own copy.
+
+They are out of step today, and deliberately so: this copy bounds the NAS user in the idempotency match, tolerates only the literal Bonjour suffix, and reports tmutil's own output when it exits or stalls before prompting for the password. The sibling does none of those yet - carrying them across is a follow-up on [`apps/andrew-mbp`](../andrew-mbp), which this change left untouched on purpose. `src/setup.sh`'s step 5 comment is the authoritative list.
+
 ## One-time manual steps macOS forces
 
 These cannot be automated away, and are not faked:
 
-- **`sudo`.** Installing Nix, `darwin-rebuild switch`, and creating the account all need it, so the deploy is interactive.
+- **`sudo`.** Installing Nix, `darwin-rebuild switch`, creating the account and every `tmutil` call all need it, so the deploy is interactive.
+- **Full Disk Access.** `man tmutil` states that `setdestination` "Requires root and Full Disk Access privileges". Grant it to the terminal you run the deploy from, at _System Settings > Privacy & Security > Full Disk Access_. This is a one-time approval that cannot be scripted, because the approval dialog is what authorises the scripting.
 - **Launch Raycast once per account** and confirm cmd+space - see above.
 - **Log in as the second account once** for its keyboard shortcut change to take effect, and for each app's per-user setup.
 - **Grant the second account a secure token** if the machine uses FileVault - see above.
@@ -216,7 +285,8 @@ There is no release artifact to download - the repo is the source of truth, and 
 ```bash
 git clone https://github.com/andrew-codes/home-ops.git
 cd home-ops/apps/dorri-mbp
-ADMIN_USERNAME=andrewsmith ADMIN_PASSWORD='…' ./src/setup.sh
+ADMIN_USERNAME=andrewsmith ADMIN_PASSWORD='…' \
+  NAS_HOST=<nas-ip> NAS_USERNAME=<nas-user> NAS_PASSWORD='…' ./src/setup.sh
 ```
 
 `setup.sh` reads only files sitting next to it, so it runs directly from the clone with no build, packaging or Nx install needed. Nx is only how the deploy is invoked from an already-set-up machine.
@@ -225,10 +295,13 @@ ADMIN_USERNAME=andrewsmith ADMIN_PASSWORD='…' ./src/setup.sh
 
 ```bash
 git pull
-ADMIN_USERNAME=andrewsmith ADMIN_PASSWORD='…' ./src/setup.sh
+ADMIN_USERNAME=andrewsmith ADMIN_PASSWORD='…' \
+  NAS_HOST=<nas-ip> NAS_USERNAME=<nas-user> NAS_PASSWORD='…' ./src/setup.sh
 ```
 
 or, equivalently, `nx run dorri-mbp:deploy` from the repo root.
+
+All five required variables are still needed on a re-run, even though the account already exists and the destination is already set - validation runs before the setup knows whether it has anything to do.
 
 **Re-running is the whole update mechanism.** Every step is idempotent and skips work already done, so pulling a change that adds one cask installs that cask and leaves everything else alone. Keep the clone; there is nothing else to keep.
 
@@ -250,12 +323,12 @@ curl -s https://formulae.brew.sh/api/cask/<token>.json | head
 
 ## Nx targets
 
-| Target   | What it does                                                                                              |
-| -------- | --------------------------------------------------------------------------------------------------------- |
-| `deploy` | Runs `src/setup.sh` against this machine, inheriting the environment so the `ADMIN_*` variables reach it. |
-| `test`   | Runs [`tests/setup.test.sh`](tests/setup.test.sh); skips on anything but Apple Silicon macOS.             |
+| Target   | What it does                                                                                                          |
+| -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `deploy` | Runs `src/setup.sh` against this machine, inheriting the environment so the `ADMIN_*` and `NAS_*` variables reach it. |
+| `test`   | Runs [`tests/setup.test.sh`](tests/setup.test.sh); skips on anything but Apple Silicon macOS.                         |
 
-`deploy` is deliberately excluded from `yarn deploy/all`; the exclusion list lives on that script in the root `package.json`, and the rule behind it is written up under [Deploy exclusions](../../README.md#deploy-exclusions). This machine is on the list because setting it up is a one-at-a-time interactive action - `darwin-rebuild switch`, `sudo` and account creation all prompt - rather than a fleet deploy, and it exits non-zero anywhere that is not an Apple Silicon Mac with the `ADMIN_*` variables set.
+`deploy` is deliberately excluded from `yarn deploy/all`; the exclusion list lives on that script in the root `package.json`, and the rule behind it is written up under [Deploy exclusions](../../README.md#deploy-exclusions). This machine is on the list because setting it up is a one-at-a-time interactive action - `darwin-rebuild switch`, `sudo tmutil` and account creation all prompt - rather than a fleet deploy, and it exits non-zero anywhere that is not an Apple Silicon Mac with the `ADMIN_*` and `NAS_*` variables set.
 
 There is no `provision` target. Provisioning a laptop means unboxing it; this configuration only has a deployment phase.
 
@@ -263,20 +336,23 @@ There are no `package` or `publish` targets either. These setups are not shipped
 
 ## What was verified, and what was not
 
-**The configuration has never been applied to a machine** - see [AGENTS.md](AGENTS.md). No account was created, nothing was installed, and Spotlight was not switched off anywhere in the course of writing this.
+**The configuration has never been applied to a machine** - see [AGENTS.md](AGENTS.md). No account was created, nothing was installed, Spotlight was not switched off, and **no Time Machine setting was written**, anywhere in the course of writing this.
 
 Verified without mutating anything:
 
 - every cask token, against the live Homebrew cask index
 - `raycastGlobalHotkey = "Command-49"` and symbolic hotkey 64's parameters, read off a live macOS 26 install
 - `/usr/sbin/sysadminctl` importing `_getpass`, and its `-addUser` / `-password -` / `-admin` usage text, read out of the binary
+- `AutoBackupInterval` (seconds, `3600` for hourly) and `RequiresACPower` (`false` to keep backing up on battery), read off a live macOS 26.5.2 system with `defaults read /Library/Preferences/com.apple.TimeMachine` rather than recalled, because these keys have moved between releases
 - the flake evaluating: `nix flake check`, and `nix eval` of the cask list, `system.primaryUser`, `homebrew.user` and the module assertions
 
-Covered by [`tests/setup.test.sh`](tests/setup.test.sh) (`nx run dorri-mbp:test`), against stubs and a fake `sysadminctl`: the `ADMIN_*` validation failing closed before anything changes and naming every missing variable at once, the username bound to a short name, `primary-user.txt` mismatches failing closed, an existing account never being re-created or having its password reset, the admin group being repaired only when needed, the root account never being touched, the password never appearing in argv or under `bash -x`, cmd+space being released from Spotlight before Raycast claims it for both accounts, and the expect script's prompt handling, guards and exit-code propagation. It skips on anything but Apple Silicon macOS, so CI reports a skip rather than a false pass.
+Covered by [`tests/setup.test.sh`](tests/setup.test.sh) (`nx run dorri-mbp:test`), against stubs and fake `sysadminctl` / `tmutil` binaries: the `ADMIN_*` and `NAS_*` validation failing closed before anything changes and naming every missing variable at once across both, the username bound to a short name, `primary-user.txt` mismatches failing closed, an existing account never being re-created or having its password reset, the admin group being repaired only when needed, the root account never being touched, neither password appearing in argv or under `bash -x`, cmd+space being released from Spotlight before Raycast claims it for both accounts, the Time Machine idempotency check reconfiguring on a changed host, user or share rather than keeping a stale destination, the destination list being replaced rather than appended to (`-a` is asserted absent, so reintroducing it fails the tests), the schedule being hourly and not AC-only with no exclusions of our own, and both expect scripts' prompt handling, guards and exit-code propagation. No real `tmutil` is invoked, not even for its read-only subcommands. It skips on anything but Apple Silicon macOS, so CI reports a skip rather than a false pass.
 
 Not verified, because it cannot be without a real machine:
 
 - that `sysadminctl`'s prompt string is `User password:` on every macOS version. Both strings this matches came out of the binary on macOS 26, and a mismatch fails loudly on a timeout rather than silently.
+- that `tmutil`'s prompt string is `Destination password:` on every macOS version. Same shape of risk, and the same loud timeout on a mismatch.
+- that the NAS accepts the supplied credentials for an SMB Time Machine share, and that `backupd` then completes a first backup. No `tmutil setdestination` was ever run.
 - that Raycast's onboarding respects a hotkey written before its first launch.
 - that `mdutil` succeeds without a Full Disk Access prompt when run from activation. Activation runs as root out of launchd, which normally has it, but that has not been observed here. Because it is unverified, the call is best-effort: on failure it warns and the switch continues, and the warning names the manual `sudo mdutil -i off -d /` fallback.
 - that the first `darwin-rebuild switch` on this particular machine finds no `/etc` file it wants to manage but did not create. nix-darwin refuses to clobber one, and names the file and the fix (`sudo mv <file> <file>.before-nix-darwin`) when it happens. It is a loud, one-time, first-run failure, not a silent one.
