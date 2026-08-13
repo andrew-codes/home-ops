@@ -50,6 +50,12 @@ export NAS_HOST=nas-01
 export NAS_USERNAME=tmuser
 export NAS_PASSWORD="$SENTINEL"
 
+# Seeds the stubbed TM_CRED_HASH_FILE with the hash of the password every case
+# above uses, so the pre-existing "already configured" cases keep skipping -
+# only the dedicated password-rotation case below overrides NAS_PASSWORD to
+# something that hashes differently.
+printf '%s' "$SENTINEL" | shasum -a 256 | awk '{print $1}' > "$WORK/tm-cred-hash"
+
 passes=0
 failures=0
 
@@ -86,6 +92,7 @@ stubs() {
   echo "SCRIPT_DIR=$SRC_DIR"
   echo "INVOKING_USER=$ME"
   echo "NIX_BIN=/stub-nix"
+  echo "TM_CRED_HASH_FILE=$WORK/tm-cred-hash"
   echo 'sudo() { echo "[sudo] $*"; }'
   echo 'defaults() { echo "[defaults] $*"; }'
   echo 'nix_tool() { echo /stub-store-path; }'
@@ -435,6 +442,33 @@ out="$(NAS_HOST=192.168.1.5 bash "$WORK/tm-prefix-ip.sh" 2>&1)"
 case "$out" in
   *"configuring destination"*) ok "reconfigures when the configured IP merely starts with NAS_HOST" ;;
   *) fail "reconfigures when the configured IP merely starts with NAS_HOST" "stale destination kept: $out" ;;
+esac
+
+echo
+echo "== a rotated NAS password is noticed even when the destination URL is not"
+# The destination URL matches, but the password differs from what
+# tm-cred-hash was seeded with - the idempotency check must not read that as
+# "already configured", or a rotated NAS password would be silently ignored.
+out="$(NAS_PASSWORD=a-different-password bash "$WORK/tm-same.sh" 2>&1)"
+case "$out" in
+  *"already configured"*) fail "reconfigures when the NAS password has changed" "stale credential kept: $out" ;;
+  *"re-applying the credential"*) ok "reconfigures when the NAS password has changed" ;;
+  *) fail "reconfigures when the NAS password has changed" "$out" ;;
+esac
+case "$out" in
+  *"[sudo] dd of=$WORK/tm-cred-hash status=none"*) ok "records a hash of the newly applied password" ;;
+  *) fail "records a hash of the newly applied password" "$out" ;;
+esac
+case "$out" in
+  *"a-different-password"*) fail "never writes the password itself to the hash file" "leaked: $out" ;;
+  *) ok "never writes the password itself to the hash file" ;;
+esac
+
+# With the destination URL AND the password both unchanged, it still skips.
+out="$(bash "$WORK/tm-same.sh" 2>&1)"
+case "$out" in
+  *"already configured"*) ok "still skips when both the destination and the password are unchanged" ;;
+  *) fail "still skips when both the destination and the password are unchanged" "$out" ;;
 esac
 
 # A failing destination call aborts the run before the closing summary, so the

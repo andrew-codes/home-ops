@@ -24,6 +24,15 @@ ADMIN_FULL_NAME="${ADMIN_FULL_NAME:-${ADMIN_USERNAME:-}}"
 # covers both Macs rather than each machine needing its own.
 NAS_SHARE="${NAS_SHARE:-backup}"
 
+# A hash (never the password itself) of the last NAS password this script
+# successfully applied. The destination-URL idempotency check below only knows
+# the configured *pointer*, not whether the credential behind it is still
+# right, so on its own a NAS password rotation would be read as "already
+# configured" forever - the operator would have to notice backups failing and
+# remove the destination by hand. This file closes that gap. Overridable so
+# tests never touch the real path.
+TM_CRED_HASH_FILE="${TM_CRED_HASH_FILE:-/Library/Preferences/com.home-ops.timemachine.nas-credential-hash}"
+
 # Raycast stores its global hotkey as "<modifiers>-<keycode>". 49 is the space
 # key, so "Command-49" is cmd+space. Read off a live Raycast install
 # (`defaults read com.raycast.macos raycastGlobalHotkey`) rather than recalled.
@@ -321,14 +330,6 @@ echo "==> Step 5: Time Machine backups to the NAS"
 # with the same inputs. Keep them in step by hand; each app's tests cover its
 # own copy.
 #
-# They are not in step today. This copy anchors the NAS user on the `smb://`
-# scheme and tolerates only the literal Bonjour suffix, where the sibling still
-# allows an unbounded user prefix and any dot-suffix, so a stale
-# `smb://old-<user>@<host>/<share>` or `<host>.old-site.example.com` is read as
-# configured there. The sibling's expect script also still swallows whatever
-# tmutil printed when it exits or stalls before prompting. Carrying these across
-# is a follow-up on andrew-mbp, out of scope for this app.
-#
 # Machine-wide, not per-account: the destination and its keychain entry live in
 # /Library, so this one configuration backs up both accounts' data.
 #
@@ -383,11 +384,30 @@ tm_pattern="smb://$(tm_re_escape "$NAS_USERNAME")@$(tm_re_escape "$NAS_HOST")"
 tm_pattern="$tm_pattern"'(\._smb\._tcp)?(\.local\.?)?/'"$(tm_re_escape "$NAS_SHARE")"'([[:space:]]|$)'
 
 tm_existing="$(tmutil destinationinfo 2>/dev/null || true)"
-if printf '%s\n' "$tm_existing" | grep -qE "$tm_pattern"; then
+
+# The URL match above only proves the *pointer* is right; it says nothing
+# about whether the password behind it still is. Time Machine's own state has
+# no way to reveal a NAS password rotation from here - the keychain entry it
+# manages is opaque to this script - so a stale credential would otherwise
+# pass the check above forever. Guard the same way as the URL: keep a hash of
+# the last password this script successfully applied, and require it to match
+# too before skipping.
+tm_password_hash="$(printf '%s' "$NAS_PASSWORD" | shasum -a 256 | awk '{print $1}')"
+tm_stored_hash="$(cat "$TM_CRED_HASH_FILE" 2>/dev/null || true)"
+
+tm_url_matches=0
+printf '%s\n' "$tm_existing" | grep -qE "$tm_pattern" && tm_url_matches=1
+
+if [ "$tm_url_matches" = 1 ] && [ "$tm_password_hash" = "$tm_stored_hash" ]; then
   echo "    destination already configured, leaving it alone"
 else
-  echo "    configuring destination smb://${NAS_USERNAME}@${NAS_HOST}/${NAS_SHARE}"
-  echo "    (this REPLACES the destination list; the NAS becomes the only one)"
+  if [ "$tm_url_matches" = 1 ]; then
+    echo "    destination already points at the NAS, but its stored password"
+    echo "    has changed since the last run - re-applying the credential"
+  else
+    echo "    configuring destination smb://${NAS_USERNAME}@${NAS_HOST}/${NAS_SHARE}"
+    echo "    (this REPLACES the destination list; the NAS becomes the only one)"
+  fi
   # The helper below calls `tmutil setdestination` without -a, which replaces
   # the whole destination list rather than appending to it. Appending would
   # leave a superseded destination in the list for Time Machine to keep
@@ -425,6 +445,12 @@ else
     echo "is above." >&2
     exit 1
   fi
+
+  # Record what was just applied so a re-run with the same password can skip
+  # again, and a re-run with a different one cannot mistake this destination
+  # for still being configured with it. Never the password itself - only a
+  # one-way hash of it, which is enough to detect a change.
+  printf '%s\n' "$tm_password_hash" | sudo dd of="$TM_CRED_HASH_FILE" status=none
 fi
 
 # Plain `[ -n "$tm_xtrace" ] && set -x` would return non-zero when xtrace was
