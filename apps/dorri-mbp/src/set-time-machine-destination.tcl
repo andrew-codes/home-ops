@@ -27,10 +27,6 @@
 # fresh clone with no build, packaging or path resolution step; reaching across
 # app directories would break that for both machines. Change one and change the
 # other - each app's tests assert this file's behaviour independently.
-#
-# The two copies are out of step today: this one reports tmutil's own output
-# when tmutil exits or stalls before prompting, where the sibling's discards it.
-# setup.sh's step 5 comment lists every divergence and why it stands.
 
 log_user 0
 set timeout 120

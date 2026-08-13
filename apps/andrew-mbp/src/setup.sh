@@ -24,6 +24,15 @@ DEVTOOLS_REMOTE="https://github.com/andrew-codes/devtools.git"
 # what an SMB URL addresses. NAS_SHARE overrides it if that ever stops holding.
 NAS_SHARE="${NAS_SHARE:-backup}"
 
+# A hash (never the password itself) of the last NAS password this script
+# successfully applied. The destination-URL idempotency check below only knows
+# the configured *pointer*, not whether the credential behind it is still
+# right, so on its own a NAS password rotation would be read as "already
+# configured" forever - the operator would have to notice backups failing and
+# remove the destination by hand. This file closes that gap. Overridable so
+# tests never touch the real path.
+TM_CRED_HASH_FILE="${TM_CRED_HASH_FILE:-/Library/Preferences/com.home-ops.timemachine.nas-credential-hash}"
+
 os_type="$OSTYPE"
 arch_type="$(uname -m)"
 [[ $OSTYPE == darwin* ]] && os_type="macos"
@@ -261,24 +270,48 @@ esac
 # user@host from one and the share from another and skip on a match that exists
 # nowhere.
 #
-# The host is bounded too. The only suffix worth tolerating is the Bonjour
-# form, which always starts with a dot, so the suffix is optional and must
-# begin with one: NAS_HOST=nas-01 then matches nas-01 and
-# nas-01._smb._tcp.local. but not a different host called nas-011, and
-# NAS_HOST=192.168.1.5 does not match a stale 192.168.1.50.
+# The host is bounded too, and the only suffix tolerated is the Bonjour form
+# itself, spelled out literally rather than as "any dot-suffix": NAS_HOST=nas-01
+# matches nas-01, nas-01.local and nas-01._smb._tcp.local. but not a different
+# host called nas-011, and not a stale nas-01.old-site.example.com, which a
+# wildcard suffix would wave through as already configured. NAS_HOST=192.168.1.5
+# does not match a stale 192.168.1.50 either.
+#
+# The user is bounded on the left by the literal scheme for the same reason:
+# without it, NAS_USERNAME=tmuser matches a stale smb://old-tmuser@nas-01/backup
+# and the moved-account case is skipped silently.
 #
 # The NAS_* values are user-supplied, so escape any regex metacharacters in
 # them before they are interpolated into an extended regular expression.
 tm_re_escape() { printf '%s' "$1" | sed 's#[][^$.*+?(){}|\\/]#\\&#g'; }
-tm_pattern="$(tm_re_escape "$NAS_USERNAME")@$(tm_re_escape "$NAS_HOST")"
-tm_pattern="$tm_pattern"'(\.[^/[:space:]]*)?/'"$(tm_re_escape "$NAS_SHARE")"'([[:space:]]|$)'
+tm_pattern="smb://$(tm_re_escape "$NAS_USERNAME")@$(tm_re_escape "$NAS_HOST")"
+tm_pattern="$tm_pattern"'(\._smb\._tcp)?(\.local\.?)?/'"$(tm_re_escape "$NAS_SHARE")"'([[:space:]]|$)'
 
 tm_existing="$(tmutil destinationinfo 2>/dev/null || true)"
-if printf '%s\n' "$tm_existing" | grep -qE "$tm_pattern"; then
+
+# The URL match above only proves the *pointer* is right; it says nothing
+# about whether the password behind it still is. Time Machine's own state has
+# no way to reveal a NAS password rotation from here - the keychain entry it
+# manages is opaque to this script - so a stale credential would otherwise
+# pass the check above forever. Guard the same way as the URL: keep a hash of
+# the last password this script successfully applied, and require it to match
+# too before skipping.
+tm_password_hash="$(printf '%s' "$NAS_PASSWORD" | shasum -a 256 | awk '{print $1}')"
+tm_stored_hash="$(cat "$TM_CRED_HASH_FILE" 2>/dev/null || true)"
+
+tm_url_matches=0
+printf '%s\n' "$tm_existing" | grep -qE "$tm_pattern" && tm_url_matches=1
+
+if [ "$tm_url_matches" = 1 ] && [ "$tm_password_hash" = "$tm_stored_hash" ]; then
   echo "    destination already configured, leaving it alone"
 else
-  echo "    configuring destination smb://${NAS_USERNAME}@${NAS_HOST}/${NAS_SHARE}"
-  echo "    (this REPLACES the destination list; the NAS becomes the only one)"
+  if [ "$tm_url_matches" = 1 ]; then
+    echo "    destination already points at the NAS, but its stored password"
+    echo "    has changed since the last run - re-applying the credential"
+  else
+    echo "    configuring destination smb://${NAS_USERNAME}@${NAS_HOST}/${NAS_SHARE}"
+    echo "    (this REPLACES the destination list; the NAS becomes the only one)"
+  fi
   # The helper below calls `tmutil setdestination` without -a, which replaces
   # the whole destination list rather than appending to it. Appending would
   # leave a superseded destination in the list for Time Machine to keep
@@ -302,9 +335,26 @@ else
   # `printf` is a bash builtin, so even this does not fork a process carrying
   # the password in its arguments. sudo reads its own password from /dev/tty
   # rather than stdin, so it does not consume the pipe.
-  printf '%s\n' "$NAS_PASSWORD" \
+  #
+  # The remedy is named here rather than only in the closing summary, which an
+  # aborting run never reaches.
+  if ! printf '%s\n' "$NAS_PASSWORD" \
     | sudo "$EXPECT_BIN" -f \
-      "$SCRIPT_DIR/set-time-machine-destination.tcl" "$TM_URL"
+      "$SCRIPT_DIR/set-time-machine-destination.tcl" "$TM_URL"; then
+    echo "" >&2
+    echo "ERROR: could not set the Time Machine destination." >&2
+    echo "The usual cause is the terminal running this script not having" >&2
+    echo "Full Disk Access (System Settings > Privacy & Security)." >&2
+    echo "Grant it, then re-run. tmutil's own message, if it printed one," >&2
+    echo "is above." >&2
+    exit 1
+  fi
+
+  # Record what was just applied so a re-run with the same password can skip
+  # again, and a re-run with a different one cannot mistake this destination
+  # for still being configured with it. Never the password itself - only a
+  # one-way hash of it, which is enough to detect a change.
+  printf '%s\n' "$tm_password_hash" | sudo dd of="$TM_CRED_HASH_FILE" status=none
 fi
 
 # Plain `[ -n "$tm_xtrace" ] && set -x` would return non-zero when xtrace was

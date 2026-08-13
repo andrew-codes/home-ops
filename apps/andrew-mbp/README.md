@@ -105,6 +105,14 @@ The same environment-variable contract applies whether `setup.sh` is run directl
 
 **Protocol and share name.** `/Volume1/backup` is read as SMB share `backup` - on a Synology, `/volume1` is the underlying volume and `backup` is the shared folder, and an SMB URL addresses the share, not the volume path. This is not a guess: it matches the destination already configured on this machine, whose URL ends in `/backup`. `NAS_SHARE` overrides it if that ever stops holding.
 
+### Idempotency, including a moved NAS and a rotated password
+
+Re-running does **not** reconfigure a destination that is already right. The check matches user, host and share out of one and the same URL, tolerating the Bonjour form macOS reports back (`<host>._smb._tcp.local.`) and the plain `<host>.local` form, and nothing wider - bounding the user, the host and the share so `nas-01` does not match `nas-011` or `nas-01.old-site.example.com`, and `backup` does not match `backup-old`.
+
+A changed host, user or share **does** trigger reconfiguration. That matters: ignoring the host would leave a moved or corrected NAS silently backing up to the old destination forever.
+
+**A rotated NAS password also triggers reconfiguration**, even when the destination URL itself has not changed. The URL match alone cannot see whether the stored credential is still right, so `setup.sh` separately keeps a hash of the last password it successfully applied - never the password itself - in a file under `/Library` that only root can write, and re-applies the credential whenever the current `NAS_PASSWORD` hashes differently. Without this, a password rotation on the NAS would read as "already configured" forever, and the only way to notice would be backups quietly failing.
+
 ### How the password is handled
 
 `tmutil setdestination` accepts the password inside the destination URL, and its own man page warns against exactly that: "all arguments provided to a program are visible by all users on the system via the `ps` tool". So the password is never put on a command line.
@@ -138,7 +146,7 @@ Every key written here was read off a live macOS 26.5.2 system (`defaults read /
 
 The configuration has **never been applied on a machine** - see [AGENTS.md](AGENTS.md). The real `tmutil` calls were deliberately not executed.
 
-What _is_ covered is committed and repeatable, in [`tests/time-machine-step.test.sh`](tests/time-machine-step.test.sh) (`nx run andrew-mbp:test`): the `NAS_*` validation failing closed before anything changes, the idempotency check reconfiguring on a changed host, user or share rather than keeping a stale destination, the destination list being replaced rather than appended to (`-a` is asserted absent, so reintroducing it fails the tests), the password never appearing under `bash -x`, and the expect script's prompt handling, guards and exit-code propagation - all against stubs and a fake `tmutil`. It skips on anything but Apple Silicon macOS, so CI reports a skip rather than a false pass.
+What _is_ covered is committed and repeatable, in [`tests/time-machine-step.test.sh`](tests/time-machine-step.test.sh) (`nx run andrew-mbp:test`): the `NAS_*` validation failing closed before anything changes, the idempotency check reconfiguring on a changed host, user or share rather than keeping a stale destination, reconfiguring when the NAS password has rotated even though the destination URL is unchanged, the destination list being replaced rather than appended to (`-a` is asserted absent, so reintroducing it fails the tests), the Full Disk Access remedy being named at the point of failure when `tmutil` cannot set the destination, the password never appearing under `bash -x`, and the expect script's prompt handling, guards and exit-code propagation - including both the timeout and the pre-prompt-exit paths surfacing whatever `tmutil` printed instead of swallowing it - all against stubs and a fake `tmutil`. It skips on anything but Apple Silicon macOS, so CI reports a skip rather than a false pass.
 
 ### Re-running and `devtools-rebuild`
 
