@@ -374,6 +374,16 @@ case "$out" in
   *) fail "reconfigures when the NAS user changed" "$out" ;;
 esac
 
+# The user is bounded on the left too: a different account whose name merely
+# ends with NAS_USERNAME is a stale destination, not a configured one.
+tm_harness 'echo "URL           : smb://old-tmuser@nas-01/backup"' \
+  > "$WORK/tm-suffix-user.sh"
+out="$(bash "$WORK/tm-suffix-user.sh" 2>&1)"
+case "$out" in
+  *"configuring destination"*) ok "reconfigures when the configured user merely ends with NAS_USERNAME" ;;
+  *) fail "reconfigures when the configured user merely ends with NAS_USERNAME" "stale destination kept: $out" ;;
+esac
+
 # A stale share whose name merely starts with the wanted one must not be read
 # as already configured; the share has to be bounded at the end of the URL.
 tm_harness 'echo "URL           : smb://tmuser@nas-01._smb._tcp.local./backup-old"' \

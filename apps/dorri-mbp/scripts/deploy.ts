@@ -11,7 +11,7 @@ import path from "path"
  * Uses spawnSync with inherited stdio rather than the shelljs helper other
  * deploys use: setup.sh is interactive. It prompts for sudo, so it needs a
  * real TTY. It also inherits this process's environment, which is how the
- * required ADMIN_* variables reach it.
+ * required ADMIN_* and NAS_* variables reach it.
  *
  * Deliberately a near-copy of the sibling apps/andrew-mbp's deploy script
  * rather than a shared module. It is fifteen lines with no configuration, and

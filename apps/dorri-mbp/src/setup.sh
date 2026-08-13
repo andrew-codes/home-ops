@@ -363,10 +363,14 @@ esac
 # nas-01._smb._tcp.local. but not a different host called nas-011, and
 # NAS_HOST=192.168.1.5 does not match a stale 192.168.1.50.
 #
+# The user is bounded on the left by the literal scheme for the same reason:
+# without it, NAS_USERNAME=tmuser matches a stale smb://old-tmuser@nas-01/backup
+# and the moved-account case is skipped silently.
+#
 # The NAS_* values are user-supplied, so escape any regex metacharacters in
 # them before they are interpolated into an extended regular expression.
 tm_re_escape() { printf '%s' "$1" | sed 's#[][^$.*+?(){}|\\/]#\\&#g'; }
-tm_pattern="$(tm_re_escape "$NAS_USERNAME")@$(tm_re_escape "$NAS_HOST")"
+tm_pattern="smb://$(tm_re_escape "$NAS_USERNAME")@$(tm_re_escape "$NAS_HOST")"
 tm_pattern="$tm_pattern"'(\.[^/[:space:]]*)?/'"$(tm_re_escape "$NAS_SHARE")"'([[:space:]]|$)'
 
 tm_existing="$(tmutil destinationinfo 2>/dev/null || true)"
