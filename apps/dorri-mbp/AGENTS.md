@@ -2,7 +2,11 @@ This project configures a second, real, in-use MacBook Pro belonging to somebody
 
 # Never Deploy From An Agent Session
 
-`nx run dorri-mbp:deploy` mutates the machine the agent is running on: it installs Nix and Homebrew, switches the nix-darwin system generation, installs applications, turns Spotlight off, and creates an administrator account. Never run it, and never run `darwin-rebuild switch`, the Nix installer, `brew install`, `mdutil -i off`, or `src/setup.sh`.
+`nx run dorri-mbp:deploy` mutates the machine the agent is running on: it installs Nix and Homebrew, switches the nix-darwin system generation, installs applications, turns Spotlight off, creates an administrator account, and repoints Time Machine. Never run it, and never run `darwin-rebuild switch`, the Nix installer, `brew install`, `mdutil -i off`, or `src/setup.sh`.
+
+# Never Configure Time Machine
+
+`tmutil setdestination` **replaces** this machine's whole destination list, so running step 5 against a development machine silently discards whatever backup it already had. Never run `tmutil setdestination`, `tmutil enable`, or `defaults write /Library/Preferences/com.apple.TimeMachine`. [`tests/setup.test.sh`](tests/setup.test.sh) stubs `tmutil` entirely - even the read-only subcommands - so nothing in the suite touches a real destination; extend it rather than running anything for real.
 
 # Never Create Or Modify A User Account
 
@@ -21,9 +25,9 @@ nix eval --raw '.#darwinConfigurations.dorri-mbp.config.system.primaryUser'
 
 `nix eval` and `nix flake check` evaluate and instantiate derivations without building or activating them, so they are safe.
 
-# Never Print The Admin Password
+# Never Print A Password
 
-`ADMIN_PASSWORD` reaches `setup.sh` through the environment and must never appear on a command line, on disk, or in output - all arguments to a program are world-visible via `ps`. Beware command substitutions inside the credential pipeline: they inherit the password on stdin. `nx run dorri-mbp:test` includes the sentinel leak check; re-run it after any change to step 3.
+`ADMIN_PASSWORD` and `NAS_PASSWORD` reach `setup.sh` through the environment and must never appear on a command line, on disk, or in output - all arguments to a program are world-visible via `ps`. Beware command substitutions inside either credential pipeline: they inherit the password on stdin. `nx run dorri-mbp:test` includes a sentinel leak check for both; re-run it after any change to step 3 or step 5.
 
 # Verify Every Package Identifier
 

@@ -15,6 +15,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # unlike the username and password it has a default rather than being required.
 ADMIN_FULL_NAME="${ADMIN_FULL_NAME:-${ADMIN_USERNAME:-}}"
 
+# Time Machine backs up to the NAS over SMB. The share defaults to `backup`,
+# which is what the NAS path /Volume1/backup means in SMB terms: on a Synology,
+# /volume1 is the underlying volume and `backup` is the shared folder, which is
+# what an SMB URL addresses. NAS_SHARE overrides it if that ever stops holding.
+#
+# Same variable names as the sibling apps/andrew-mbp on purpose, so one runbook
+# covers both Macs rather than each machine needing its own.
+NAS_SHARE="${NAS_SHARE:-backup}"
+
 # Raycast stores its global hotkey as "<modifiers>-<keycode>". 49 is the space
 # key, so "Command-49" is cmd+space. Read off a live Raycast install
 # (`defaults read com.raycast.macos raycastGlobalHotkey`) rather than recalled.
@@ -47,9 +56,11 @@ fi
 
 # Validate everything up front, before anything has been installed or changed,
 # so a missing variable costs nothing to recover from. Report every missing
-# variable at once rather than failing on the first and making the user re-run
-# repeatedly. Never prompt, never guess a default: these create a real login
-# account, and a guessed value there is a security problem rather than an
+# variable at once - across both the account and the NAS, in one pass rather
+# than a second check later on - so a run that is short two credentials fails
+# once rather than twice. Never prompt, never guess a default: these create a
+# real login account and point a real backup destination, and a guessed value
+# in either is a security problem or a silent backup failure rather than an
 # inconvenience.
 #
 # Deliberately no arrays: /bin/bash on macOS is still 3.2, and `set -u` with an
@@ -57,21 +68,29 @@ fi
 missing=""
 [ -n "${ADMIN_USERNAME:-}" ] || missing="$missing ADMIN_USERNAME"
 [ -n "${ADMIN_PASSWORD:-}" ] || missing="$missing ADMIN_PASSWORD"
+[ -n "${NAS_HOST:-}" ] || missing="$missing NAS_HOST"
+[ -n "${NAS_USERNAME:-}" ] || missing="$missing NAS_USERNAME"
+[ -n "${NAS_PASSWORD:-}" ] || missing="$missing NAS_PASSWORD"
 if [ -n "$missing" ]; then
-  echo "Error: the second administrator account needs credentials, but these" >&2
+  echo "Error: this setup needs credentials for the second administrator" >&2
+  echo "account and for the NAS that Time Machine backs up to, but these" >&2
   echo "environment variables are not set:" >&2
   for var in $missing; do
     echo "  - $var" >&2
   done
   echo "" >&2
-  echo "Set both and re-run. Nothing has been changed on this machine." >&2
+  echo "Set all of them and re-run. Nothing has been changed on this machine." >&2
   echo "" >&2
   echo "  ADMIN_USERNAME   macOS short name of the second admin account" >&2
   echo "  ADMIN_PASSWORD   that account's login password" >&2
   echo "  ADMIN_FULL_NAME  optional, defaults to ADMIN_USERNAME" >&2
+  echo "  NAS_HOST         hostname or IP of the NAS" >&2
+  echo "  NAS_USERNAME     NAS account Time Machine backs up as" >&2
+  echo "  NAS_PASSWORD     that account's password" >&2
+  echo "  NAS_SHARE        optional, defaults to '$NAS_SHARE'" >&2
   echo "" >&2
-  echo "Keep ADMIN_PASSWORD out of your shell history - read it from your" >&2
-  echo "password manager, e.g. ADMIN_PASSWORD=\"\$(op read op://...)\"." >&2
+  echo "Keep ADMIN_PASSWORD and NAS_PASSWORD out of your shell history - read" >&2
+  echo "them from your password manager, e.g. \"\$(op read op://...)\"." >&2
   exit 1
 fi
 
@@ -290,8 +309,129 @@ done
 /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u \
   || echo "    WARNING: could not reload the shortcut table; log out and back in."
 
+echo "==> Step 5: Time Machine backups to the NAS"
+# Deliberately a near-copy of the sibling apps/andrew-mbp's step 5 rather than a
+# shared module, on the same reasoning already recorded in scripts/deploy.ts.
+# setup.sh's contract is that every file it reads sits next to it, which is what
+# lets `./src/setup.sh` run out of a fresh clone with no build or packaging
+# step; sharing would mean either breaking that for both machines or standing up
+# a workspace package the deploy executor then has to resolve through. The two
+# copies also differ where it matters - nix_tool resolves `expect` from this
+# app's own pinned flake, not from devtools' - so they are not the same code
+# with the same inputs. Keep them in step by hand; each app's tests cover its
+# own copy.
+#
+# Machine-wide, not per-account: the destination and its keychain entry live in
+# /Library, so this one configuration backs up both accounts' data.
+#
+# Every setting below was verified against a live macOS 26.5.2 configuration
+# (`defaults read /Library/Preferences/com.apple.TimeMachine`) rather than
+# recalled, because these keys have moved across releases.
+#
+# tmutil requires root, and also Full Disk Access for the process invoking it -
+# see the README. Failures here are surfaced, never swallowed.
+TM_URL="smb://${NAS_USERNAME}@${NAS_HOST}/${NAS_SHARE}"
+
+# Turn off xtrace for the whole credential path, so running this under
+# `bash -x` cannot dump the password into a terminal or a log.
+tm_xtrace=""
+case "$-" in
+  *x*) tm_xtrace=1; set +x ;;
+esac
+
+# destinationinfo needs no privileges, so re-runs cost nothing when the
+# destination is already set.
+#
+# Match on "user@host" and the share, not on the whole URL. macOS reports the
+# host back in its Bonjour form, so a destination set as <host> reads back as
+# <host>._smb._tcp.local. and an exact URL comparison would never match,
+# reconfiguring on every single run. Tolerating that suffix still catches a
+# host change - which matters, because ignoring the host entirely would leave a
+# moved or corrected NAS silently backing up to the old destination forever,
+# the exact silent failure this step exists to prevent.
+#
+# One anchored match, not three independent substring searches: user, host and
+# share all have to come from the same URL, and the share is bounded at the end
+# so a stale ".../backup-old" is not read as a configured ".../backup". With
+# several destinations configured, an unbounded search could otherwise take the
+# user@host from one and the share from another and skip on a match that exists
+# nowhere.
+#
+# The host is bounded too. The only suffix worth tolerating is the Bonjour
+# form, which always starts with a dot, so the suffix is optional and must
+# begin with one: NAS_HOST=nas-01 then matches nas-01 and
+# nas-01._smb._tcp.local. but not a different host called nas-011, and
+# NAS_HOST=192.168.1.5 does not match a stale 192.168.1.50.
+#
+# The NAS_* values are user-supplied, so escape any regex metacharacters in
+# them before they are interpolated into an extended regular expression.
+tm_re_escape() { printf '%s' "$1" | sed 's#[][^$.*+?(){}|\\/]#\\&#g'; }
+tm_pattern="$(tm_re_escape "$NAS_USERNAME")@$(tm_re_escape "$NAS_HOST")"
+tm_pattern="$tm_pattern"'(\.[^/[:space:]]*)?/'"$(tm_re_escape "$NAS_SHARE")"'([[:space:]]|$)'
+
+tm_existing="$(tmutil destinationinfo 2>/dev/null || true)"
+if printf '%s\n' "$tm_existing" | grep -qE "$tm_pattern"; then
+  echo "    destination already configured, leaving it alone"
+else
+  echo "    configuring destination smb://${NAS_USERNAME}@${NAS_HOST}/${NAS_SHARE}"
+  echo "    (this REPLACES the destination list; the NAS becomes the only one)"
+  # The helper below calls `tmutil setdestination` without -a, which replaces
+  # the whole destination list rather than appending to it. Appending would
+  # leave a superseded destination in the list for Time Machine to keep
+  # choosing from, so a moved NAS would go on receiving backups - the silent
+  # stale-destination failure the check above exists to prevent. Any other
+  # destination, a local backup disk included, is dropped; see the README.
+  #
+  # Resolve expect BEFORE the pipeline below, never inside it. A command
+  # substitution inside that pipeline would inherit the password pipe as its
+  # own stdin, handing it to `nix build` and everything nix spawns, and its
+  # progress output would interleave with the credential path. Only `sudo
+  # expect` may ever see that stdin.
+  EXPECT_BIN="$(nix_tool expect)/bin/expect"
+
+  # The password goes over a pipe into expect, which hands it to tmutil's
+  # non-echoing prompt. It is never a command-line argument, so it never
+  # appears in `ps`; it is never written to disk; and tmutil itself stores it
+  # in the system keychain, which is what lets backupd remount the share
+  # unattended after a reboot or a network drop.
+  #
+  # `printf` is a bash builtin, so even this does not fork a process carrying
+  # the password in its arguments. sudo reads its own password from /dev/tty
+  # rather than stdin, so it does not consume the pipe.
+  printf '%s\n' "$NAS_PASSWORD" \
+    | sudo "$EXPECT_BIN" -f \
+      "$SCRIPT_DIR/set-time-machine-destination.tcl" "$TM_URL"
+fi
+
+# Plain `[ -n "$tm_xtrace" ] && set -x` would return non-zero when xtrace was
+# never on, and `set -e` would abort the script on it.
+if [ -n "$tm_xtrace" ]; then
+  set -x
+fi
+
+echo "    enabling automatic hourly backups, on battery as well as AC"
+sudo tmutil enable
+# AutoBackupInterval is in seconds; 3600 is hourly and is Time Machine's own
+# default, set explicitly so the value is declared rather than assumed.
+sudo defaults write /Library/Preferences/com.apple.TimeMachine \
+  AutoBackupInterval -int 3600
+# Without this macOS defers backups until the machine is on mains power.
+sudo defaults write /Library/Preferences/com.apple.TimeMachine \
+  RequiresACPower -bool false
+
+# No exclusions are added here, and none are removed: everything this script
+# configures is included by default, so there is nothing of ours to take back
+# out. macOS enforces its own exclusions (the sealed system volume, swap,
+# caches) which cannot be removed by any tool - see the README. Print the
+# current verdict for a couple of representative paths so the outcome is
+# visible rather than asserted.
+echo "    exclusions (none added by this script; macOS enforces its own):"
+tmutil isexcluded / /Users /System 2>/dev/null | sed 's/^/      /' || true
+
 echo "==> Done."
 echo ""
 echo "Remaining manual steps are listed in this app's README.md - the short"
 echo "version is: launch Raycast once per account and confirm cmd+space opens"
-echo "it, and grant each app the permissions it asks for on first launch."
+echo "it, and grant each app the permissions it asks for on first launch. If"
+echo "the Time Machine step failed, grant your terminal Full Disk Access"
+echo "(System Settings > Privacy & Security > Full Disk Access) and re-run."
