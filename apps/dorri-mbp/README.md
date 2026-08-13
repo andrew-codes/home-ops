@@ -228,7 +228,7 @@ The `NAS_*` variables are in the [configuration table](#configuration) above. Th
 
 ### Idempotency, including a moved NAS
 
-Re-running does **not** reconfigure a destination that is already right. The check matches user, host and share out of one and the same URL, tolerating the Bonjour form macOS reports back (`<host>._smb._tcp.local.`), and bounding both the host and the share so `nas-01` does not match `nas-011` and `backup` does not match `backup-old`.
+Re-running does **not** reconfigure a destination that is already right. The check matches user, host and share out of one and the same URL, tolerating the Bonjour form macOS reports back (`<host>._smb._tcp.local.`) and nothing wider, and bounding the user, the host and the share so `nas-01` does not match `nas-011` or `nas-01.old-site.example.com`, and `backup` does not match `backup-old`.
 
 A changed host, user or share **does** trigger reconfiguration. That matters: ignoring the host would leave a moved or corrected NAS silently backing up to the old destination forever.
 

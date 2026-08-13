@@ -412,6 +412,24 @@ case "$out" in
   *) fail "reconfigures when the configured host merely starts with NAS_HOST" "stale destination kept: $out" ;;
 esac
 
+# Only the Bonjour form is tolerated as a suffix. A different host that merely
+# shares the base name is a moved NAS, not the configured one.
+tm_harness 'echo "URL           : smb://tmuser@nas-01.old-site.example.com/backup"' \
+  > "$WORK/tm-other-domain.sh"
+out="$(bash "$WORK/tm-other-domain.sh" 2>&1)"
+case "$out" in
+  *"configuring destination"*) ok "reconfigures when the host carries a non-Bonjour domain suffix" ;;
+  *) fail "reconfigures when the host carries a non-Bonjour domain suffix" "stale destination kept: $out" ;;
+esac
+
+# The plain .local form macOS also reports must still count as configured.
+tm_harness 'echo "URL           : smb://tmuser@nas-01.local/backup"' > "$WORK/tm-local.sh"
+out="$(bash "$WORK/tm-local.sh" 2>&1)"
+case "$out" in
+  *"already configured"*) ok "skips when the destination already matches (.local host)" ;;
+  *) fail "skips when the destination already matches (.local host)" "$out" ;;
+esac
+
 tm_harness 'echo "URL           : smb://tmuser@192.168.1.50/backup"' > "$WORK/tm-prefix-ip.sh"
 out="$(NAS_HOST=192.168.1.5 bash "$WORK/tm-prefix-ip.sh" 2>&1)"
 case "$out" in
@@ -540,6 +558,11 @@ else
 # form and not merely the branch that led here.
 : > "$FAKE_TMUTIL_ARGV"
 for a in "$@"; do printf '%s\n' "$a" >> "$FAKE_TMUTIL_ARGV"; done
+# Refusing before the prompt is what a terminal without Full Disk Access does.
+if [ -n "${FAKE_TMUTIL_REFUSE:-}" ]; then
+  echo "tmutil: unable to set destination: Operation not permitted"
+  exit 78
+fi
 stty -echo 2>/dev/null
 printf 'Destination password: '
 IFS= read -r pw
@@ -585,6 +608,18 @@ smb://tmuser@nas-01/backup" "$argv"
   printf '%s\n' "the-wrong-password" \
     | expect -f "$WORK/tm-script.tcl" "smb://tmuser@nas-01/backup" >/dev/null 2>&1
   check "propagates tmutil's exit status" "9" "$?"
+
+  # A tmutil that refuses before prompting - the Full Disk Access case - must
+  # not have its only diagnostic swallowed by the silenced prompt wait.
+  out="$(printf '%s\n' "$SENTINEL" \
+    | FAKE_TMUTIL_REFUSE=1 expect -f "$WORK/tm-script.tcl" \
+      "smb://tmuser@nas-01/backup" 2>&1)"
+  status="$?"
+  check "propagates tmutil's exit status when it refuses before prompting" "78" "$status"
+  case "$out" in
+    *"Operation not permitted"*) ok "reports tmutil's own error when it exits before prompting" ;;
+    *) fail "reports tmutil's own error when it exits before prompting" "no diagnostic: '$out'" ;;
+  esac
 
   expect -f "$WORK/tm-script.tcl" >/dev/null 2>&1
   check "rejects a missing destination URL" "2" "$?"

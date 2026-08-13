@@ -321,11 +321,13 @@ echo "==> Step 5: Time Machine backups to the NAS"
 # with the same inputs. Keep them in step by hand; each app's tests cover its
 # own copy.
 #
-# They are not in step today: the idempotency pattern below anchors the NAS
-# user on the `smb://` scheme, which the sibling's copy does not yet do, so a
-# stale `smb://old-<user>@<host>/<share>` is still read as configured there.
-# Carrying that one-line anchor across is a follow-up on andrew-mbp, out of
-# scope for this app.
+# They are not in step today. This copy anchors the NAS user on the `smb://`
+# scheme and tolerates only the literal Bonjour suffix, where the sibling still
+# allows an unbounded user prefix and any dot-suffix, so a stale
+# `smb://old-<user>@<host>/<share>` or `<host>.old-site.example.com` is read as
+# configured there. The sibling's expect script also still swallows tmutil's
+# error when it exits before prompting. Carrying these across is a follow-up on
+# andrew-mbp, out of scope for this app.
 #
 # Machine-wide, not per-account: the destination and its keychain entry live in
 # /Library, so this one configuration backs up both accounts' data.
@@ -363,11 +365,12 @@ esac
 # user@host from one and the share from another and skip on a match that exists
 # nowhere.
 #
-# The host is bounded too. The only suffix worth tolerating is the Bonjour
-# form, which always starts with a dot, so the suffix is optional and must
-# begin with one: NAS_HOST=nas-01 then matches nas-01 and
-# nas-01._smb._tcp.local. but not a different host called nas-011, and
-# NAS_HOST=192.168.1.5 does not match a stale 192.168.1.50.
+# The host is bounded too, and the only suffix tolerated is the Bonjour form
+# itself, spelled out literally rather than as "any dot-suffix": NAS_HOST=nas-01
+# matches nas-01, nas-01.local and nas-01._smb._tcp.local. but not a different
+# host called nas-011, and not a stale nas-01.old-site.example.com, which a
+# wildcard suffix would wave through as already configured. NAS_HOST=192.168.1.5
+# does not match a stale 192.168.1.50 either.
 #
 # The user is bounded on the left by the literal scheme for the same reason:
 # without it, NAS_USERNAME=tmuser matches a stale smb://old-tmuser@nas-01/backup
@@ -377,7 +380,7 @@ esac
 # them before they are interpolated into an extended regular expression.
 tm_re_escape() { printf '%s' "$1" | sed 's#[][^$.*+?(){}|\\/]#\\&#g'; }
 tm_pattern="smb://$(tm_re_escape "$NAS_USERNAME")@$(tm_re_escape "$NAS_HOST")"
-tm_pattern="$tm_pattern"'(\.[^/[:space:]]*)?/'"$(tm_re_escape "$NAS_SHARE")"'([[:space:]]|$)'
+tm_pattern="$tm_pattern"'(\._smb\._tcp)?(\.local\.?)?/'"$(tm_re_escape "$NAS_SHARE")"'([[:space:]]|$)'
 
 tm_existing="$(tmutil destinationinfo 2>/dev/null || true)"
 if printf '%s\n' "$tm_existing" | grep -qE "$tm_pattern"; then

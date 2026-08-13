@@ -55,6 +55,7 @@ spawn /usr/bin/tmutil setdestination -p $url
 # Match tmutil's exact prompt string, taken from the binary itself, rather than
 # a loose /password/ pattern that could also match an unexpected sudo prompt
 # and send the NAS password to the wrong reader.
+set saw_eof 0
 expect {
     "Destination password:" {
         send -- "$password\r"
@@ -64,14 +65,26 @@ expect {
         exit 1
     }
     eof {
-        # tmutil exited before prompting - surface its own error below.
+        # tmutil exited before prompting - most often because the calling
+        # terminal lacks Full Disk Access. Its own message was buffered while
+        # log_user was off and `expect eof` below will not reprint it, so it
+        # has to be emitted here or the failure has no diagnostic at all.
+        set saw_eof 1
+        if {[info exists expect_out(buffer)]} {
+            puts -nonewline stderr $expect_out(buffer)
+            flush stderr
+        }
     }
 }
 
 # Safe to show tmutil's output from here on: the password is never echoed back,
 # and hiding this would hide the actual failure reason.
 log_user 1
-expect eof
+# Waiting for an EOF that has already arrived raises "spawn id not open", which
+# would abort with expect's own exit status and lose tmutil's.
+if {!$saw_eof} {
+    expect eof
+}
 
 catch wait result
 exit [lindex $result 3]
