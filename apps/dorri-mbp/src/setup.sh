@@ -325,9 +325,9 @@ echo "==> Step 5: Time Machine backups to the NAS"
 # scheme and tolerates only the literal Bonjour suffix, where the sibling still
 # allows an unbounded user prefix and any dot-suffix, so a stale
 # `smb://old-<user>@<host>/<share>` or `<host>.old-site.example.com` is read as
-# configured there. The sibling's expect script also still swallows tmutil's
-# error when it exits before prompting. Carrying these across is a follow-up on
-# andrew-mbp, out of scope for this app.
+# configured there. The sibling's expect script also still swallows whatever
+# tmutil printed when it exits or stalls before prompting. Carrying these across
+# is a follow-up on andrew-mbp, out of scope for this app.
 #
 # Machine-wide, not per-account: the destination and its keychain entry live in
 # /Library, so this one configuration backs up both accounts' data.
@@ -411,9 +411,20 @@ else
   # `printf` is a bash builtin, so even this does not fork a process carrying
   # the password in its arguments. sudo reads its own password from /dev/tty
   # rather than stdin, so it does not consume the pipe.
-  printf '%s\n' "$NAS_PASSWORD" \
+  #
+  # The remedy is named here rather than only in the closing summary, which an
+  # aborting run never reaches.
+  if ! printf '%s\n' "$NAS_PASSWORD" \
     | sudo "$EXPECT_BIN" -f \
-      "$SCRIPT_DIR/set-time-machine-destination.tcl" "$TM_URL"
+      "$SCRIPT_DIR/set-time-machine-destination.tcl" "$TM_URL"; then
+    echo "" >&2
+    echo "ERROR: could not set the Time Machine destination." >&2
+    echo "The usual cause is the terminal running this script not having" >&2
+    echo "Full Disk Access (System Settings > Privacy & Security)." >&2
+    echo "Grant it, then re-run. tmutil's own message, if it printed one," >&2
+    echo "is above." >&2
+    exit 1
+  fi
 fi
 
 # Plain `[ -n "$tm_xtrace" ] && set -x` would return non-zero when xtrace was

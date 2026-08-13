@@ -263,6 +263,8 @@ tmutil isexcluded /path/to/check
 
 The step and its `expect` script are near-copies of the sibling's, on the same reasoning already recorded in [`scripts/deploy.ts`](scripts/deploy.ts). `setup.sh`'s contract is that **every file it reads sits next to it**, which is what lets `./src/setup.sh` run straight out of a fresh clone with no build, packaging or path-resolution step. Sharing would mean either breaking that contract for both machines or standing up a workspace package that the `@ha/nx-executors:invoke` executor then has to resolve through - more indirection than the duplication costs. The two copies also differ where it matters: `nix_tool` here resolves `expect` from this app's own pinned flake, not from devtools'. Change one and change the other; each app's tests cover its own copy.
 
+They are out of step today, and deliberately so: this copy bounds the NAS user in the idempotency match, tolerates only the literal Bonjour suffix, and reports tmutil's own output when it exits or stalls before prompting for the password. The sibling does none of those yet - carrying them across is a follow-up on [`apps/andrew-mbp`](../andrew-mbp), which this change left untouched on purpose. `src/setup.sh`'s step 5 comment is the authoritative list.
+
 ## One-time manual steps macOS forces
 
 These cannot be automated away, and are not faked:

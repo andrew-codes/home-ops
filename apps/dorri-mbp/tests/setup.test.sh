@@ -437,6 +437,21 @@ case "$out" in
   *) fail "reconfigures when the configured IP merely starts with NAS_HOST" "stale destination kept: $out" ;;
 esac
 
+# A failing destination call aborts the run before the closing summary, so the
+# remedy has to be named at the point of failure or the operator never sees it.
+{
+  stubs 'return 1'
+  echo 'sudo() { case "$*" in *set-time-machine-destination.tcl*) return 1 ;; *) echo "[sudo] $*" ;; esac; }'
+  awk '/^echo "==> Step 5/{f=1} f' "$SRC_DIR/setup.sh"
+} > "$WORK/tm-setdest-fails.sh"
+out="$(bash "$WORK/tm-setdest-fails.sh" 2>&1)"
+status="$?"
+check "exits non-zero when the destination cannot be set" "1" "$status"
+case "$out" in
+  *"Full Disk Access"*) ok "names Full Disk Access when the destination cannot be set" ;;
+  *) fail "names Full Disk Access when the destination cannot be set" "$out" ;;
+esac
+
 echo
 echo "== the backup schedule is hourly, on battery, with no exclusions of ours"
 out="$(bash "$WORK/tm-none.sh" 2>&1)"
@@ -563,6 +578,12 @@ if [ -n "${FAKE_TMUTIL_REFUSE:-}" ]; then
   echo "tmutil: unable to set destination: Operation not permitted"
   exit 78
 fi
+# A tmutil whose prompt wording changed: it says something else and waits.
+if [ -n "${FAKE_TMUTIL_WRONG_PROMPT:-}" ]; then
+  printf 'Enter the password for the backup destination: '
+  sleep 30
+  exit 0
+fi
 stty -echo 2>/dev/null
 printf 'Destination password: '
 IFS= read -r pw
@@ -619,6 +640,27 @@ smb://tmuser@nas-01/backup" "$argv"
   case "$out" in
     *"Operation not permitted"*) ok "reports tmutil's own error when it exits before prompting" ;;
     *) fail "reports tmutil's own error when it exits before prompting" "no diagnostic: '$out'" ;;
+  esac
+
+  # A tmutil whose prompt wording changed is the residual risk the README
+  # records; whatever it printed instead is the only evidence of that, so the
+  # timeout must not throw it away either. Same script with a short timeout so
+  # the case does not sit for the real two minutes.
+  sed 's|^set timeout 120$|set timeout 2|' "$WORK/tm-script.tcl" \
+    > "$WORK/tm-script-quick.tcl"
+  out="$(printf '%s\n' "$SENTINEL" \
+    | FAKE_TMUTIL_WRONG_PROMPT=1 expect -f "$WORK/tm-script-quick.tcl" \
+      "smb://tmuser@nas-01/backup" 2>&1)"
+  status="$?"
+  check "fails when tmutil never shows the expected prompt" "1" "$status"
+  case "$out" in
+    *"Enter the password for the backup destination"*)
+      ok "reports what tmutil printed instead of the expected prompt" ;;
+    *) fail "reports what tmutil printed instead of the expected prompt" "no evidence: '$out'" ;;
+  esac
+  case "$out" in
+    *"$SENTINEL"*) fail "never echoes the password on a prompt mismatch" "leaked: $out" ;;
+    *) ok "never echoes the password on a prompt mismatch" ;;
   esac
 
   expect -f "$WORK/tm-script.tcl" >/dev/null 2>&1

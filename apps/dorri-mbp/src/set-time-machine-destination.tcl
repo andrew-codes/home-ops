@@ -27,6 +27,10 @@
 # fresh clone with no build, packaging or path resolution step; reaching across
 # app directories would break that for both machines. Change one and change the
 # other - each app's tests assert this file's behaviour independently.
+#
+# The two copies are out of step today: this one reports tmutil's own output
+# when tmutil exits or stalls before prompting, where the sibling's discards it.
+# setup.sh's step 5 comment lists every divergence and why it stands.
 
 log_user 0
 set timeout 120
@@ -61,7 +65,17 @@ expect {
         send -- "$password\r"
     }
     timeout {
+        # Whatever tmutil printed instead of the expected prompt is the only
+        # evidence of why, and it is buffered rather than shown because
+        # log_user is still off, so emit it alongside the error.
         puts stderr "error: timed out waiting for tmutil's password prompt"
+        # A timeout leaves what arrived in the input buffer without setting
+        # expect_out, so take it with a non-blocking catch-all match.
+        catch {expect -timeout 0 -re "(?s).+"}
+        if {[info exists expect_out(buffer)]} {
+            puts -nonewline stderr $expect_out(buffer)
+            flush stderr
+        }
         exit 1
     }
     eof {
