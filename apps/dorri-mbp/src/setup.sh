@@ -321,6 +321,12 @@ echo "==> Step 5: Time Machine backups to the NAS"
 # with the same inputs. Keep them in step by hand; each app's tests cover its
 # own copy.
 #
+# They are not in step today: the idempotency pattern below anchors the NAS
+# user on the `smb://` scheme, which the sibling's copy does not yet do, so a
+# stale `smb://old-<user>@<host>/<share>` is still read as configured there.
+# Carrying that one-line anchor across is a follow-up on andrew-mbp, out of
+# scope for this app.
+#
 # Machine-wide, not per-account: the destination and its keychain entry live in
 # /Library, so this one configuration backs up both accounts' data.
 #

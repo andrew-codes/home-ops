@@ -222,7 +222,7 @@ This is **machine-wide, not per-account**: the destination and its keychain entr
 
 ### The NAS variables
 
-The four `NAS_*` variables are in the [configuration table](#configuration) above, validated in the same up-front pass as the `ADMIN_*` ones. `setup.sh` never prompts and never guesses a default for them, because a wrong Time Machine destination fails silently rather than loudly.
+The `NAS_*` variables are in the [configuration table](#configuration) above. The three required ones - `NAS_HOST`, `NAS_USERNAME` and `NAS_PASSWORD` - are validated in the same up-front pass as the `ADMIN_*` ones, and `setup.sh` never prompts and never guesses a value for them, because a wrong Time Machine destination fails silently rather than loudly. `NAS_SHARE` is the one exception: it is optional and defaults to `backup`, the share both Macs already back up to.
 
 **Protocol and share name.** `/Volume1/backup` is read as SMB share `backup` - on a Synology, `/volume1` is the underlying volume and `backup` is the shared folder, and an SMB URL addresses the share, not the volume path. `NAS_SHARE` overrides it if that ever stops holding.
 
