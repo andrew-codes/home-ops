@@ -31,6 +31,22 @@ Kubernetes only supports upgrading one minor version at a time (kubeadm enforces
 the pinned `kube_version` needs to move more than one minor ahead, that requires repeated
 `deploy:upgrade` runs, one minor version per run, updating `kube-version.yml` between each.
 
+## Pending multi-hop upgrade (captain-approved plan, as of 2026-08-16)
+
+Currently pinned: 1.32.13 (last patch on the EOL 1.32 line). Latest stable: 1.36.3. Captain
+approved a separate PR per hop rather than one bundled jump. Each hop is its own future
+task/PR (not part of this one), in order, re-running the manifest/add-on compatibility audit
+before each:
+
+1. 1.32.13 -> 1.33.10
+2. 1.33.10 -> 1.34.6
+3. 1.34.6 -> 1.35.3
+4. 1.35.3 -> 1.36.3
+
+At the final hop (1.36.3), also bump Flannel v0.26.4 -> v0.28.x and the NVIDIA device plugin
+v0.16.2 -> v0.17.1 (both compatible with every intermediate line, so no rush to move them
+earlier). Confirm each target's exact latest patch again at hop time - these drift.
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.
