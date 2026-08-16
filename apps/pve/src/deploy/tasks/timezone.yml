@@ -1,0 +1,9 @@
+---
+- name: Check the current time zone
+  ansible.builtin.command: timedatectl show --property=Timezone --value
+  changed_when: false
+  register: current_timezone
+
+- name: Set time zone to America/New_York
+  ansible.builtin.command: timedatectl set-timezone America/New_York
+  when: current_timezone.stdout | trim != "America/New_York"

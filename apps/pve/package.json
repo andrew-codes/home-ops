@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "name": "@ha/pve",
+  "description": "Provisions the captain's Proxmox VE hypervisor host (network, time zone, SSH access, NAS/PBS storage, NVIDIA GPU passthrough).",
+  "version": "0.0.1",
+  "devDependencies": {
+    "@ha/ansible": "workspace:^0.0.1",
+    "@ha/configuration-api": "workspace:^0.0.1",
+    "@ha/configuration-workspace": "workspace:^0.0.1",
+    "@ha/logger": "workspace:^0.0.1",
+    "@ha/nx-executors": "workspace:^0.1.0",
+    "nx": "^20.7.0"
+  }
+}

@@ -2959,6 +2959,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@ha/pve@workspace:apps/pve":
+  version: 0.0.0-use.local
+  resolution: "@ha/pve@workspace:apps/pve"
+  dependencies:
+    "@ha/ansible": "workspace:^0.0.1"
+    "@ha/configuration-api": "workspace:^0.0.1"
+    "@ha/configuration-workspace": "workspace:^0.0.1"
+    "@ha/logger": "workspace:^0.0.1"
+    "@ha/nx-executors": "workspace:^0.1.0"
+    nx: "npm:^20.7.0"
+  languageName: unknown
+  linkType: soft
+
 "@ha/resource-fluxcd@workspace:resources/fluxcd":
   version: 0.0.0-use.local
   resolution: "@ha/resource-fluxcd@workspace:resources/fluxcd"

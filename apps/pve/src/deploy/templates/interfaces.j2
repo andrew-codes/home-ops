@@ -1,0 +1,22 @@
+{{ ansible_managed | comment }}
+# Managed by apps/pve (home-ops). Physical NIC binding on {{ primary_bridge }}
+# was discovered at apply time and is preserved below - do not hand-edit
+# bridge-ports here, change it in /etc/network/interfaces on the host and
+# re-run the playbook to pick it up.
+
+auto lo
+iface lo inet loopback
+
+iface {{ bridge_ports_lookup.stdout | trim }} inet manual
+
+auto {{ primary_bridge }}
+iface {{ primary_bridge }} inet static
+    address {{ ip }}
+    gateway {{ gateway }}
+    bridge-ports {{ bridge_ports_lookup.stdout | trim }}
+    bridge-stp off
+    bridge-fd 0
+    dns-nameservers {{ dns_servers | join(' ') }}
+    dns-search {{ search_domain }}
+
+source /etc/network/interfaces.d/*

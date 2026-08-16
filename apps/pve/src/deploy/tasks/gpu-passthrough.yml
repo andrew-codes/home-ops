@@ -1,0 +1,120 @@
+---
+# AMD IOMMU on the kernel command line
+- name: Read current GRUB_CMDLINE_LINUX_DEFAULT
+  ansible.builtin.shell: |
+    set -o pipefail
+    grep -oP '^GRUB_CMDLINE_LINUX_DEFAULT="\K[^"]*' /etc/default/grub
+  args:
+    executable: /bin/bash
+  changed_when: false
+  register: current_grub_cmdline
+
+- name: Ensure amd_iommu=on and iommu=pt are on the kernel command line
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+    line: >-
+      GRUB_CMDLINE_LINUX_DEFAULT="{{
+        (current_grub_cmdline.stdout.split() + ['amd_iommu=on', 'iommu=pt']) | unique | join(' ')
+      }}"
+  register: grub_cmdline_updated
+  notify: update grub
+
+# vfio modules loaded at boot
+- name: Ensure vfio modules load at boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/vfio.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      vfio
+      vfio_iommu_type1
+      vfio_pci
+      vfio_virqfd
+  register: vfio_modules_conf
+  notify: update initramfs
+
+# Keep nouveau/nvidia off the host so the cards stay unclaimed for passthrough
+- name: Blacklist nouveau and the in-box nvidia driver on the host
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-nvidia-host.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      blacklist nouveau
+      blacklist nvidia
+      options nouveau modeset=0
+  register: nvidia_blacklist_conf
+  notify: update initramfs
+
+# Discover NVIDIA PCI vendor:device ids at runtime rather than hardcoding them
+- name: Enumerate NVIDIA PCI vendor:device ids (VGA + audio functions)
+  ansible.builtin.shell: |
+    set -o pipefail
+    lspci -nn | grep -i nvidia | grep -oP '\[\K[0-9a-f]{4}:[0-9a-f]{4}(?=\])' | sort -u | paste -sd, -
+  args:
+    executable: /bin/bash
+  changed_when: false
+  register: nvidia_pci_ids
+
+- name: Fail if no NVIDIA devices were found
+  ansible.builtin.fail:
+    msg: >-
+      No NVIDIA devices found via `lspci -nn`. Both GPUs must be physically
+      installed before this playbook can bind them to vfio-pci - see the
+      "Manual steps" section of the README.
+  when: nvidia_pci_ids.stdout | trim | length == 0
+
+- name: List the discovered NVIDIA PCI devices for review
+  ansible.builtin.shell: |
+    set -o pipefail
+    lspci -nnk | grep -i nvidia -A 2 | grep -E 'VGA|Audio|Subsystem|Kernel driver'
+  args:
+    executable: /bin/bash
+  changed_when: false
+  register: nvidia_pci_devices
+
+- name: Report the discovered NVIDIA PCI devices
+  ansible.builtin.debug:
+    msg: "{{ nvidia_pci_devices.stdout_lines }}"
+
+- name: Bind the discovered NVIDIA ids to vfio-pci
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/vfio-pci-nvidia.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      options vfio-pci ids={{ nvidia_pci_ids.stdout }}
+  register: vfio_pci_ids_conf
+  notify: update initramfs
+
+# Report IOMMU grouping so the captain can verify (after reboot) that the two
+# cards actually landed in separate groups - this cannot be fixed in software
+# beyond the ACS-override workaround documented in the README.
+- name: Enumerate IOMMU groups containing an NVIDIA device
+  ansible.builtin.shell: |
+    set -o pipefail
+    for group in /sys/kernel/iommu_groups/*; do
+      gid=$(basename "$group")
+      for device in "$group"/devices/*; do
+        addr=$(basename "$device")
+        if lspci -nns "$addr" | grep -qi nvidia; then
+          echo "IOMMU group $gid: $(lspci -nns "$addr")"
+        fi
+      done
+    done
+  args:
+    executable: /bin/bash
+  changed_when: false
+  failed_when: false
+  register: nvidia_iommu_groups
+
+- name: Report IOMMU groups for the NVIDIA devices
+  ansible.builtin.debug:
+    msg: >-
+      {{ nvidia_iommu_groups.stdout_lines
+         if nvidia_iommu_groups.stdout_lines | length > 0
+         else ['No IOMMU groups reported - IOMMU is likely not active yet; this is expected before the first reboot that applies amd_iommu=on.'] }}
