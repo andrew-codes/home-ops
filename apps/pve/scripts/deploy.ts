@@ -11,9 +11,7 @@ const run = async (
   logger.info("Deploying pve host configuration")
 
   const proxmoxIp = await configurationApi.get("proxmox/ip")
-  const captainSshPublicKey = await configurationApi.get(
-    "andrew-mbp/public-key",
-  )
+  const sshPublicKey = await configurationApi.get("andrew-mbp/public-key")
   const nasHost = await configurationApi.get("nas/ip")
   const nasIsoUsername = await configurationApi.get("pve-nas-iso/username")
   const nasIsoPassword = await configurationApi.get("pve-nas-iso/password")
@@ -29,7 +27,7 @@ const run = async (
     gateway: "10.1.0.1",
     dns_servers: ["1.1.1.1", "1.0.0.1"],
     search_domain: "smith-simms.family",
-    captain_ssh_public_key: captainSshPublicKey,
+    ssh_public_key: sshPublicKey,
     nas_iso_host: nasHost,
     nas_iso_username: nasIsoUsername,
     nas_iso_password: nasIsoPassword,

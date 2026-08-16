@@ -17,10 +17,10 @@
     modification_time: preserve
     access_time: preserve
 
-- name: Ensure the captain's SSH public key is authorized for root
+- name: Ensure the operator's SSH public key is authorized for root
   ansible.builtin.lineinfile:
     path: /root/.ssh/authorized_keys
-    line: "{{ captain_ssh_public_key }}"
+    line: "{{ ssh_public_key }}"
     state: present
     owner: root
     group: root
