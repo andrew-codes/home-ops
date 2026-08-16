@@ -177,12 +177,13 @@ Host CPU is AMD EPYC, so this uses AMD-V/AMD-Vi (IOMMU), not Intel VT-d.
 None of this takes effect until the host reboots - see
 [Manual steps](#manual-steps-that-cannot-be-automated).
 
-**Downstream consumer:** `resources/k8s-gpu-node/provision/provision.tf` already
-takes `gpu_pci` / `gpu_audio_pci` Terraform variables (PCI addresses like `01:00.0`)
-for a VM's passthrough config. Once GPUs are bound to `vfio-pci` here, read their PCI
-addresses back out with `lspci -nnk | grep -i nvidia` and feed the two per-card
-addresses into that Terraform as the two VMs are defined - one card's VGA+audio pair
-per VM.
+**Downstream consumer:** `resources/k8s/src/provision/provision.tf` already takes
+`gpuPci` / `gpuAudioPci` Terraform variables (PCI addresses like `01:00.0`) for
+`k8s-main`'s passthrough config (one card's VGA+audio pair). Once GPUs are bound to
+`vfio-pci` here, read their PCI addresses back out with `lspci -nnk | grep -i
+nvidia`. The second card is enabled for passthrough by this playbook but currently
+has no Terraform consumer - the dedicated GPU worker node that previously used it
+was decommissioned and its provisioning resource removed from the repo.
 
 #### Verifying IOMMU grouping after reboot
 
