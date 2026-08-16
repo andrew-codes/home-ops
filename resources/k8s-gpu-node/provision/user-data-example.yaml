@@ -5,7 +5,7 @@
 # - Installs and enables qemu-guest-agent automatically
 # - You can add more packages or commands in the sections below
 
-hostname: k8s-gpu-worker
+hostname: k8s-gpu-node
 manage_etc_hosts: true
 
 users:
