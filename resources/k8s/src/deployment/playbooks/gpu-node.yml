@@ -10,4 +10,4 @@
 
   tasks:
     - name: Enable GPU on this node (driver, container toolkit, containerd runtime)
-      import_tasks: "{{ playbook_dir }}/../../../../k8s-gpu-worker/ansible/gpu-node-prep.yml"
+      import_tasks: "{{ playbook_dir }}/../../../../k8s-gpu-node/ansible/gpu-node-prep.yml"

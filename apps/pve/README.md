@@ -177,7 +177,7 @@ Host CPU is AMD EPYC, so this uses AMD-V/AMD-Vi (IOMMU), not Intel VT-d.
 None of this takes effect until the host reboots - see
 [Manual steps](#manual-steps-that-cannot-be-automated).
 
-**Downstream consumer:** `resources/k8s-gpu-worker/provision/provision.tf` already
+**Downstream consumer:** `resources/k8s-gpu-node/provision/provision.tf` already
 takes `gpu_pci` / `gpu_audio_pci` Terraform variables (PCI addresses like `01:00.0`)
 for a VM's passthrough config. Once GPUs are bound to `vfio-pci` here, read their PCI
 addresses back out with `lspci -nnk | grep -i nvidia` and feed the two per-card
