@@ -1,113 +1,13 @@
 ---
-- name: Prepare Proxmox for k8s deployment
+- name: Wait for k8s-main VM to boot and become reachable
   hosts: all
-  become: yes
-  become_method: ansible.builtin.sudo
-  become_user: root
-  gather_facts: yes
-  connection: ssh
-  remote_user: root
+  gather_facts: false
+  connection: local
 
   tasks:
-    - name: Installing prerequisite packages
-      apt:
-        name:
-          - proxmox-headers-6.8.12-8-pve
-        state: present
-
-    - name: Ensure kernel modules are loaded on boot
-      lineinfile:
-        path: /etc/modules
-        line: "{{ item }}"
-        state: present
-      with_items:
-        - overlay
-        - br_netfilter
-        - ip_vs
-        - nf_nat
-        - vxlan
-        - xt_conntrack
-
-    - name: Ensure kernel modules are loaded
-      command: modprobe {{ item }}
-      register: kernel_modules
-      with_items:
-        - overlay
-        - br_netfilter
-        - ip_vs
-        - nf_nat
-        - vxlan
-        - xt_conntrack
-      changed_when: false
-
-    - name: Update initramfs
-      command: update-initramfs -u
-      register: update_initramfs
-      changed_when: update_initramfs.rc == 0
-
-    - name: Configure sysctl for Kubernetes
-      copy:
-        dest: /etc/sysctl.d/k8s.conf
-        content: |
-          net.bridge.bridge-nf-call-iptables  = 1
-          net.bridge.bridge-nf-call-ip6tables = 1
-          net.ipv4.ip_forward                 = 1
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Apply sysctl settings
-      command: sysctl --system
-
-    - name: Disable swap
-      command: swapoff -a
-      register: disable_swap
-      changed_when: disable_swap.rc == 0
-
-    - name: Comment out swap entries in /etc/fstab
-      command: sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
-      register: comment_swap
-      changed_when: comment_swap.rc == 0
-
-    - name: Check if LXC container is running
-      shell: "pct status {{ vmId }} | grep -q 'status: running'"
-      register: container_status
-      ignore_errors: true
-      changed_when: false
-
-    - name: Ensure LXC container is stopped if running
-      command: pct stop {{ vmId }}
-      when: container_status.rc == 0
-      register: stop_container
-      changed_when: stop_container.rc == 0
-
-    - name: Ensure LXC configuration settings exist
-      lineinfile:
-        path: "/etc/pve/lxc/{{ vmId }}.conf"
-        line: "{{ item }}"
-        state: present
-      with_items:
-        - "lxc.apparmor.profile: unconfined"
-        - "lxc.cgroup2.devices.allow: a"
-        - "lxc.cap.drop:"
-        - 'lxc.mount.auto: "proc:rw sys:rw"'
-        - "lxc.mount.auto: cgroup:rw"
-        - "lxc.cgroup.devices.allow: a"
-        - "lxc.mount.entry: /dev/kmsg dev/kmsg none defaults,bind,optional,create=file"
-
-    - name: Ensure LXC container is started
-      command: pct start {{ vmId }}
-      register: start_container
-      changed_when: start_container.rc == 0
-
-    - name: Push kernel config to LXC container
-      shell: pct push {{ vmId }} "/boot/config-$(uname -r)" "/boot/config-$(uname -r)"
-      register: push_kernel_config
-      changed_when: push_kernel_config.rc == 0
-
-    - name: Wait for LXC container to be reachable
+    - name: Wait for SSH to come up on the new VM
       wait_for:
-        host: "{{ ansible_host }}"
+        host: "{{ inventory_hostname }}"
         port: 22
         delay: 10
         timeout: 300

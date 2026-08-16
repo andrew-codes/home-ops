@@ -54,6 +54,32 @@
         update_cache: true
         upgrade: full
 
+    - name: Disable swap
+      command: swapoff -a
+      changed_when: false
+
+    - name: Remove swap from fstab
+      replace:
+        path: /etc/fstab
+        regexp: '^(.*\sswap\s.*)$'
+        replace: '#\1'
+
+    - name: Load required kernel modules
+      copy:
+        dest: /etc/modules-load.d/containerd.conf
+        content: |
+          overlay
+          br_netfilter
+      register: containerd_modules_conf
+
+    - name: Load kernel modules now
+      command: modprobe {{ item }}
+      loop:
+        - overlay
+        - br_netfilter
+      changed_when: false
+      when: containerd_modules_conf is changed
+
     - name: Installing prerequisite packages
       apt:
         name:
@@ -194,31 +220,27 @@
         enabled: true
         state: started
 
-    - name: Ensure /usr/local/bin/conf-kmsg.sh contains the correct content
+    - name: Ensure /usr/local/bin/mount-rshared.sh contains the correct content
       copy:
-        dest: /usr/local/bin/conf-kmsg.sh
+        dest: /usr/local/bin/mount-rshared.sh
         content: |
           #!/bin/sh -e
-          if [ ! -e /dev/kmsg ]; then
-              ln -s /dev/console /dev/kmsg
-          fi
-
           mount --make-rshared /
         owner: root
         group: root
         mode: "0755"
 
-    - name: Ensure conf-kmsg service file exists
+    - name: Ensure mount-rshared service file exists
       copy:
-        dest: /etc/systemd/system/conf-kmsg.service
+        dest: /etc/systemd/system/mount-rshared.service
         content: |
           [Unit]
-          Description=Make sure /dev/kmsg exists
+          Description=Make the root mount shared for kubelet mount propagation
 
           [Service]
           Type=simple
           RemainAfterExit=yes
-          ExecStart=/usr/local/bin/conf-kmsg.sh
+          ExecStart=/usr/local/bin/mount-rshared.sh
           TimeoutStartSec=0
 
           [Install]
@@ -230,9 +252,9 @@
     - name: Reload systemd daemon
       command: systemctl daemon-reload
 
-    - name: Enable and start conf-kmsg service
+    - name: Enable and start mount-rshared service
       service:
-        name: conf-kmsg
+        name: mount-rshared
         enabled: true
         state: started
 

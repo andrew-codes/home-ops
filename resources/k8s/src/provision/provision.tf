@@ -87,40 +87,104 @@ variable "gateway" {
   }
 }
 
-resource "proxmox_lxc" "k8s-main-node" {
-  vmid         = var.vmId
-  count        = 1
-  hostname     = var.hostname
-  target_node  = "pve"
-  ostemplate   = "nas-iso:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst"
-  unprivileged = false
-  start        = false
-  onboot       = true
-  cores        = 16
-  memory       = 65536
-  swap         = 0
-  nameserver   = var.nameserver
-  startup      = "order=3"
-
-  features {
-    nesting = true
+variable "targetNode" {
+  type = string
+  validation {
+    condition     = length(var.targetNode) > 0
+    error_message = "Proxmox target node is required."
   }
+}
 
-  rootfs {
-    storage = "local-lvm"
-    size    = "320G"
+variable "sourceTemplateId" {
+  type = number
+}
+
+# GPU passthrough PCI addresses on the Proxmox host (e.g. 0000:01:00.0)
+variable "gpuPci" {
+  type = string
+  validation {
+    condition     = length(var.gpuPci) > 0
+    error_message = "GPU PCI address is required."
   }
+}
 
-  ssh_public_keys = <<-EOT
-    ${var.sshKey}
-  EOT
+variable "gpuAudioPci" {
+  type = string
+  validation {
+    condition     = length(var.gpuAudioPci) > 0
+    error_message = "GPU audio PCI address is required."
+  }
+}
+
+resource "proxmox_vm_qemu" "k8s-main-node" {
+  # QoL runtime settings
+  define_connection_info = false
+  agent_timeout          = 60
+  vmid                   = var.vmId
+  name                   = var.hostname
+  target_node            = var.targetNode
+
+  clone_id   = var.sourceTemplateId
+  full_clone = true
+  agent      = 1
+  onboot     = true
+
+  cpu_type = "host"
+  sockets  = 1
+  cores    = 16
+  memory   = 65536
+
+  scsihw = "virtio-scsi-pci"
+
+  bootdisk = "scsi0"
 
   network {
-    name     = "eth0"
-    bridge   = "vmbr0"
-    ip       = var.ip
-    ip6      = "auto"
-    gw       = var.gateway
-    firewall = false
+    id     = 0
+    model  = "virtio"
+    bridge = "vmbr0"
+  }
+
+  # Define disks in a single block: primary scsi0 disk + cloud-init drive on ide2
+  disks {
+    scsi {
+      scsi0 {
+        disk {
+          size    = "320G"
+          storage = "local-lvm"
+          discard = true
+        }
+      }
+    }
+    ide {
+      ide2 {
+        cloudinit {
+          storage = "local-lvm"
+        }
+      }
+    }
+  }
+
+  # Cloud-Init
+  cicustom   = "user=local:snippets/${var.hostname}-user.yaml"
+  ipconfig0  = "ip=${var.ip},gw=${var.gateway}"
+  nameserver = var.nameserver
+  ciuser     = "ubuntu"
+  sshkeys    = var.sshKey
+
+  # Machine type for better PCIe support
+  machine = "q35"
+
+  # GPU passthrough (graphics + audio)
+  pci {
+    id     = 0
+    raw_id = var.gpuPci
+    rombar = false
+    pcie   = true
+  }
+  pci {
+    id     = 1
+    raw_id = var.gpuAudioPci
+    rombar = false
+    pcie   = true
   }
 }

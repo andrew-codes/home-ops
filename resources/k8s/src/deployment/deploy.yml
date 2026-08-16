@@ -1,3 +1,4 @@
 ---
 - import_playbook: playbooks/prepare.yml
+- import_playbook: playbooks/gpu-node.yml
 - import_playbook: playbooks/setup-k8s.yml

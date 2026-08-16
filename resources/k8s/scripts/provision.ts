@@ -19,8 +19,13 @@ const run = async (
     .value
   const devSshKey = (await configurationApi.get("dev/ssh-key/public")).value
   const sshKey = [proxmoxSshKey, devSshKey].join("\n")
-  const proxmoxIp = (await configurationApi.get("proxmox/ip")).value
   const nameserver = (await configurationApi.get("proxmox/nameserver")).value
+  const sourceTemplateId = (
+    await configurationApi.get("proxmox/vm-template-id")
+  ).value
+  const gpuPci = (await configurationApi.get("proxmox/gpu/pci")).value
+  const gpuAudioPci = (await configurationApi.get("proxmox/gpu/audio-pci"))
+    .value
 
   const vmId = ip.split(".").slice(1).join("")
 
@@ -35,6 +40,10 @@ const run = async (
       sshKey,
       nameserver,
       vmId,
+      targetNode: "pve",
+      sourceTemplateId,
+      gpuPci,
+      gpuAudioPci,
     },
     path.join(__dirname, "..", "src", "provision"),
     path.join(__dirname, "..", ".terraform"),
@@ -42,11 +51,8 @@ const run = async (
 
   await runPlaybook(
     path.join(__dirname, "..", "src", "provision", "provision.yml"),
-    [proxmoxIp],
-    {
-      vmId,
-      env,
-    },
+    [ip],
+    {},
   )
 
   await deploy(configurationApi, context)
