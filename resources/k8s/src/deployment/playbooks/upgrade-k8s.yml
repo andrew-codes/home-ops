@@ -17,6 +17,19 @@
     - "{{ playbook_dir }}/../vars/kube-version.yml"
 
   tasks:
+    - name: Add k8s GPG key
+      apt_key:
+        url: "https://pkgs.k8s.io/core:/stable:/{{ kube_minor }}/deb/Release.key"
+        keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        state: present
+
+    - name: Add Kubernetes Repository
+      apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kube_minor }}/deb/ /"
+        state: present
+        filename: kubernetes
+        mode: "0600"
+
     - name: Update apt cache
       apt:
         update_cache: true
