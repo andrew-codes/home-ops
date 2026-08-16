@@ -22,7 +22,7 @@ Two distinct, separately invokable nx targets exist. Do not conflate them:
   `src/deployment/deploy-upgrade.yml` -> `playbooks/upgrade-k8s.yml`) - the **upgrade in
   place** path. Never calls `kubeadm reset`. Installs the pinned kubeadm/kubelet/kubectl
   versions and drives kubeadm's own documented per-node upgrade sequence (`kubeadm upgrade
-  plan` / `apply`, cordon, drain, restart kubelet, uncordon). This is the path to run when
+plan` / `apply`, cordon, drain, restart kubelet, uncordon). This is the path to run when
   bumping `kube_version` on the live cluster - never `deploy`/`provision`.
 - `nx run resource-k8s:reset` (`scripts/reset.ts` -> `playbooks/reset-k8s.yml`) - standalone
   teardown of kubeadm/CNI/kubelet state without reprovisioning, for manual decommissioning.
