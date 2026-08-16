@@ -1,0 +1,76 @@
+---
+- name: Detect the bridge holding the default route (Proxmox's primary bridge)
+  ansible.builtin.set_fact:
+    primary_bridge: "{{ ansible_default_ipv4.interface }}"
+
+- name: Fail if the detected primary interface is not a Proxmox bridge
+  ansible.builtin.fail:
+    msg: >-
+      Default route interface {{ primary_bridge }} does not look like a Proxmox
+      bridge (expected a name starting with "vmbr"). Refusing to guess - inspect
+      /etc/network/interfaces by hand and adjust this playbook's assumptions.
+  when: not primary_bridge.startswith("vmbr")
+
+- name: Capture the bridge's current bridge-ports so physical NIC binding is preserved
+  ansible.builtin.shell: |
+    set -o pipefail
+    awk '/^iface {{ primary_bridge }} /{f=1} f && /bridge-ports/{print $2; exit}' /etc/network/interfaces
+  args:
+    executable: /bin/bash
+  changed_when: false
+  register: bridge_ports_lookup
+
+- name: Fail if bridge-ports could not be determined
+  ansible.builtin.fail:
+    msg: >-
+      Could not find "bridge-ports" for {{ primary_bridge }} in
+      /etc/network/interfaces. Refusing to template a network config without
+      knowing which physical NIC(s) the bridge is attached to.
+  when: bridge_ports_lookup.stdout | trim | length == 0
+
+- name: One-time backup of /etc/network/interfaces before it is ever templated
+  ansible.builtin.copy:
+    src: /etc/network/interfaces
+    dest: /etc/network/interfaces.pre-pve-automation.bak
+    remote_src: yes
+    force: no
+  register: interfaces_backup
+
+- name: Report whether a pre-automation network backup was just created
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'Created /etc/network/interfaces.pre-pve-automation.bak' if interfaces_backup.changed
+         else '/etc/network/interfaces.pre-pve-automation.bak already exists, left untouched' }}
+
+- name: Template /etc/network/interfaces with the static IP, gateway and DNS config
+  ansible.builtin.template:
+    src: interfaces.j2
+    dest: /etc/network/interfaces
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "ifup --syntax-check %s"
+  register: interfaces_file
+
+- name: Template /etc/resolv.conf directly, in case resolvconf integration is not active
+  ansible.builtin.template:
+    src: resolv.conf.j2
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Reload networking with ifreload instead of rebooting
+  ansible.builtin.command: ifreload -a
+  when: interfaces_file.changed
+  register: ifreload_result
+  changed_when: true
+
+- name: Verify the new address is live after ifreload
+  ansible.builtin.wait_for:
+    host: "{{ ip.split('/')[0] }}"
+    port: 22
+    timeout: 30
+  when: interfaces_file.changed
+  delegate_to: localhost
+  become: false

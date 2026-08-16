@@ -1,0 +1,35 @@
+---
+- name: Check whether the nas-iso storage is already registered
+  ansible.builtin.command: pvesm status --storage nas-iso
+  register: nas_iso_status
+  ignore_errors: true
+  changed_when: false
+
+- name: Add the nas-iso CIFS storage (mounted at /mnt/pve/nas-iso)
+  ansible.builtin.command: >
+    pvesm add cifs nas-iso
+    --server {{ nas_iso_host }}
+    --share ISO
+    --username {{ nas_iso_username }}
+    --password {{ nas_iso_password }}
+    --content iso,vztmpl
+  when: nas_iso_status.rc != 0
+  no_log: true
+  register: nas_iso_add
+
+- name: Reconcile nas-iso storage settings if it already exists
+  ansible.builtin.command: >
+    pvesm set nas-iso
+    --server {{ nas_iso_host }}
+    --username {{ nas_iso_username }}
+    --password {{ nas_iso_password }}
+    --content iso,vztmpl
+  when: nas_iso_status.rc == 0
+  no_log: true
+  changed_when: false
+
+- name: Report nas-iso storage state
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'Registered nas-iso storage' if nas_iso_status.rc != 0
+         else 'nas-iso storage already registered, settings reconciled' }}

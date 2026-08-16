@@ -63,6 +63,10 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/pihole-service"\
     },\
     {\
+      "name": "@ha/pve",\
+      "reference": "workspace:apps/pve"\
+    },\
+    {\
       "name": "@ha/tailscale",\
       "reference": "workspace:apps/tailscale"\
     },\
@@ -260,6 +264,7 @@ const RAW_RUNTIME_STATE =
     ["@ha/pbs", ["workspace:resources/pbs"]],\
     ["@ha/pihole", ["workspace:apps/pihole"]],\
     ["@ha/pihole-service", ["workspace:apps/pihole-service"]],\
+    ["@ha/pve", ["workspace:apps/pve"]],\
     ["@ha/resource-fluxcd", ["workspace:resources/fluxcd"]],\
     ["@ha/resource-k8s", ["workspace:resources/k8s"]],\
     ["@ha/resource-openclaw", ["workspace:resources/openclaw"]],\
@@ -4955,6 +4960,21 @@ const RAW_RUNTIME_STATE =
           ["@ha/terraform", "workspace:packages/terraform"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"],\
           ["shelljs", "npm:0.8.5"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
+    ["@ha/pve", [\
+      ["workspace:apps/pve", {\
+        "packageLocation": "./apps/pve/",\
+        "packageDependencies": [\
+          ["@ha/ansible", "workspace:packages/ansible"],\
+          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
+          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
+          ["@ha/logger", "workspace:packages/logger"],\
+          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
+          ["@ha/pve", "workspace:apps/pve"],\
+          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
         ],\
         "linkType": "SOFT"\
       }]\

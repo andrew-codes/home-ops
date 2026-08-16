@@ -1,0 +1,39 @@
+---
+- name: Provision the pve Proxmox host
+  hosts: all
+  become: yes
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: yes
+  connection: ssh
+  remote_user: root
+  handlers:
+    - import_tasks: handlers/main.yml
+
+  tasks:
+    - name: Time zone
+      ansible.builtin.import_tasks: tasks/timezone.yml
+      tags: [timezone]
+
+    - name: SSH access
+      ansible.builtin.import_tasks: tasks/ssh.yml
+      tags: [ssh]
+
+    - name: nas-iso storage
+      ansible.builtin.import_tasks: tasks/storage-nas-iso.yml
+      tags: [storage, nas-iso]
+
+    - name: Proxmox Backup Server storage
+      ansible.builtin.import_tasks: tasks/storage-pbs.yml
+      tags: [storage, pbs]
+
+    - name: NVIDIA GPU passthrough
+      ansible.builtin.import_tasks: tasks/gpu-passthrough.yml
+      tags: [gpu]
+
+    # Network is deliberately last: it can cut the SSH connection running the
+    # rest of this play, and every other step is safe to have already applied
+    # if this one needs to be re-run or rolled back by hand.
+    - name: Network (static IP, gateway, DNS - risks SSH access, see README)
+      ansible.builtin.import_tasks: tasks/network.yml
+      tags: [network]

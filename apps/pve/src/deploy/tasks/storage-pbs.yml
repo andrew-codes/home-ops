@@ -1,0 +1,36 @@
+---
+- name: Check whether the pbs-nas storage is already registered
+  ansible.builtin.command: pvesm status --storage pbs-nas
+  register: pbs_status
+  ignore_errors: true
+  changed_when: false
+
+- name: Add the Proxmox Backup Server storage (datastore "nas" on 10.0.209.71)
+  ansible.builtin.command: >
+    pvesm add pbs pbs-nas
+    --server {{ pbs_host }}
+    --datastore {{ pbs_datastore }}
+    --username {{ pbs_username }}
+    --password {{ pbs_password }}
+    {{ ('--fingerprint ' ~ pbs_fingerprint) if pbs_fingerprint | default('') | length > 0 else '' }}
+  when: pbs_status.rc != 0
+  no_log: true
+  register: pbs_add
+
+- name: Reconcile pbs-nas storage settings if it already exists
+  ansible.builtin.command: >
+    pvesm set pbs-nas
+    --server {{ pbs_host }}
+    --datastore {{ pbs_datastore }}
+    --username {{ pbs_username }}
+    --password {{ pbs_password }}
+    {{ ('--fingerprint ' ~ pbs_fingerprint) if pbs_fingerprint | default('') | length > 0 else '' }}
+  when: pbs_status.rc == 0
+  no_log: true
+  changed_when: false
+
+- name: Report pbs-nas storage state
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'Registered pbs-nas storage' if pbs_status.rc != 0
+         else 'pbs-nas storage already registered, settings reconciled' }}

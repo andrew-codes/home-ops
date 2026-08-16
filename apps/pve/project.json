@@ -1,0 +1,24 @@
+{
+  "name": "pve",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "{projectRoot}/src",
+  "projectType": "application",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "ansible-playbook --syntax-check src/deploy/index.yml",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "deploy": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "module": "scripts/deploy.ts",
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}
