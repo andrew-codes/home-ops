@@ -23,6 +23,20 @@
         "module": "scripts/provision.ts",
         "cwd": "{projectRoot}"
       }
+    },
+    "deploy": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/deploy.ts"
+      }
+    },
+    "deploy/upgrade": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "cwd": "{projectRoot}",
+        "module": "scripts/deploy-upgrade.ts"
+      }
     }
   },
   "tags": [],

@@ -8,6 +8,9 @@
   connection: ssh
   remote_user: root
 
+  vars_files:
+    - "{{ playbook_dir }}/../vars/kube-version.yml"
+
   tasks:
     - name: Disable password SSH access
       lineinfile:
@@ -114,7 +117,7 @@
 
     - name: Add k8s GPG key
       apt_key:
-        url: https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key
+        url: "https://pkgs.k8s.io/core:/stable:/{{ kube_minor }}/deb/Release.key"
         keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
         state: present
 
@@ -127,7 +130,7 @@
 
     - name: Add Kubernetes Repository
       apt_repository:
-        repo: deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kube_minor }}/deb/ /"
         state: present
         filename: kubernetes
         mode: "0600"
@@ -171,9 +174,9 @@
       apt:
         allow_downgrade: true
         name:
-          - kubeadm
-          - kubectl
-          - kubelet
+          - "kubeadm={{ kube_version }}-*"
+          - "kubectl={{ kube_version }}-*"
+          - "kubelet={{ kube_version }}-*"
         state: present
 
     - name: Hold kubeadm

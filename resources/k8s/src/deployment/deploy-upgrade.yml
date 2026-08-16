@@ -1,0 +1,2 @@
+---
+- import_playbook: playbooks/upgrade-k8s.yml

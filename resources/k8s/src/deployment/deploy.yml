@@ -1,4 +1,10 @@
 ---
+# Fresh deploy path: for a brand-new or intentionally-rebuilt node.
+# Always resets any prior kubeadm/CNI/kubelet state first so this is safe
+# to re-run against a node that was previously initialized, then
+# provisions a clean cluster. Never use this against a node you want to
+# upgrade in place - see deploy-upgrade.yml for that.
+- import_playbook: playbooks/reset-k8s.yml
 - import_playbook: playbooks/prepare.yml
 - import_playbook: playbooks/gpu-node.yml
 - import_playbook: playbooks/setup-k8s.yml
