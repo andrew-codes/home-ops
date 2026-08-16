@@ -6,6 +6,11 @@
   become_user: root
   gather_facts: yes
   connection: ssh
+  vars:
+    # Pinned to a known-good release rather than floating to whatever apt
+    # resolves at run time. Resolved once against the pbs-no-subscription
+    # repo docs on 2026-08-16 - see README.md#pinned-package-version to bump.
+    pbs_package_version: 4.2.5-1
   vars_files:
     - ../.secrets/ansible-secrets.yml
 
@@ -18,11 +23,67 @@
       copy:
         dest: /etc/resolv.conf
         content: |
+          search smith-simms.family
           nameserver 1.1.1.1
           nameserver 1.0.0.1
         owner: root
         group: root
         mode: "0644"
+
+    - name: Set hostname to pbs
+      ansible.builtin.hostname:
+        name: pbs
+
+    - name: Ensure /etc/hosts resolves the pbs hostname locally
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: "^127\\.0\\.1\\.1\\s"
+        line: "127.0.1.1\tpbs.smith-simms.family pbs"
+        state: present
+
+    - name: Install Andrew's SSH public key
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        state: present
+        key: "{{ andrew_ssh_public_key }}"
+
+    # The install ISO's own network config may still be DHCP or a different
+    # address, so this task can drop the current SSH connection when it
+    # applies. That is expected, not a failure: reconnect the inventory at
+    # 10.0.209.71 and re-run this playbook - every task here is idempotent,
+    # so the steps already applied above (hostname, SSH key) are skipped and
+    # only the remaining ones run. See apps/pve's sibling task for the same
+    # tradeoff. Rollback: if 10.0.209.71 is unreachable after this task,
+    # connect over the console (not SSH) and either fix
+    # /etc/network/interfaces by hand or revert it to DHCP
+    # (`iface <name> inet dhcp`) and run `ifreload -a`.
+    - name: Determine primary network interface
+      ansible.builtin.set_fact:
+        pbs_network_interface: "{{ ansible_default_ipv4.interface }}"
+
+    - name: Configure static network (10.0.209.71/24 via gateway 10.0.209.1)
+      copy:
+        dest: /etc/network/interfaces
+        content: |
+          auto lo
+          iface lo inet loopback
+
+          auto {{ pbs_network_interface }}
+          iface {{ pbs_network_interface }} inet static
+              address 10.0.209.71/24
+              gateway 10.0.209.1
+        owner: root
+        group: root
+        mode: "0644"
+      register: pbs_network_config
+
+    # ifreload (ifupdown2, installed by the PBS ISO by default) diffs and
+    # only touches changed interfaces, so it applies the new address without
+    # the full connectivity drop a `systemctl restart networking` or reboot
+    # would cause - preferred per the network-change risk called out above.
+    - name: Apply network config with a live reload
+      command: ifreload -a
+      when: pbs_network_config.changed
 
     - name: Remove PBS enterprise repository sources
       shell: grep -rl "enterprise.proxmox.com" /etc/apt/sources.list.d/ | xargs -r rm -f
@@ -39,6 +100,23 @@
       command: apt-get update
       changed_when: false
 
+    - name: Check whether Proxmox Backup Server is installed
+      command: proxmox-backup-manager version
+      register: pbs_install_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Proxmox Backup Server (pinned version)
+      apt:
+        name: "proxmox-backup-server={{ pbs_package_version }}"
+        state: present
+      when: pbs_install_check.rc != 0
+
+    - name: Hold Proxmox Backup Server at the pinned version
+      dpkg_selections:
+        name: proxmox-backup-server
+        selection: hold
+
     - name: Install required packages
       apt:
         name:
@@ -53,12 +131,18 @@
         state: directory
         mode: "0755"
 
-    - name: Mount NAS PBS share on boot
+    # x-systemd.automount makes this a lazy, retrying mount instead of a
+    # one-shot boot-time mount: systemd mounts it on first access and keeps
+    # retrying rather than giving up if the NAS isn't up yet. Without it, a
+    # NAS that boots slower than this host (e.g. after a shared power outage)
+    # leaves /mnt/pbs empty forever until someone runs `mount -a` by hand -
+    # see "NAS-slower-than-host boot race" below.
+    - name: Mount NAS PBS share via systemd automount
       ansible.posix.mount:
         src: "{{ nas_host }}:/volume1/pbs"
         path: /mnt/pbs
         fstype: nfs
-        opts: "nfsvers=4,rw,hard,noatime,_netdev,x-systemd.requires=network-online.target"
+        opts: "nfsvers=4,rw,hard,noatime,_netdev,x-systemd.automount,x-systemd.requires=network-online.target"
         state: mounted
 
     - name: Set NFS mount ownership to PBS backup user
@@ -79,6 +163,35 @@
         owner: backup
         group: backup
         recurse: yes
+
+    # Belt-and-suspenders alongside the automount above: this stops
+    # proxmox-backup from starting against an empty /mnt/pbs (which throws
+    # "unable to open chunk store ... No such file or directory") by making
+    # systemd pull in and wait on the mount unit before starting the service,
+    # instead of racing it.
+    - name: Create proxmox-backup.service systemd override directory
+      file:
+        path: /etc/systemd/system/proxmox-backup.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Ensure proxmox-backup waits on the NAS mount before starting
+      copy:
+        dest: /etc/systemd/system/proxmox-backup.service.d/override.conf
+        content: |
+          [Unit]
+          RequiresMountsFor=/mnt/pbs
+        owner: root
+        group: root
+        mode: "0644"
+      register: pbs_service_override
+
+    - name: Reload systemd units after service override change
+      systemd:
+        daemon_reload: yes
+      when: pbs_service_override.changed
 
     - name: Restart PBS service to pick up datastore permissions
       systemd:
