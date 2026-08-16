@@ -1,0 +1,104 @@
+---
+# Upgrade an already-initialized control-plane node to the pinned
+# kube_version in place, following kubeadm's documented per-node upgrade
+# sequence (https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/).
+# This never calls `kubeadm reset` and never re-runs `kubeadm init` -
+# cluster state (etcd, certs, workloads) is preserved throughout.
+- name: Upgrade Kubernetes control-plane node in place
+  hosts: all
+  become: true
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: true
+  connection: ssh
+  remote_user: root
+
+  vars_files:
+    - "{{ playbook_dir }}/../vars/kube-version.yml"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+
+    - name: Unhold kubeadm
+      ansible.builtin.dpkg_selections:
+        name: kubeadm
+        selection: install
+
+    - name: Install pinned kubeadm version
+      apt:
+        allow_downgrade: true
+        name: "kubeadm={{ kube_version }}-*"
+        state: present
+
+    - name: Hold kubeadm
+      ansible.builtin.dpkg_selections:
+        name: kubeadm
+        selection: hold
+
+    - name: Show kubeadm upgrade plan
+      command: kubeadm upgrade plan
+      register: kubeadm_upgrade_plan
+      changed_when: false
+
+    - name: Apply kubeadm upgrade
+      command: "kubeadm upgrade apply v{{ kube_version }} -y"
+      register: kubeadm_upgrade_apply
+      changed_when: "'SUCCESS' in kubeadm_upgrade_apply.stdout"
+
+    - name: Cordon node
+      command: "kubectl --kubeconfig=/etc/kubernetes/admin.conf cordon {{ hostname }}"
+      changed_when: true
+
+    - name: Drain node
+      command: >-
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf drain {{ hostname }}
+        --ignore-daemonsets --delete-emptydir-data --force
+      changed_when: true
+
+    - name: Unhold kubelet and kubectl
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: install
+      loop:
+        - kubelet
+        - kubectl
+
+    - name: Install pinned kubelet and kubectl versions
+      apt:
+        allow_downgrade: true
+        name:
+          - "kubelet={{ kube_version }}-*"
+          - "kubectl={{ kube_version }}-*"
+        state: present
+
+    - name: Hold kubelet and kubectl
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubectl
+
+    - name: Reload systemd daemon
+      command: systemctl daemon-reload
+
+    - name: Restart kubelet
+      service:
+        name: kubelet
+        state: restarted
+
+    - name: Wait for node to report Ready
+      command: >-
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf get node {{ hostname }}
+        -o jsonpath={.status.conditions[?(@.type=="Ready")].status}
+      register: node_ready
+      until: node_ready.stdout == "True"
+      retries: 30
+      delay: 10
+      changed_when: false
+
+    - name: Uncordon node
+      command: "kubectl --kubeconfig=/etc/kubernetes/admin.conf uncordon {{ hostname }}"
+      changed_when: true

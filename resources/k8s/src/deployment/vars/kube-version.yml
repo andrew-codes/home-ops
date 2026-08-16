@@ -1,0 +1,8 @@
+---
+# Single source of truth for the Kubernetes version this cluster runs.
+# Referenced by prepare.yml (fresh install) and upgrade-k8s.yml (upgrade
+# in place) so kubeadm/kubelet/kubectl are always pinned to an exact
+# version instead of drifting to whatever patch the apt minor-line
+# channel currently serves.
+kube_version: "1.32.13"
+kube_minor: "1.32"
