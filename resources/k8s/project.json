@@ -31,7 +31,7 @@
         "module": "scripts/deploy.ts"
       }
     },
-    "deploy:upgrade": {
+    "deploy/upgrade": {
       "executor": "@ha/nx-executors:invoke",
       "options": {
         "cwd": "{projectRoot}",

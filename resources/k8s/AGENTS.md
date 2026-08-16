@@ -18,7 +18,7 @@ Two distinct, separately invokable nx targets exist. Do not conflate them:
   `playbooks/reset-k8s.yml`), then provisions/inits a clean cluster. Safe to (re-)run
   against a brand-new node or one being intentionally rebuilt. `nx run resource-k8s:provision`
   runs this after Terraform-provisioning the VM.
-- `nx run resource-k8s:deploy:upgrade` (`scripts/deploy-upgrade.ts` ->
+- `nx run resource-k8s:deploy/upgrade` (`scripts/deploy-upgrade.ts` ->
   `src/deployment/deploy-upgrade.yml` -> `playbooks/upgrade-k8s.yml`) - the **upgrade in
   place** path. Never calls `kubeadm reset`. Installs the pinned kubeadm/kubelet/kubectl
   versions and drives kubeadm's own documented per-node upgrade sequence (`kubeadm upgrade
@@ -29,7 +29,7 @@ plan` / `apply`, cordon, drain, restart kubelet, uncordon). This is the path to 
 
 Kubernetes only supports upgrading one minor version at a time (kubeadm enforces this) - if
 the pinned `kube_version` needs to move more than one minor ahead, that requires repeated
-`deploy:upgrade` runs, one minor version per run, updating `kube-version.yml` between each.
+`deploy/upgrade` runs, one minor version per run, updating `kube-version.yml` between each.
 
 ## Pending multi-hop upgrade (captain-approved plan, as of 2026-08-16)
 
