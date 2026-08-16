@@ -91,7 +91,7 @@
   register: vfio_pci_ids_conf
   notify: update initramfs
 
-# Report IOMMU grouping so the captain can verify (after reboot) that the two
+# Report IOMMU grouping so it can be verified (after reboot) that the two
 # cards actually landed in separate groups - this cannot be fixed in software
 # beyond the ACS-override workaround documented in the README.
 - name: Enumerate IOMMU groups containing an NVIDIA device

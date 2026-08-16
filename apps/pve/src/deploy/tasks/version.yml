@@ -1,0 +1,51 @@
+---
+- name: Check the installed pve-manager version
+  ansible.builtin.command: pveversion
+  changed_when: false
+  register: pve_version_output
+
+- name: Extract the pve-manager version
+  ansible.builtin.set_fact:
+    pve_manager_version: "{{ pve_version_output.stdout | regex_search('pve-manager/([0-9.]+)', '\\1') | first }}"
+
+- name: Fail if pve is not on the pinned Proxmox VE version
+  ansible.builtin.fail:
+    msg: >-
+      pve is running pve-manager {{ pve_manager_version }}, not the pinned
+      {{ pinned_pve_version }}. This automation refuses to run against an
+      unexpected Proxmox version rather than silently upgrading or
+      downgrading it - see the README's "Upgrading Proxmox" runbook for the
+      deliberate, manually supervised process to move to a new pinned
+      version.
+  when: pve_manager_version != pinned_pve_version
+
+- name: List installed pve-kernel packages
+  ansible.builtin.shell: |
+    set -o pipefail
+    dpkg-query -W -f='${Package}\n' 'pve-kernel-*' 2>/dev/null || true
+  args:
+    executable: /bin/bash
+  changed_when: false
+  register: pve_kernel_packages
+
+- name: Determine which pinned packages to hold
+  ansible.builtin.set_fact:
+    pve_pinned_packages: "{{ (['pve-manager'] + pve_kernel_packages.stdout_lines) | unique }}"
+
+- name: Check which packages are already held
+  ansible.builtin.command: apt-mark showhold
+  changed_when: false
+  register: apt_holds
+
+- name: Hold pve-manager and installed pve-kernel packages at the pinned version
+  ansible.builtin.command: >-
+    apt-mark hold {{ (pve_pinned_packages | difference(apt_holds.stdout_lines)) | join(' ') }}
+  when: (pve_pinned_packages | difference(apt_holds.stdout_lines)) | length > 0
+
+- name: Report the version pin
+  ansible.builtin.debug:
+    msg: >-
+      pve-manager {{ pve_manager_version }} matches the pinned version
+      {{ pinned_pve_version }}. {{ pve_pinned_packages | join(', ') }} held via
+      apt-mark, so `apt full-upgrade` cannot move the host off this version
+      without an explicit `apt-mark unhold` first.

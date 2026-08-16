@@ -1,17 +1,17 @@
-This project configures `pve`, the captain's physical Proxmox VE hypervisor - the machine every VM and container in the home lab runs on. Read [README.md](README.md) before changing anything here.
+This project configures `pve`, the physical Proxmox VE hypervisor - the machine every VM and container in the home lab runs on. Read [README.md](README.md) before changing anything here.
 
 # Never Run `nx run pve:deploy` From An Agent Session
 
 This is not a lab machine with a snapshot to roll back to - it is the host underneath everything else. `nx run pve:deploy` rewrites `/etc/network/interfaces` and `/etc/resolv.conf` and reloads networking with `ifreload`, which can cut SSH access to `pve` (and therefore to every VM/LXC behind it) if the static IP, gateway or bridge name is wrong. It also edits GRUB and initramfs for IOMMU/vfio, which only take effect after a reboot - a reboot this playbook never performs itself.
 
-Only the captain runs this, with physical console or IPMI/iDRAC access available as a fallback (see the README's rollback procedure). Validate with non-mutating commands only:
+Only run this deliberately, with physical console or IPMI/iDRAC access available as a fallback (see the README's rollback procedure). Validate with non-mutating commands only:
 
 ```bash
 nx run pve:lint                                # ansible-playbook --syntax-check, no host contact
 ansible-playbook --syntax-check src/deploy/index.yml
 ```
 
-`pve` is excluded from `yarn deploy/all` in the root `package.json` for the same reason `andrew-mbp`, `dorri-mbp` and `gaming-pc` are - this is a one-at-a-time, captain-supervised deploy, not a fleet target.
+`pve` is excluded from `yarn deploy/all` in the root `package.json` for the same reason `andrew-mbp`, `dorri-mbp` and `gaming-pc` are - this is a one-at-a-time, manually supervised deploy, not a fleet target.
 
 # The GPU PCI Ids Are Discovered, Never Hardcoded
 

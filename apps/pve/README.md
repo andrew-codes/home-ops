@@ -1,7 +1,8 @@
 # pve
 
-Provisions `pve`, the captain's physical Proxmox VE hypervisor host - the machine that
-underpins the whole home lab. Currently running Proxmox VE 8.3.4.
+Provisions `pve`, the physical Proxmox VE hypervisor host - the machine that
+underpins the whole home lab. Pinned to Proxmox VE 8.3.4 (see
+[Proxmox version pin](#0-proxmox-version-pin-tasksversionyml)).
 
 **This automation has never been run against the real host.** It was implemented,
 lint/syntax-checked, and reviewed, but never executed - see
@@ -17,10 +18,10 @@ lint/syntax-checked, and reviewed, but never executed - see
    machine.
 3. **Populate the 1Password secrets this automation reads** - see
    [Secrets](#secrets).
-4. **Run this playbook** - see [Deploying](#deploying). Captain-only, see
+4. **Run this playbook** - see [Deploying](#deploying). Not from an agent session, see
    [AGENTS.md](AGENTS.md).
-5. **Reboot** - required for the IOMMU/GRUB/vfio changes to take effect. Captain-
-   supervised, with console access available - see
+5. **Reboot** - required for the IOMMU/GRUB/vfio changes to take effect. A manually
+   supervised step, with console access available - see
    [Manual steps](#manual-steps-that-cannot-be-automated).
 6. **Verify IOMMU grouping post-reboot** - see
    [GPU passthrough](#nvidia-gpu-passthrough-two-cards-two-vms).
@@ -31,6 +32,22 @@ Everything below is implemented as one Ansible playbook
 ([`src/deploy/index.yml`](src/deploy/index.yml)) run over SSH against the host, wired
 into `nx run pve:deploy`. Every task checks current state before changing it and is
 safe to re-run - see each section for exactly how.
+
+### 0. Proxmox version pin ([`tasks/version.yml`](src/deploy/tasks/version.yml))
+
+Runs first, before anything else, and fails the whole playbook closed if the host
+isn't on exactly the pinned version.
+
+- Reads `pveversion` and extracts the `pve-manager` version.
+- **Fails loudly** if it isn't exactly `8.3.4` - this automation never upgrades or
+  downgrades Proxmox itself; that's the separate, manually run
+  [Upgrading Proxmox](#upgrading-proxmox) runbook.
+- Enumerates the installed `pve-kernel-*` packages and holds them, along with
+  `pve-manager`, via `apt-mark hold` - checking `apt-mark showhold` first and only
+  holding whatever isn't already held. This means a stray `apt full-upgrade` run
+  outside this playbook can't silently move the host off `8.3.4`; moving to a new
+  pinned version requires deliberately running `apt-mark unhold` first (the
+  [Upgrading Proxmox](#upgrading-proxmox) runbook covers this).
 
 ### 1. Network ([`tasks/network.yml`](src/deploy/tasks/network.yml))
 
@@ -85,7 +102,7 @@ set - `timedatectl show --property=Timezone --value` is checked first.
 
 ### 3. SSH access ([`tasks/ssh.yml`](src/deploy/tasks/ssh.yml))
 
-Installs the captain's SSH public key into `root`'s `authorized_keys`, the same way
+Installs the operator's SSH public key into `root`'s `authorized_keys`, the same way
 other host apps in this repo install `dev/ssh-key/public` - see
 [Secrets](#secrets) for where the key comes from. Idempotent via
 `ansible.builtin.lineinfile`: the exact key line is added once and left alone on
@@ -212,7 +229,7 @@ These need a human at the machine (or its console), not this playbook:
   auto-accept it even with `--fingerprint` supplied - see
   [PBS TLS fingerprint](#pbs-tls-fingerprint).
 - **The reboot(s)** needed after the network, GRUB/IOMMU, and blacklist changes -
-  captain-supervised, with console access available as a fallback. Confirm SSH access
+  a manually supervised step, with console access available as a fallback. Confirm SSH access
   survives the network change (step 1) before rebooting for the GPU changes (step 6),
   so a stacked failure doesn't leave two things to debug through a console at once.
 - **Confirming an out-of-band management interface** (IPMI/iDRAC or equivalent) exists
@@ -228,7 +245,7 @@ the same as every other host app in this repo.
 | Secret                    | Used for                                                        |
 | ------------------------- | ----------------------------------------------------------------|
 | `proxmox/ip`               | The host to run the playbook against (the Ansible inventory target) |
-| `andrew-mbp/public-key`   | The captain's SSH public key, installed into `root`'s `authorized_keys` |
+| `andrew-mbp/public-key`   | The operator's SSH public key, installed into `root`'s `authorized_keys` |
 | `nas/ip`                   | The NAS host backing the `nas-iso` SMB share                    |
 | `pve-nas-iso/username`     | NAS `ISO` share username (see [below](#secrets-that-do-not-exist-yet)) |
 | `pve-nas-iso/password`     | NAS `ISO` share password (see [below](#secrets-that-do-not-exist-yet)) |
@@ -261,7 +278,7 @@ Per [`apps/andrew-mbp/README.md`](../andrew-mbp/README.md#time-machine-backups-t
 and [`apps/dorri-mbp/README.md`](../dorri-mbp/README.md), only `nas/ip` exists in
 1Password today - there is no NAS username/password. The same gap applies to PBS.
 
-**The captain must create these four 1Password items with real values before
+**These four 1Password items must be created with real values before
 `nx run pve:deploy` can run non-interactively:**
 
 - `pve-nas-iso` (fields `username`, `password`) - a service account for the NAS's
@@ -285,7 +302,7 @@ auto-accept first, and only set it if that fails (see
 
 > [!CAUTION]
 > **Do not run this from an agent session.** See [AGENTS.md](AGENTS.md). This is a
-> captain-supervised action, ideally with physical console access on hand, taken
+> manually supervised action, ideally with physical console access on hand, taken
 > after this automation has been reviewed - not something to run casually while
 > iterating on the playbook.
 
@@ -295,7 +312,7 @@ This automation has been implemented and syntax-checked (`nx run pve:lint`), but
 **never been run against the real `pve` host** - not even in Ansible's `--check`
 (dry-run) mode, since exercising `--check` still requires live SSH connectivity to the
 host this automation is deliberately not touching yet. Applying it for the first time,
-and the reboot(s) that follow, are captain-supervised actions to take after review,
+and the reboot(s) that follow, are manually supervised actions to take after review,
 with console access available as a fallback per
 [Network rollback](#network-rollback-if-this-goes-wrong).
 
@@ -304,12 +321,12 @@ with console access available as a fallback per
 | Target   | What it does                                                                                  |
 | -------- | ---------------------------------------------------------------------------------------------- |
 | `lint`   | `ansible-playbook --syntax-check` against the playbook - no host contact, safe to run anytime. |
-| `deploy` | Runs the full playbook against `pve` over SSH. Captain-only - see [AGENTS.md](AGENTS.md).      |
+| `deploy` | Runs the full playbook against `pve` over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md). |
 
 `deploy` is deliberately excluded from `yarn deploy/all` in the root `package.json`,
 alongside `andrew-mbp`, `dorri-mbp` and `gaming-pc` - see
 [Deploy exclusions](../../README.md#deploy-exclusions). This host is on the list
-because it is a one-at-a-time, captain-supervised action with real lockout risk, not a
+because it is a one-at-a-time, manually supervised action with real lockout risk, not a
 fleet deploy target.
 
 There is no `provision` target - `pve` is the physical machine everything else is
@@ -323,11 +340,17 @@ A runbook for later use - **this task does not run any of this.**
    ```bash
    pveversion
    ```
-2. **Snapshot/back up VMs first.** Every VM and container on this host should have a
+2. **Release the version pin.** [Proxmox version pin](#0-proxmox-version-pin-tasksversionyml)
+   holds `pve-manager` and the installed `pve-kernel-*` packages via `apt-mark` so they
+   can't drift by accident - an upgrade must release that hold deliberately first:
+   ```bash
+   apt-mark unhold pve-manager $(dpkg-query -W -f='${Package}\n' 'pve-kernel-*')
+   ```
+3. **Snapshot/back up VMs first.** Every VM and container on this host should have a
    current backup (via the `pbs-nas` storage this automation registers, or a manual
    snapshot) before upgrading - an upgrade that goes wrong is much cheaper to recover
    from with a recent restore point.
-3. **Confirm the repository configuration.** A subscription-less Proxmox host should
+4. **Confirm the repository configuration.** A subscription-less Proxmox host should
    be on the no-subscription repo, not the enterprise repo it doesn't have a license
    for:
    ```bash
@@ -336,15 +359,15 @@ A runbook for later use - **this task does not run any of this.**
    ```
    Proxmox's own docs cover switching between them:
    [Package Repositories](https://pve.proxmox.com/pve-docs/pve-admin-guide.html#sysadmin_package_repositories).
-4. **Update and upgrade.**
+5. **Update and upgrade.**
    ```bash
    apt update
    apt full-upgrade
    ```
-5. **Reboot** if the upgrade included a new kernel (it usually does) - check
+6. **Reboot** if the upgrade included a new kernel (it usually does) - check
    `apt list --upgradable` output or just reboot after any `full-upgrade` that touched
    `pve-kernel-*` or `proxmox-kernel-*`.
-6. **Re-verify everything this automation configured survived the upgrade:**
+7. **Re-verify everything this automation configured survived the upgrade:**
    ```bash
    pveversion                                    # confirm the new version
    pvesm status --storage nas-iso                # NAS ISO storage still registered
@@ -353,5 +376,8 @@ A runbook for later use - **this task does not run any of this.**
    lspci -nnk | grep -A2 -i nvidia | grep 'Kernel driver'  # both cards still bound to vfio-pci, not nouveau/nvidia
    ip -br addr show                              # static IP/bridge config intact
    ```
-   If any of these regressed, re-run `nx run pve:deploy` - every step here is
+8. **Update the pinned version** in
+   [`src/deploy/index.yml`](src/deploy/index.yml)'s `pinned_pve_version` to match the
+   new `pveversion` output, so the version pin task re-holds the new packages instead
+   of failing on every future run. Then re-run `nx run pve:deploy` - every step here is
    idempotent, so it only touches what actually drifted.
