@@ -110,11 +110,10 @@
       when: not kubeadm_init_check.stat.exists
 
     # This node owns a passed-through GPU (see playbooks/gpu-node.yml), so
-    # label it the same way resources/k8s-gpu-node's node is labeled, for
-    # the nvidia-device-plugin-daemonset nodeSelector in
-    # clusters/production/infrastructure.yaml. Deliberately not tainted
-    # nvidia.com/gpu:NoSchedule like the dedicated GPU worker: this node is
-    # still the control-plane / primary node and may run non-GPU workloads,
-    # so it should stay generally schedulable.
+    # label it gpu=true for the nvidia-device-plugin-daemonset nodeSelector
+    # in clusters/production/infrastructure.yaml. Deliberately not tainted
+    # nvidia.com/gpu:NoSchedule: this node is still the control-plane /
+    # primary node and may run non-GPU workloads, so it should stay
+    # generally schedulable.
     - name: Label this node as GPU-capable
       command: "kubectl label node {{ hostname }} gpu=true --overwrite"

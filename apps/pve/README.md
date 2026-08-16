@@ -177,12 +177,13 @@ Host CPU is AMD EPYC, so this uses AMD-V/AMD-Vi (IOMMU), not Intel VT-d.
 None of this takes effect until the host reboots - see
 [Manual steps](#manual-steps-that-cannot-be-automated).
 
-**Downstream consumer:** `resources/k8s-gpu-node/provision/provision.tf` already
-takes `gpu_pci` / `gpu_audio_pci` Terraform variables (PCI addresses like `01:00.0`)
-for a VM's passthrough config. Once GPUs are bound to `vfio-pci` here, read their PCI
-addresses back out with `lspci -nnk | grep -i nvidia` and feed the two per-card
-addresses into that Terraform as the two VMs are defined - one card's VGA+audio pair
-per VM.
+**Downstream consumer:** `resources/k8s/src/provision/provision.tf` already takes
+`gpuPci` / `gpuAudioPci` Terraform variables (PCI addresses like `01:00.0`) for
+`k8s-main`'s passthrough config (one card's VGA+audio pair). Once GPUs are bound to
+`vfio-pci` here, read their PCI addresses back out with `lspci -nnk | grep -i
+nvidia`. The second card is enabled for passthrough by this playbook but currently
+has no Terraform consumer - the dedicated GPU worker node that previously used it
+was decommissioned and its provisioning resource removed from the repo.
 
 #### Verifying IOMMU grouping after reboot
 
@@ -242,15 +243,15 @@ These need a human at the machine (or its console), not this playbook:
 Read through [`packages/configuration-1password`](../../packages/configuration-1password),
 the same as every other host app in this repo.
 
-| Secret                    | Used for                                                        |
-| ------------------------- | ----------------------------------------------------------------|
-| `proxmox/ip`               | The host to run the playbook against (the Ansible inventory target) |
-| `andrew-mbp/public-key`   | The operator's SSH public key, installed into `root`'s `authorized_keys` |
-| `nas/ip`                   | The NAS host backing the `nas-iso` SMB share                    |
-| `pve-nas-iso/username`     | NAS `ISO` share username (see [below](#secrets-that-do-not-exist-yet)) |
-| `pve-nas-iso/password`     | NAS `ISO` share password (see [below](#secrets-that-do-not-exist-yet)) |
-| `pve-pbs/username`         | PBS datastore username (see [below](#secrets-that-do-not-exist-yet)) |
-| `pve-pbs/password`         | PBS datastore password (see [below](#secrets-that-do-not-exist-yet)) |
+| Secret                  | Used for                                                                 |
+| ----------------------- | ------------------------------------------------------------------------ |
+| `proxmox/ip`            | The host to run the playbook against (the Ansible inventory target)      |
+| `andrew-mbp/public-key` | The operator's SSH public key, installed into `root`'s `authorized_keys` |
+| `nas/ip`                | The NAS host backing the `nas-iso` SMB share                             |
+| `pve-nas-iso/username`  | NAS `ISO` share username (see [below](#secrets-that-do-not-exist-yet))   |
+| `pve-nas-iso/password`  | NAS `ISO` share password (see [below](#secrets-that-do-not-exist-yet))   |
+| `pve-pbs/username`      | PBS datastore username (see [below](#secrets-that-do-not-exist-yet))     |
+| `pve-pbs/password`      | PBS datastore password (see [below](#secrets-that-do-not-exist-yet))     |
 
 `PBS_FINGERPRINT` is an optional **environment variable**, not a 1Password secret -
 see [PBS TLS fingerprint](#pbs-tls-fingerprint).
@@ -318,9 +319,9 @@ with console access available as a fallback per
 
 ## Nx targets
 
-| Target   | What it does                                                                                  |
-| -------- | ---------------------------------------------------------------------------------------------- |
-| `lint`   | `ansible-playbook --syntax-check` against the playbook - no host contact, safe to run anytime. |
+| Target   | What it does                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------ |
+| `lint`   | `ansible-playbook --syntax-check` against the playbook - no host contact, safe to run anytime.         |
 | `deploy` | Runs the full playbook against `pve` over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md). |
 
 `deploy` is deliberately excluded from `yarn deploy/all` in the root `package.json`,
