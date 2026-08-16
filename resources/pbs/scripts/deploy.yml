@@ -18,11 +18,67 @@
       copy:
         dest: /etc/resolv.conf
         content: |
+          search smith-simms.family
           nameserver 1.1.1.1
           nameserver 1.0.0.1
         owner: root
         group: root
         mode: "0644"
+
+    - name: Set hostname to pbs
+      ansible.builtin.hostname:
+        name: pbs
+
+    - name: Ensure /etc/hosts resolves the pbs hostname locally
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: "^127\\.0\\.1\\.1\\s"
+        line: "127.0.1.1\tpbs.smith-simms.family pbs"
+        state: present
+
+    - name: Install captain's SSH public key
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        state: present
+        key: "{{ captain_ssh_public_key }}"
+
+    # The install ISO's own network config may still be DHCP or a different
+    # address, so this task can drop the current SSH connection when it
+    # applies. That is expected, not a failure: reconnect the inventory at
+    # 10.0.209.71 and re-run this playbook - every task here is idempotent,
+    # so the steps already applied above (hostname, SSH key) are skipped and
+    # only the remaining ones run. See apps/pve's sibling task for the same
+    # tradeoff. Rollback: if 10.0.209.71 is unreachable after this task,
+    # connect over the console (not SSH) and either fix
+    # /etc/network/interfaces by hand or revert it to DHCP
+    # (`iface <name> inet dhcp`) and run `ifreload -a`.
+    - name: Determine primary network interface
+      ansible.builtin.set_fact:
+        pbs_network_interface: "{{ ansible_default_ipv4.interface }}"
+
+    - name: Configure static network (10.0.209.71/24 via gateway 10.0.209.1)
+      copy:
+        dest: /etc/network/interfaces
+        content: |
+          auto lo
+          iface lo inet loopback
+
+          auto {{ pbs_network_interface }}
+          iface {{ pbs_network_interface }} inet static
+              address 10.0.209.71/24
+              gateway 10.0.209.1
+        owner: root
+        group: root
+        mode: "0644"
+      register: pbs_network_config
+
+    # ifreload (ifupdown2, installed by the PBS ISO by default) diffs and
+    # only touches changed interfaces, so it applies the new address without
+    # the full connectivity drop a `systemctl restart networking` or reboot
+    # would cause - preferred per the network-change risk called out above.
+    - name: Apply network config with a live reload
+      command: ifreload -a
+      when: pbs_network_config.changed
 
     - name: Remove PBS enterprise repository sources
       shell: grep -rl "enterprise.proxmox.com" /etc/apt/sources.list.d/ | xargs -r rm -f
@@ -38,6 +94,18 @@
     - name: Update apt cache
       command: apt-get update
       changed_when: false
+
+    - name: Check whether Proxmox Backup Server is installed
+      command: proxmox-backup-manager version
+      register: pbs_install_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Proxmox Backup Server
+      apt:
+        name: proxmox-backup-server
+        state: present
+      when: pbs_install_check.rc != 0
 
     - name: Install required packages
       apt:
