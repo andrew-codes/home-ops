@@ -10,12 +10,12 @@ import { throwIfError } from "@ha/shell-utils"
 const execFile = promisify(execFileCb)
 
 /**
- * The captain's personal SSH key lives in the "Private" 1Password vault as
+ * Andrew's personal SSH key lives in the "Private" 1Password vault as
  * the "andrew-mbp" item, independent of OP_VAULT (the shared infra-secrets
  * vault every other configurationApi.get() call reads from), so it is read
  * directly here rather than through configurationApi/secretNames.
  */
-const getCaptainSshPublicKey = async (): Promise<string> => {
+const getAndrewSshPublicKey = async (): Promise<string> => {
   const { stdout } = await execFile("op", [
     "read",
     "--no-newline",
@@ -35,7 +35,7 @@ const run = async (
   const nasIp = await configurationApi.get("nas/ip")
   const backupUsername = await configurationApi.get("pbs/backup-username")
   const backupPassword = await configurationApi.get("pbs/backup-password")
-  const captainSshPublicKey = await getCaptainSshPublicKey()
+  const andrewSshPublicKey = await getAndrewSshPublicKey()
 
   await fs.mkdir(path.join(__dirname, "..", ".secrets"), { recursive: true })
 
@@ -56,7 +56,7 @@ const run = async (
 nas_host: ${nasIp}
 pbs_backup_username: ${backupUsername}
 pbs_backup_password: ${backupPassword}
-captain_ssh_public_key: "${captainSshPublicKey}"
+andrew_ssh_public_key: "${andrewSshPublicKey}"
 `,
     "utf8",
   )
