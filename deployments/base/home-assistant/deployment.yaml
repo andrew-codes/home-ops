@@ -7,7 +7,6 @@ metadata:
 spec:
   strategy:
     type: Recreate
-    rollingUpdate: null
   selector:
     matchLabels:
       name: home-assistant
