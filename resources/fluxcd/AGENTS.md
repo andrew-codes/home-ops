@@ -134,23 +134,32 @@ validation on every reconcile, indefinitely. Git alone cannot fix this: there is
 content you can commit that instructs the API server to strip a field owned by a
 manager you aren't.
 
+Confirmed live (home-assistant, 2026-08-27): the sibling field this validation
+pairs with can be stale too, and because Flux's apply is rejected as one atomic
+unit, *neither* field ever lands - the `type` change in the new git revision
+(`Recreate`) doesn't get applied either, so `kubectl get` on the live object still
+shows the *old* `type` (`RollingUpdate`), not the new one from git. Don't assume
+the type field already matches git just because it's not the one in the error
+message.
+
 Confirm this is the mechanism (not a missed overlay) before concluding it's
 live-object drift:
 
 ```bash
 kubectl kustomize <kustomization-path>          # full rendered manifest is clean
 grep -rn <field-name> .                         # zero hits repo-wide
-kubectl get <kind> <name> -n <ns> -o yaml        # live object still has the field
+kubectl get <kind> <name> -n <ns> -o yaml        # live object: check BOTH strategy.type and the forbidden field
 kubectl get <kind> <name> -n <ns> --show-managed-fields -o json \
   | jq '.metadata.managedFields[] | select(.fieldsV1 | tostring | contains("<field>"))'
 ```
 
-Fix: a one-time out-of-band patch that explicitly nulls the field, which clears it
-regardless of which manager owned it (needs live cluster access - not something a
-git commit can do):
+Fix: a one-time out-of-band patch that sets both the new `type` *and* nulls the
+forbidden field **in the same merge patch**, so the live object never passes
+through an invalid intermediate state and the whole change lands atomically
+(needs live cluster access - not something a git commit can do):
 
 ```bash
-kubectl -n <ns> patch <kind> <name> --type merge -p '{"spec":{"strategy":{"rollingUpdate":null}}}'
+kubectl -n <ns> patch <kind> <name> --type merge -p '{"spec":{"strategy":{"type":"Recreate","rollingUpdate":null}}}'
 ```
 
 Then let the next scheduled or manual reconcile apply cleanly:
