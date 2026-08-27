@@ -31,9 +31,63 @@ references it - every `sourceRef`/`Kustomization` in `clusters/`, `apps.yaml`,
 GitRepository/Kustomization in the `default` namespace. `flux` CLI commands run
 without `-n default` default to `flux-system` and will inspect this dead install,
 not the real one - always pass `-n default` (or `--all-namespaces`) when diagnosing
-this cluster. Recommendation: decommission the `flux-system` namespace/install; that
-is a destructive cluster action for whoever operates the cluster to decide on and
-carry out, not something to do from a manifest change here.
+this cluster.
+
+### Decommissioning `flux-system` (operator-approved, run manually against the live cluster)
+
+Before deleting, confirm the namespace holds nothing but the orphaned Flux install:
+
+```bash
+kubectl get all -n flux-system -o wide
+kubectl get pvc,pv -n flux-system
+kubectl get secrets,configmaps -n flux-system
+kubectl get gitrepositories,ocirepositories,helmrepositories,helmcharts,buckets,helmreleases,kustomizations,imagerepositories,imagepolicies,imageupdateautomations -n flux-system
+kubectl get sa,role,rolebinding -n flux-system
+kubectl get clusterrolebinding -o json | jq -r '.items[] | select(.subjects[]? | .namespace=="flux-system") | .metadata.name'
+```
+
+Expect only Flux's own controllers/CRs/RBAC and nothing with real user data (no PVs
+bound, no unrelated Secrets/ConfigMaps). The `default` install has its own
+identically-shaped resources in its own namespace and its own `ClusterRoleBinding`
+subjects, so removing `flux-system`'s namespaced resources and any
+`ClusterRoleBinding`s that reference only `flux-system` service accounts is safe;
+CRDs are cluster-scoped and shared with (still needed by) the `default` install, so
+**never delete the `source.toolkit.fluxcd.io`/`kustomize.toolkit.fluxcd.io`/etc.
+CRDs themselves**.
+
+Then delete the namespace - this cascades to every namespaced object inside it
+(Deployments, GitRepository/Kustomization/HelmRepository custom resources,
+ServiceAccounts, Roles/RoleBindings, Secrets, ConfigMaps, Services):
+
+```bash
+kubectl delete namespace flux-system
+```
+
+Because the `flux-system` `source-controller`/`kustomize-controller` are crash
+looping, they may never process their own finalizers, which can leave the namespace
+stuck in `Terminating`. If `kubectl get namespace flux-system` still shows
+`Terminating` after a minute or two, clear finalizers on any Flux custom resources
+still present and retry:
+
+```bash
+for kind in gitrepositories ocirepositories helmrepositories helmcharts buckets helmreleases kustomizations; do
+  for name in $(kubectl get "$kind" -n flux-system -o name 2>/dev/null); do
+    kubectl patch "$name" -n flux-system --type=merge -p '{"metadata":{"finalizers":[]}}'
+  done
+done
+kubectl delete namespace flux-system --wait=true
+```
+
+Verify cleanup:
+
+```bash
+kubectl get namespace flux-system   # expect: NotFound
+kubectl get pods -A | grep -i flux  # expect: only the default-namespace controllers
+```
+
+Any now-unused `ClusterRoleBinding`s whose only subject was a `flux-system` service
+account are harmless to leave (they just reference a namespace/SA that no longer
+exists) but can be deleted for tidiness once confirmed unused by the check above.
 
 ## Recovering a source-controller crash loop from CRD/controller drift
 
