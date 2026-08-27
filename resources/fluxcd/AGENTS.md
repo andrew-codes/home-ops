@@ -113,6 +113,53 @@ broken reconciler) and is idempotent - safe to rerun any time to force the live
 cluster back into lockstep with the committed manifests. Confirm recovery with
 `flux get sources oci -n default` and `flux get kustomizations -n default`.
 
+## A field removed from git can still fail validation forever if the live object owns it under another manager
+
+Symptom: a Kustomization keeps failing dry-run apply with a Kubernetes API validation
+error (e.g. `Deployment.apps "<name>" is invalid: spec.strategy.rollingUpdate:
+Forbidden: may not be specified when strategy type is Recreate`) even after the
+offending field has been removed from every manifest and layer in git -
+`kubectl kustomize <path>` for the exact path the Kustomization applies renders
+clean, with no trace of the field anywhere in the tree (`grep -rn <field> .`).
+
+This happens because Kubernetes API validation runs on the *server-side merged*
+object, not on what your patch alone contains. Omitting a field from the applied
+config only prunes it from the live object if the applier's own field manager
+already owns that field. If the field was last set by a different manager (a
+`kubectl apply`/`kubectl edit` predating the current bootstrap, an old
+non-server-side-apply write, another controller), Server-Side Apply has nothing to
+prune - the field manager reconciling from git never "owned" it, so the stale
+value stays on the live object and the merged result keeps failing the same
+validation on every reconcile, indefinitely. Git alone cannot fix this: there is no
+content you can commit that instructs the API server to strip a field owned by a
+manager you aren't.
+
+Confirm this is the mechanism (not a missed overlay) before concluding it's
+live-object drift:
+
+```bash
+kubectl kustomize <kustomization-path>          # full rendered manifest is clean
+grep -rn <field-name> .                         # zero hits repo-wide
+kubectl get <kind> <name> -n <ns> -o yaml        # live object still has the field
+kubectl get <kind> <name> -n <ns> --show-managed-fields -o json \
+  | jq '.metadata.managedFields[] | select(.fieldsV1 | tostring | contains("<field>"))'
+```
+
+Fix: a one-time out-of-band patch that explicitly nulls the field, which clears it
+regardless of which manager owned it (needs live cluster access - not something a
+git commit can do):
+
+```bash
+kubectl -n <ns> patch <kind> <name> --type merge -p '{"spec":{"strategy":{"rollingUpdate":null}}}'
+```
+
+Then let the next scheduled or manual reconcile apply cleanly:
+
+```bash
+flux reconcile kustomization <name> -n default --with-source
+kubectl -n default describe kustomization <name>   # expect no validation error
+```
+
 ## Per-environment manifests must stay in lockstep with the CRD versions they bootstrap
 
 `infrastructure/<env>/*` and `deployments/<env>/*` are hand-maintained, per-cluster
