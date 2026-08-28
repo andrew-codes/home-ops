@@ -1,0 +1,10 @@
+MONITOR {{ nut_ups_name }}@{{ nut_server_host }}:{{ nut_server_port }} 1 {{ nut_monitor_username }} {{ nut_monitor_password }} secondary
+MINSUPPLIES 1
+SHUTDOWNCMD "/sbin/shutdown -h +0"
+POLLFREQ 5
+POLLFREQALERT 5
+HOSTSYNC 15
+DEADTIME 15
+RBWARNTIME 43200
+NOCOMMWARNTIME 300
+FINALDELAY 5

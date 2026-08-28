@@ -17,6 +17,8 @@ const run = async (
   const nasIsoPassword = await configurationApi.get("pve-nas-iso/password")
   const pbsUsername = await configurationApi.get("pve-pbs/username")
   const pbsPassword = await configurationApi.get("pve-pbs/password")
+  const nutMonitorUsername = await configurationApi.get("nut/monitor-username")
+  const nutMonitorPassword = await configurationApi.get("nut/monitor-password")
 
   // Not yet in 1Password - see README "Proxmox Backup Server integration".
   const pbsFingerprint = env["PBS_FINGERPRINT"] ?? ""
@@ -36,6 +38,11 @@ const run = async (
     pbs_username: pbsUsername,
     pbs_password: pbsPassword,
     pbs_fingerprint: pbsFingerprint,
+    nut_server_host: "10.5.113.53",
+    nut_server_port: 3493,
+    nut_ups_name: "ups",
+    nut_monitor_username: nutMonitorUsername,
+    nut_monitor_password: nutMonitorPassword,
   })
 }
 

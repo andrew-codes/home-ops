@@ -35,6 +35,8 @@ const run = async (
   const nasIp = await configurationApi.get("nas/ip")
   const backupUsername = await configurationApi.get("pbs/backup-username")
   const backupPassword = await configurationApi.get("pbs/backup-password")
+  const nutMonitorUsername = await configurationApi.get("nut/monitor-username")
+  const nutMonitorPassword = await configurationApi.get("nut/monitor-password")
   const andrewSshPublicKey = await getAndrewSshPublicKey()
 
   await fs.mkdir(path.join(__dirname, "..", ".secrets"), { recursive: true })
@@ -56,6 +58,8 @@ const run = async (
 nas_host: ${nasIp}
 pbs_backup_username: ${backupUsername}
 pbs_backup_password: ${backupPassword}
+nut_monitor_username: ${JSON.stringify(nutMonitorUsername)}
+nut_monitor_password: ${JSON.stringify(nutMonitorPassword)}
 andrew_ssh_public_key: "${andrewSshPublicKey}"
 `,
     "utf8",

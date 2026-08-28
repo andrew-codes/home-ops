@@ -210,6 +210,44 @@ stability concession. Only reach for it after confirming, via the grouping check
 above, that the topology genuinely doesn't separate the two cards; try a different
 PCIe slot for one card first if that's an option on this board.
 
+### 7. NUT UPS monitoring ([`tasks/nut-client.yml`](src/deploy/tasks/nut-client.yml))
+
+> [!WARNING]
+> **A misconfigured client here can shut this host down unexpectedly.** Verify the
+> NUT server address, UPS name and thresholds below against the real Synology NAS
+> before relying on this, or before merging a change to it.
+
+Installs `nut-client` (client-only - no local `upsd`) and configures `upsmon` to
+monitor the Synology NAS's built-in UPS Network Status service (out of scope for
+this repo - not provisioned here) as a NUT server at `10.5.113.53:3493`, `secondary`
+mode, and to run `shutdown -h +0` on `FSD` (forced shutdown, signalled by the NAS) or
+on its own low-battery detection.
+
+- `/etc/nut/nut.conf` is set to `MODE=netclient` - this host never runs `upsd`, it
+  only monitors.
+- `/etc/nut/upsmon.conf` is templated from
+  [`templates/upsmon.conf.j2`](src/deploy/templates/upsmon.conf.j2) with a `MONITOR`
+  line carrying the NAS host, UPS name, and the shared monitor credentials (see
+  [Secrets](#secrets)). Rendered with `no_log: true` since it embeds a password.
+- The `nut-monitor` (`upsmon`) service is enabled and started, restarted only when
+  the rendered config actually changed.
+- **The UPS name (`ups`) is an assumption, not a confirmed value** - it is the
+  Synology default, but has not been verified against this NAS's real UPS Network
+  Status configuration. Confirm it (and the monitor account) before the first real
+  run - see [NUT monitor account](#nut-monitor-account-and-ups-name).
+
+#### NUT monitor account and UPS name
+
+The Synology UPS Network Status service authenticates NUT clients with a
+username/password pair configured on the NAS itself (out of scope for this repo),
+plus a UPS name that identifies the device to `upsmon`'s `MONITOR` line. Confirm both
+against the NAS's **Control Panel > Hardware & Power > UPS > Network UPS Server**
+settings before the first run, and populate `nut/monitor-username` /
+`nut/monitor-password` in 1Password to match - see
+[Secrets that do not exist yet](#secrets-that-do-not-exist-yet). The NAS must also
+have this host's IP allow-listed as a permitted client, the same as
+[gaming-pc's equivalent step](../gaming-pc/README.md#nut-ups-monitoring).
+
 ## Manual steps that cannot be automated
 
 These need a human at the machine (or its console), not this playbook:
@@ -226,6 +264,9 @@ These need a human at the machine (or its console), not this playbook:
 - **Creating the PBS and NAS-share service accounts** and putting their real
   credentials into the 1Password items this automation reads - see
   [Secrets that do not exist yet](#secrets-that-do-not-exist-yet).
+- **Confirming the NUT monitor account and UPS name** against the Synology NAS's
+  UPS Network Status settings, and allow-listing this host as a permitted client -
+  see [NUT monitor account and UPS name](#nut-monitor-account-and-ups-name).
 - **Approving the PBS TLS fingerprint** on first connect, if `pvesm add pbs` doesn't
   auto-accept it even with `--fingerprint` supplied - see
   [PBS TLS fingerprint](#pbs-tls-fingerprint).
@@ -243,15 +284,17 @@ These need a human at the machine (or its console), not this playbook:
 Read through [`packages/configuration-1password`](../../packages/configuration-1password),
 the same as every other host app in this repo.
 
-| Secret                  | Used for                                                                 |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `proxmox/ip`            | The host to run the playbook against (the Ansible inventory target)      |
-| `andrew-mbp/public-key` | The operator's SSH public key, installed into `root`'s `authorized_keys` |
-| `nas/ip`                | The NAS host backing the `nas-iso` SMB share                             |
-| `pve-nas-iso/username`  | NAS `ISO` share username (see [below](#secrets-that-do-not-exist-yet))   |
-| `pve-nas-iso/password`  | NAS `ISO` share password (see [below](#secrets-that-do-not-exist-yet))   |
-| `pve-pbs/username`      | PBS datastore username (see [below](#secrets-that-do-not-exist-yet))     |
-| `pve-pbs/password`      | PBS datastore password (see [below](#secrets-that-do-not-exist-yet))     |
+| Secret                  | Used for                                                                   |
+| ----------------------- | -------------------------------------------------------------------------- |
+| `proxmox/ip`            | The host to run the playbook against (the Ansible inventory target)        |
+| `andrew-mbp/public-key` | The operator's SSH public key, installed into `root`'s `authorized_keys`   |
+| `nas/ip`                | The NAS host backing the `nas-iso` SMB share                               |
+| `pve-nas-iso/username`  | NAS `ISO` share username (see [below](#secrets-that-do-not-exist-yet))     |
+| `pve-nas-iso/password`  | NAS `ISO` share password (see [below](#secrets-that-do-not-exist-yet))     |
+| `pve-pbs/username`      | PBS datastore username (see [below](#secrets-that-do-not-exist-yet))       |
+| `pve-pbs/password`      | PBS datastore password (see [below](#secrets-that-do-not-exist-yet))       |
+| `nut/monitor-username`  | NUT monitor account username (see [below](#secrets-that-do-not-exist-yet)) |
+| `nut/monitor-password`  | NUT monitor account password (see [below](#secrets-that-do-not-exist-yet)) |
 
 `PBS_FINGERPRINT` is an optional **environment variable**, not a 1Password secret -
 see [PBS TLS fingerprint](#pbs-tls-fingerprint).
@@ -286,6 +329,12 @@ and [`apps/dorri-mbp/README.md`](../dorri-mbp/README.md), only `nas/ip` exists i
   `ISO` SMB share.
 - `pve-pbs` (fields `username`, `password`) - a service account for the PBS
   datastore.
+- `nut` (fields `monitor-username`, `monitor-password`) - the account the Synology
+  NAS's UPS Network Status service authenticates NUT clients with. Shared with
+  [`pbs`](../../resources/pbs/README.md#nut-ups-monitoring) and
+  [`gaming-pc`](../gaming-pc/README.md#nut-ups-monitoring), which read the same two
+  fields - one monitor account for every client, matching how the NAS itself models
+  it. See [NUT monitor account and UPS name](#nut-monitor-account-and-ups-name).
 
 `nx run pve:deploy` fails fast with `op`'s own "item not found" error if these are
 missing - it does not silently skip storage configuration.

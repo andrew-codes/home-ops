@@ -118,20 +118,21 @@ hive.
 winget is preferred over Chocolatey throughout. Every entry checks for presence
 before acting, so a second deploy installs nothing.
 
-| Software                  | Source                    | Package                      |
-| ------------------------- | ------------------------- | ---------------------------- |
-| Steam                     | winget                    | `Valve.Steam`                |
-| Apollo (streaming server) | winget                    | `ClassicOldSong.Apollo`      |
-| Logi Options+             | winget                    | `Logitech.OptionsPlus`       |
-| 1Password                 | winget                    | `AgileBits.1Password`        |
-| Tailscale                 | winget                    | `Tailscale.Tailscale`        |
-| Zed                       | winget                    | `ZedIndustries.Zed`          |
-| Raycast                   | Microsoft Store           | `9PFXXSHC64H3`               |
-| Windows HDR Calibration   | Microsoft Store           | `9N7F2SM5D1LR`               |
-| Dolby Access              | Microsoft Store           | `9N0866FS04W8`               |
-| MoonDeck Buddy            | GitHub release            | `FrogTheFrog/moondeck-buddy` |
-| NVIDIA App                | Chocolatey                | `nvidia-app`                 |
-| NVIDIA game-ready driver  | NVIDIA, via `src/run.ps1` | -                            |
+| Software                                                         | Source                    | Package                      |
+| ---------------------------------------------------------------- | ------------------------- | ---------------------------- |
+| Steam                                                            | winget                    | `Valve.Steam`                |
+| Apollo (streaming server)                                        | winget                    | `ClassicOldSong.Apollo`      |
+| Logi Options+                                                    | winget                    | `Logitech.OptionsPlus`       |
+| 1Password                                                        | winget                    | `AgileBits.1Password`        |
+| Tailscale                                                        | winget                    | `Tailscale.Tailscale`        |
+| Zed                                                              | winget                    | `ZedIndustries.Zed`          |
+| Raycast                                                          | Microsoft Store           | `9PFXXSHC64H3`               |
+| Windows HDR Calibration                                          | Microsoft Store           | `9N7F2SM5D1LR`               |
+| Dolby Access                                                     | Microsoft Store           | `9N0866FS04W8`               |
+| MoonDeck Buddy                                                   | GitHub release            | `FrogTheFrog/moondeck-buddy` |
+| NVIDIA App                                                       | Chocolatey                | `nvidia-app`                 |
+| NVIDIA game-ready driver                                         | NVIDIA, via `src/run.ps1` | -                            |
+| WinNUT-Client (UPS monitoring, see [below](#nut-ups-monitoring)) | winget (user scope)       | `nutdotnet.WinNUT`           |
 
 Kept absent: **Playnite** and **Discord**. Discord needs more than a package
 removal - its Squirrel installer drops a working copy in `%LOCALAPPDATA%` that
@@ -154,6 +155,71 @@ Three of those rows are not winget, and each for its own reason:
   latest" asks for. It is also the payload of the nightly `Update-Gaming-PC`
   task, so the deploy-time run exists only so a freshly rebuilt machine gets its
   driver during setup rather than at the next midnight.
+
+### NUT UPS monitoring
+
+> [!WARNING]
+> **A misconfigured client here can shut this machine down unexpectedly.** Verify
+> the NUT server address, UPS name and thresholds below against the real Synology
+> NAS before relying on this, or before merging a change to it.
+
+WinNUT-Client (`nutdotnet.WinNUT`) monitors the Synology NAS's built-in UPS Network
+Status service (out of scope for this repo - not provisioned here) as a NUT server
+at `10.5.113.53:3493`, and shuts this machine down gracefully on `FSD` (forced
+shutdown, signalled by the NAS) or on its own low-battery detection. This is
+monitoring plus auto-shutdown, not just alerting.
+
+- **Installed in the user phase, not the machine phase.** The only installer winget
+  publishes for it is a per-user MSI (`Scope: user` in its manifest) - there is no
+  machine-scope build to request, so it is grouped with the Store apps in
+  `Invoke-UserPhase` rather than `$MachinePackages`.
+- **Configured by [`src/configure-nut-client.ps1`](src/configure-nut-client.ps1)**,
+  a separate deploy step from the winget install above. WinNUT-Client has no CLI or
+  plain config file - its settings are a per-user `.NET` `ClientSettingsSection`
+  stored at a path derived from a hash of the installed exe's location that is not
+  practical to reproduce by hand. Rather than guess that path,
+  [`src/nut-client.ps1`](src/nut-client.ps1) loads the app's own compiled Settings
+  class by reflection and calls its own `Save()` - the same mechanism its
+  Preferences dialog uses - so the file it writes is guaranteed to match what the
+  running app reads. Verified against the
+  [published source](https://github.com/nutdotnet/WinNUT-Client), not
+  execution-tested against a real Windows host - see
+  [Status: not execution-tested](#status-not-execution-tested-nut-ups-monitoring)
+  below.
+- **Idempotent**: each setting is compared against its current value and `Save()`
+  is only called when something actually changed.
+- **Runs as its own Ansible task, `no_log`'d**, separate from the software.ps1
+  install task above, so the NUT monitor credentials never appear in Ansible's
+  output while the existing Microsoft Store warning visibility
+  ([below](#the-microsoft-store-apps-are-best-effort)) is unaffected. The
+  credentials are passed as process environment variables, not command-line
+  arguments, for the same reason.
+- **Started, not just configured.** `StartWithWindows` only takes effect on this
+  app's _next_ login; since this deploy's job is protecting the host now, the same
+  step also launches WinNUT-Client immediately if it is not already running.
+- **The UPS name (`ups`) is an assumption, not a confirmed value** - it is the
+  Synology default, but has not been verified against this NAS's real UPS Network
+  Status configuration. Confirm it, the monitor account, and allow-list this
+  machine as a permitted client (NAS Control Panel > Hardware & Power > UPS >
+  Network UPS Server) before the first real run.
+- The monitor account is shared with
+  [`pve`](../pve/README.md#nut-monitor-account-and-ups-name) and
+  [`pbs`](../../resources/pbs/README.md#nut-ups-monitoring), all reading the same
+  `nut/monitor-username` / `nut/monitor-password` 1Password fields via
+  `configurationApi` in [`scripts/deploy.ts`](scripts/deploy.ts) - one monitor
+  account for every client, matching how the NAS itself models it.
+
+#### Status: not execution-tested (NUT UPS monitoring)
+
+The reflection-based settings configuration in
+[`src/nut-client.ps1`](src/nut-client.ps1) was written and reviewed against
+WinNUT-Client's published VB.NET source (its `Settings.settings` schema and
+`SerializedProtectedString`'s DPAPI usage), matching this repo's existing precedent
+of documenting what has and has not been run against a real host (see `pve`'s
+[Status: not yet applied](../pve/README.md#status-not-yet-applied)). It has **not**
+been run against a real Windows host - confirm the settings actually take
+(`Get-Process WinNUT-Client`, and its tray icon reachable) after the first real
+deploy.
 
 ### The Microsoft Store apps are best-effort
 

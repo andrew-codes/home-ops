@@ -65,6 +65,14 @@ $StorePackages = @(
     @{ Name = 'Dolby Access'; Id = '9N0866FS04W8' }
 )
 
+# Community winget source, but its only installer is a per-user MSI (no
+# machine-scope build is published), so it is installed here in the user
+# phase alongside the Store apps rather than with $MachinePackages. See
+# README.md#nut-ups-monitoring for what configures and starts it.
+$UserWingetPackages = @(
+    @{ Name = 'WinNUT-Client'; Id = 'nutdotnet.WinNUT' }
+)
+
 # ---------------------------------------------------------------------------
 # Step harness
 # ---------------------------------------------------------------------------
@@ -288,6 +296,13 @@ function Invoke-UserPhase {
     foreach ($package in $StorePackages) {
         Invoke-Step -Name $package.Name -Optional -Action {
             Install-WingetPackage -Id $package.Id -Name $package.Name -Source msstore
+        }.GetNewClosure()
+    }
+
+    Write-Log 'Installing user-scope winget packages...'
+    foreach ($package in $UserWingetPackages) {
+        Invoke-Step -Name $package.Name -Action {
+            Install-WingetPackage -Id $package.Id -Name $package.Name
         }.GetNewClosure()
     }
 

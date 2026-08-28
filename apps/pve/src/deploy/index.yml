@@ -37,6 +37,12 @@
       ansible.builtin.import_tasks: tasks/gpu-passthrough.yml
       tags: [gpu]
 
+    # A misconfigured NUT client can shut this host down unexpectedly - see
+    # README.md#nut-ups-monitoring before merging changes here.
+    - name: NUT client (UPS monitoring via the Synology NAS, auto-shutdown on FSD/low battery)
+      ansible.builtin.import_tasks: tasks/nut-client.yml
+      tags: [nut]
+
     # Network is deliberately last: it can cut the SSH connection running the
     # rest of this play, and every other step is safe to have already applied
     # if this one needs to be re-run or rolled back by hand.

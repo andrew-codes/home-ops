@@ -69,6 +69,16 @@ The PowerShell embedded in `deploy.yml` is not covered by either: it is only
 parsed on the target host at run time, so extract the `script:` blocks and parse
 them the same way before trusting a change to them.
 
+# Configuring a Windows app with no CLI or plain config file
+
+`src/nut-client.ps1` (WinNUT-Client) is the precedent: when a target app's only
+settings store is a per-user .NET `ClientSettingsSection` at a path derived from a
+hash of the install location, don't try to reproduce that path or hash. Instead load
+the app's own compiled assembly by reflection (`[System.Reflection.Assembly]::LoadFrom`)
+and call its own generated Settings class and `Save()` - the same mechanism its own
+Preferences UI uses. Reuse this pattern before inventing a new one for the next
+installed-but-unscriptable Windows app.
+
 # Confluence Sync
 
 When making changes to `scripts/deploy.yml`, update the Confluence page

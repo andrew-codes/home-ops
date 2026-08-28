@@ -819,6 +819,26 @@
         var: software_user.stdout_lines
       when: "'warnings=0' not in software_user.stdout"
 
+    # A misconfigured NUT client here can shut this host down unexpectedly -
+    # the UPS name, NAS address and monitor credentials must be verified
+    # against the real Synology NUT server (out of scope for this repo)
+    # before merge or re-run against the real host. Kept as its own task,
+    # separate from the software.ps1 install above, so only this one is
+    # no_log'd - see README.md#nut-ups-monitoring.
+    - name: Configure and start WinNUT-Client (UPS monitoring)
+      win_shell: |
+        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\configure-nut-client.ps1"
+      register: nut_client_config
+      changed_when: "'configure=Configured' in nut_client_config.stdout or 'start=Started' in nut_client_config.stdout"
+      no_log: true
+      environment:
+        NUT_SERVER_ADDRESS: "{{ nut_server_address }}"
+        NUT_SERVER_PORT: "{{ nut_server_port }}"
+        NUT_UPS_NAME: "{{ nut_ups_name }}"
+        NUT_MONITOR_USERNAME: "{{ nut_monitor_username }}"
+        NUT_MONITOR_PASSWORD: "{{ nut_monitor_password }}"
+        NUT_BATTERY_CHARGE_FLOOR: "{{ nut_battery_charge_floor }}"
+
     # Zed registers itself as *a* handler for these types when winget installs
     # it; this policy is what makes it the default. Windows applies it at user
     # sign-in, so it takes effect on the next login rather than immediately.
