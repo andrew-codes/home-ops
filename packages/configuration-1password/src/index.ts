@@ -117,6 +117,8 @@ const secretNames = [
   "pve-nas-iso/password",
   "pve-pbs/username",
   "pve-pbs/password",
+  "nut/monitor-username",
+  "nut/monitor-password",
   "grafana-admin/admin-password",
   "grafana-admin/admin",
   "home-assistant-token/token",

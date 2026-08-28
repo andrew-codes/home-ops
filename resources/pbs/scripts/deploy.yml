@@ -11,6 +11,9 @@
     # resolves at run time. Resolved once against the pbs-no-subscription
     # repo docs on 2026-08-16 - see README.md#pinned-package-version to bump.
     pbs_package_version: 4.2.5-1
+    nut_server_host: "10.5.113.53"
+    nut_server_port: 3493
+    nut_ups_name: ups
   vars_files:
     - ../.secrets/ansible-secrets.yml
 
@@ -276,6 +279,51 @@
           - --schedule
           - weekly
       when: "'verify-nas' not in pbs_verify_jobs.stdout"
+
+    - name: Install nut-client (NUT monitoring client only, no local upsd)
+      apt:
+        name: nut-client
+        state: present
+        update_cache: yes
+
+    - name: Configure nut.conf for netclient (network client) mode
+      copy:
+        dest: /etc/nut/nut.conf
+        content: |
+          MODE=netclient
+        owner: root
+        group: root
+        mode: "0640"
+
+    # A misconfigured client here can shut this host down unexpectedly - the
+    # UPS name, NAS address and monitor credentials must be verified against
+    # the real Synology NUT server (out of scope for this repo) before merge
+    # or re-run against the real host. See README.md#nut-ups-monitoring.
+    - name: Configure upsmon to monitor the Synology NAS's NUT server and shut down on FSD/low battery
+      copy:
+        dest: /etc/nut/upsmon.conf
+        content: |
+          MONITOR {{ nut_ups_name }}@{{ nut_server_host }}:{{ nut_server_port }} 1 {{ nut_monitor_username }} {{ nut_monitor_password }} secondary
+          MINSUPPLIES 1
+          SHUTDOWNCMD "/sbin/shutdown -h +0"
+          POLLFREQ 5
+          POLLFREQALERT 5
+          HOSTSYNC 15
+          DEADTIME 15
+          RBWARNTIME 43200
+          NOCOMMWARNTIME 300
+          FINALDELAY 5
+        owner: root
+        group: nut
+        mode: "0640"
+      no_log: true
+      register: pbs_upsmon_config
+
+    - name: Ensure the nut-monitor (upsmon) service is enabled and running
+      systemd:
+        name: nut-monitor
+        enabled: yes
+        state: "{{ 'restarted' if pbs_upsmon_config.changed else 'started' }}"
 
     - name: Allow SSH in UFW
       ufw:

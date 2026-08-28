@@ -1,0 +1,35 @@
+---
+- name: Install nut-client (NUT monitoring client only, no local upsd)
+  ansible.builtin.apt:
+    name: nut-client
+    state: present
+    update_cache: yes
+
+- name: Configure nut.conf for netclient (network client) mode
+  ansible.builtin.copy:
+    dest: /etc/nut/nut.conf
+    content: |
+      MODE=netclient
+    owner: root
+    group: root
+    mode: "0640"
+
+# A misconfigured client here can shut this host down unexpectedly - the UPS
+# name, NAS address and monitor credentials must be verified against the real
+# Synology NUT server (out of scope for this repo) before merge or re-run
+# against the real host. See README.md#nut-ups-monitoring.
+- name: Configure upsmon to monitor the Synology NAS's NUT server and shut down on FSD/low battery
+  ansible.builtin.template:
+    src: upsmon.conf.j2
+    dest: /etc/nut/upsmon.conf
+    owner: root
+    group: nut
+    mode: "0640"
+  no_log: true
+  register: nut_upsmon_config
+
+- name: Ensure the nut-monitor (upsmon) service is enabled and running
+  ansible.builtin.systemd:
+    name: nut-monitor
+    enabled: yes
+    state: "{{ 'restarted' if nut_upsmon_config.changed else 'started' }}"

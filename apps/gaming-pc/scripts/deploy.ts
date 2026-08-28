@@ -17,6 +17,8 @@ const run = async (
   const andrewPassword = await configurationApi.get("gaming-pc/andrew-password")
   const haSshPub = await configurationApi.get("home-assistant/ssh-key-public")
   const devSshPub = await configurationApi.get("dev/ssh-key/public")
+  const nutMonitorUsername = await configurationApi.get("nut/monitor-username")
+  const nutMonitorPassword = await configurationApi.get("nut/monitor-password")
 
   await fs.mkdir(path.join(__dirname, "..", ".secrets"), { recursive: true })
 
@@ -46,6 +48,12 @@ const run = async (
 user: ${JSON.stringify(user)}
 andrew_password: ${JSON.stringify(andrewPassword)}
 windows_password: ${JSON.stringify(password)}
+nut_server_address: "10.5.113.53"
+nut_server_port: 3493
+nut_ups_name: "ups"
+nut_battery_charge_floor: 30
+nut_monitor_username: ${JSON.stringify(nutMonitorUsername)}
+nut_monitor_password: ${JSON.stringify(nutMonitorPassword)}
 `,
     "utf8",
   )
