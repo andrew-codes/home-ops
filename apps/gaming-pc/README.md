@@ -30,6 +30,23 @@ The rest of this section is what `pre-deploy` automates or prints. It stays here
 as the reference, and as the fallback for anyone debugging or working without
 the target.
 
+### First-time setup: create the local admin account
+
+A fresh Windows install signs you in with a Microsoft account. Nothing in this
+repo creates the account Ansible connects and elevates as - it is a
+precondition, not something the deploy provisions (the only account the
+playbook creates is a separate `andrew` admin account, via `win_user` in
+`scripts/deploy.yml`). Before anything below, once per machine:
+
+1. Settings > Accounts > Your info > **Sign in with a local account instead**,
+   and convert the current account to a local account.
+2. Name it exactly the value of `gaming-pc/username` in 1Password, and make it
+   an **Administrator**.
+3. Sign in as that account at least once, so `C:\Users\<name>` is actually
+   created. The resulting profile folder name must match `gaming-pc/user` in
+   1Password exactly - the playbook fails fast on a mismatch rather than
+   writing authorized keys into a profile the connecting account does not own.
+
 ### On the Windows machine (once, from an Administrator PowerShell)
 
 Everything below is built into Windows - nothing is downloaded, no reboot is
@@ -41,6 +58,11 @@ Get-WindowsCapability -Online -Name OpenSSH.Server* | Add-WindowsCapability -Onl
 
 # Start it now and on every boot.
 Set-Service -Name sshd -StartupType Automatic -Status Running
+
+# The firewall rule OpenSSH installs only allows inbound port 22 on the
+# Private/Domain profiles, not Public. Without this, sshd runs but nothing
+# can reach it and SSH just times out.
+Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
 
 # Ansible drives Windows through PowerShell, not cmd.
 New-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell `
@@ -60,16 +82,37 @@ icacls $adminKeys /inheritance:r /grant 'Administrators:F' /grant 'SYSTEM:F'
 Then set a static IP, or note the machine's current one - it goes into the
 Ansible inventory via the `gaming-pc/ip` entry in 1Password.
 
-`gaming-pc/username` is the account Ansible connects and elevates as, and
-`gaming-pc/user` must be that same account's profile folder name under
-`C:\Users`. The playbook fails fast rather than writing authorized keys into a
-profile the connecting account does not own, so a mismatch between those two
-1Password entries stops the run before anything is changed.
+`gaming-pc/username` and `gaming-pc/user` must both refer to the local admin
+account created in [First-time setup](#first-time-setup-create-the-local-admin-account)
+above - see there for why a mismatch stops the run before anything is changed.
 
 > **Migrating a machine provisioned before this change:** it may still have the
 > Chocolatey `openssh` package, which registers a competing `sshd` service from
 > a different OpenSSH build. Run `choco uninstall openssh -y` before the block
 > above. The playbook no longer installs that package.
+
+### Turn off Windows Defender Tamper Protection (once, in Windows Security)
+
+`deploy`'s Chocolatey install fails while this is on. Windows Defender flags
+Chocolatey's own bootstrap script (`WebClient.DownloadString` piped into
+`iex`) as `Trojan:Win32/GoptaJu.D` - a known false positive on this
+fileless-download pattern (see
+[chocolatey/choco#2132](https://github.com/chocolatey/choco/issues/2132)) -
+and kills the running PowerShell process mid-task. The playbook works around
+this by disabling Windows Defender real-time monitoring only for the
+duration of the Chocolatey install task, in a `block`/`always`, so it is
+re-enabled immediately after regardless of whether that task succeeds -
+rather than adding a permanent exclusion. That toggle only works with Tamper
+Protection off: while it is on, Tamper Protection silently no-ops scripted
+changes to Defender's own settings, including `Set-MpPreference`, so the
+toggle reports success while changing nothing and the install still fails.
+
+Tamper Protection can only be turned off interactively - that restriction is
+the entire point of it - so, like enabling SSH above, this cannot be
+automated from here. On the gaming PC: **Windows Security > Virus & threat
+protection > Manage settings > Tamper Protection > Off**. `pre-deploy` checks
+this over SSH once the block above is done, and fails with this same
+explanation if it is still on.
 
 ### On the Mac
 
@@ -134,10 +177,14 @@ before acting, so a second deploy installs nothing.
 | NVIDIA game-ready driver                                         | NVIDIA, via `src/run.ps1` | -                            |
 | WinNUT-Client (UPS monitoring, see [below](#nut-ups-monitoring)) | winget (user scope)       | `nutdotnet.WinNUT`           |
 
-Kept absent: **Playnite** and **Discord**. Discord needs more than a package
-removal - its Squirrel installer drops a working copy in `%LOCALAPPDATA%` that
-no package manager can see - so `software.ps1` also runs that uninstaller and
-clears the leftover directories.
+Kept absent: **Playnite**, **Discord**, **Visual Studio Code** (Zed is the
+installed editor, above), and **Epic Games Launcher**. Discord needs more than
+a package removal - its Squirrel installer drops a working copy in
+`%LOCALAPPDATA%` that no package manager can see - so `software.ps1` also runs
+that uninstaller and clears the leftover directories. Epic Games Launcher is
+removed via Chocolatey, in `scripts/deploy.yml`, rather than through
+`software.ps1`'s winget-based `$UnwantedPackages` - it was installed through
+Chocolatey originally, so removal uses the same package manager.
 
 Three of those rows are not winget, and each for its own reason:
 
@@ -155,6 +202,10 @@ Three of those rows are not winget, and each for its own reason:
   latest" asks for. It is also the payload of the nightly `Update-Gaming-PC`
   task, so the deploy-time run exists only so a freshly rebuilt machine gets its
   driver during setup rather than at the next midnight.
+
+Chocolatey's own bootstrap script trips a Windows Defender false positive -
+see [Turn off Windows Defender Tamper Protection](#turn-off-windows-defender-tamper-protection-once-in-windows-security)
+under Prerequisites for what it is and the one-time manual step it requires.
 
 ### NUT UPS monitoring
 

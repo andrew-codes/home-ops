@@ -300,10 +300,12 @@
       loop:
         - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: ShowTaskViewButton, data: 0 }
         - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search', name: SearchboxTaskbarMode, data: 0 }
-        # The per-user half of the widgets removal. The machine policy above is
-        # what actually forbids them; this clears the button for this user so
-        # the taskbar looks right without waiting for a policy refresh.
-        - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: TaskbarDa, data: 0 }
+      # No per-user TaskbarDa write here: once the machine policy above
+      # (AllowNewsAndInterests) is live, Windows' policy engine takes
+      # ownership of this user's TaskbarDa value and locks it - a direct
+      # write, elevated or not, fails with "Attempted to perform an
+      # unauthorized operation." The machine policy alone already removes
+      # the widgets button; this was only ever a redundant cosmetic write.
 
     # Auto-hide lives in one byte of an opaque blob, and applying it needs
     # Explorer restarted to be visible. Restarting Explorer unconditionally
@@ -379,18 +381,68 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
-    - name: Ensure Chocolatey is installed
-      win_shell: |
-        Set-ExecutionPolicy Bypass -Scope Process -Force
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-        iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-      args:
-        creates: C:\ProgramData\chocolatey\bin\choco.exe
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ windows_password }}"
+    # Windows Defender flags the Chocolatey bootstrap's own
+    # WebClient.DownloadString + iex line as Trojan:Win32/GoptaJu.D - a known
+    # false positive on this fileless-download pattern (see
+    # https://github.com/chocolatey/choco/issues/2132) - and removes the
+    # running PowerShell process mid-task. `pre-deploy` requires Tamper
+    # Protection to be off before a deploy is attempted (see "First-time
+    # setup" in README.md) specifically so the toggle below can take effect:
+    # with Tamper Protection on, `Set-MpPreference` silently no-ops instead
+    # of erroring, which was tried and looked like it worked but did not.
+    # Real-time protection is disabled only for the duration of the install
+    # below and always re-enabled immediately after (the `always` block),
+    # rather than adding a permanent exclusion.
+    - name: Install Chocolatey without Windows Defender flagging the bootstrap
+      block:
+        - name: Disable Windows Defender real-time monitoring for the Chocolatey install
+          ansible.windows.win_powershell:
+            script: |
+              $ErrorActionPreference = 'Stop'
+              if ((Get-MpPreference).DisableRealtimeMonitoring) {
+                $Ansible.Changed = $false
+                return
+              }
+              $Ansible.Changed = $true
+              if (-not $Ansible.CheckMode) {
+                Set-MpPreference -DisableRealtimeMonitoring $true
+              }
+          become: yes
+          become_method: runas
+          vars:
+            ansible_become_user: "{{ ansible_user }}"
+            ansible_become_password: "{{ windows_password }}"
+
+        - name: Ensure Chocolatey is installed
+          win_shell: |
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          args:
+            creates: C:\ProgramData\chocolatey\bin\choco.exe
+          become: yes
+          become_method: runas
+          vars:
+            ansible_become_user: "{{ ansible_user }}"
+            ansible_become_password: "{{ windows_password }}"
+      always:
+        - name: Re-enable Windows Defender real-time monitoring
+          ansible.windows.win_powershell:
+            script: |
+              $ErrorActionPreference = 'Stop'
+              if (-not (Get-MpPreference).DisableRealtimeMonitoring) {
+                $Ansible.Changed = $false
+                return
+              }
+              $Ansible.Changed = $true
+              if (-not $Ansible.CheckMode) {
+                Set-MpPreference -DisableRealtimeMonitoring $false
+              }
+          become: yes
+          become_method: runas
+          vars:
+            ansible_become_user: "{{ ansible_user }}"
+            ansible_become_password: "{{ windows_password }}"
 
     - name: Ensure PowerShell 7 is installed
       win_chocolatey:
@@ -411,28 +463,19 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
-    # Steam itself is installed by src/software.ps1 through winget, further
-    # down. This only needs the path Valve.Steam installs to, which is the same
-    # one the Chocolatey package used.
-    - name: Set Steam Big Picture as default shell for gaming user
-      win_regedit:
-        path: HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
-        name: Shell
-        data: "C:\\Program Files (x86)\\Steam\\Steam.exe -bigpicture"
-        type: string
-
-    - name: Ensure Epic is installed
+    - name: Ensure Epic Games Launcher is absent
       win_chocolatey:
         name: epicgameslauncher
-        state: present
+        state: absent
       become: yes
       become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
-    # Playnite and Discord are kept absent by src/software.ps1 further down,
-    # which also hunts the per-user Discord that no package manager can see.
+    # Playnite, Discord, and VS Code are kept absent by src/software.ps1
+    # further down, which also hunts the per-user Discord that no package
+    # manager can see.
 
     - name: Ensure 7-Zip is installed
       win_chocolatey:
@@ -804,6 +847,20 @@
       vars:
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
+
+    # Must run after the machine-scope software install above, not before:
+    # Steam itself is installed there via winget ($MachinePackages in
+    # software.ps1), and this only needs the path it installs to (the same
+    # one the Chocolatey package used). Setting this any earlier would point
+    # the gaming account's shell at a Steam.exe that does not exist yet,
+    # breaking that account's desktop on any login that happens before a
+    # deploy finishes.
+    - name: Set Steam Big Picture as default shell for gaming user
+      win_regedit:
+        path: HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+        name: Shell
+        data: "C:\\Program Files (x86)\\Steam\\Steam.exe -bigpicture"
+        type: string
 
     - name: Install software (user scope, including Microsoft Store apps)
       win_shell: |

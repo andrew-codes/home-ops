@@ -151,6 +151,11 @@ Get-WindowsCapability -Online -Name OpenSSH.Server* | Add-WindowsCapability -Onl
 # Start it now and on every boot.
 Set-Service -Name sshd -StartupType Automatic -Status Running
 
+# The firewall rule OpenSSH installs only allows inbound port 22 on the
+# Private/Domain profiles, not Public. Without this, sshd runs but nothing
+# can reach it and SSH just times out.
+Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
+
 # Ansible drives Windows through PowerShell, not cmd.
 New-ItemProperty -Path HKLM:\\SOFTWARE\\OpenSSH -Name DefaultShell \`
   -Value ${POWERSHELL_DEFAULT_SHELL} \`
@@ -224,8 +229,10 @@ const checkWindowsPrerequisites = (
       remedy: deniedKey
         ? `The sshd service is running, so only the authorized-keys and icacls\n` +
           `lines of the block below still need to run.\n\n${stderr}`
-        : `Either the OpenSSH server is not installed or running, or the\n` +
-          `machine is off or on a different address than 1Password's\n` +
+        : `Either the OpenSSH server is not installed or running, the network\n` +
+          `profile is set to Public (which blocks the inbound firewall rule\n` +
+          `OpenSSH installs - run the Set-NetConnectionProfile line below), or\n` +
+          `the machine is off or on a different address than 1Password's\n` +
           `\`gaming-pc/ip\`. Run the whole block below.\n\n${stderr}`,
       needsWindowsBlock: true,
     }
@@ -285,6 +292,49 @@ const checkWindowsPrerequisites = (
   }
 }
 
+/**
+ * Windows Defender flags Chocolatey's bootstrap script (a WebClient download
+ * piped into `iex`) as a false positive and kills the running process
+ * mid-deploy. Toggling Defender off around that task from the playbook was
+ * tried and does not work: Tamper Protection (on by default) silently
+ * no-ops scripted changes to Defender's own settings, so the workaround
+ * reported success while changing nothing. Tamper Protection can only be
+ * turned off interactively, which is exactly what it is designed to
+ * enforce, so this is checked here rather than attempted in the playbook.
+ */
+const checkTamperProtection = (
+  username: string,
+  host: string,
+): { readonly satisfied: boolean; readonly summary: string } => {
+  const result = capture("ssh", [
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "-o",
+    "StrictHostKeyChecking=accept-new",
+    `${username}@${host}`,
+    "(Get-MpComputerStatus).IsTamperProtected",
+  ])
+
+  if (!succeeded(result)) {
+    return {
+      satisfied: true,
+      summary:
+        "Could not check Windows Defender Tamper Protection over SSH " +
+        `(exit ${result.status}) - skipping this check.`,
+    }
+  }
+
+  const isOn = result.stdout.trim().toLowerCase() === "true"
+  return {
+    satisfied: !isOn,
+    summary: isOn
+      ? "Windows Defender Tamper Protection is ON."
+      : "Windows Defender Tamper Protection is off.",
+  }
+}
+
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
 ): Promise<void> => {
@@ -314,6 +364,27 @@ const run = async (
   console.log(`  ${windows.summary}`)
 
   if (windows.satisfied) {
+    const tamper = checkTamperProtection(username, host)
+    console.log(`  ${tamper.summary}`)
+
+    if (!tamper.satisfied) {
+      console.log(
+        "\nThe Chocolatey install task in `deploy` will fail while this is on:\n" +
+          "Windows Defender flags Chocolatey's bootstrap script as a false\n" +
+          "positive and kills the process, and Tamper Protection blocks the\n" +
+          "playbook's own attempt to work around that. This cannot be automated\n" +
+          "from here for the same reason SSH itself couldn't be: turning it off\n" +
+          "requires signing in and clicking through Windows Security **on the\n" +
+          "gaming PC**:\n\n" +
+          "  Windows Security > Virus & threat protection > Manage settings >\n" +
+          "  Tamper Protection > Off\n\n" +
+          "Then re-run this target to verify before deploying.\n",
+      )
+      throw new Error(
+        "Windows Defender Tamper Protection is still on. Turn it off on the gaming PC, then re-run `yarn nx pre-deploy gaming-pc`.",
+      )
+    }
+
     console.log(
       "\nNothing left to do by hand. Run `yarn nx deploy gaming-pc`.\n",
     )

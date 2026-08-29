@@ -1,6 +1,6 @@
 # Declarative software state for the gaming PC (HO-239).
 #
-# Everything the captain's machine must have installed - and the two things it
+# Everything the captain's machine must have installed - and the things it
 # must not - live in the manifests below. Re-running is a no-op: every entry
 # tests for presence first and only acts when reality disagrees.
 #
@@ -49,10 +49,11 @@ $MachinePackages = @(
 
 # Must not be present. Discord additionally needs the leftover-hunting below:
 # its Squirrel installer is per-user and leaves a working copy behind that
-# winget cannot see.
+# winget cannot see. VS Code is kept absent in favor of Zed, above.
 $UnwantedPackages = @(
     @{ Name = 'Playnite'; Id = 'Playnite.Playnite' }
     @{ Name = 'Discord'; Id = 'Discord.Discord' }
+    @{ Name = 'Visual Studio Code'; Id = 'Microsoft.VisualStudioCode' }
 )
 
 # Microsoft Store apps. Optional by ticket wording ("if possible"): an MSIX
