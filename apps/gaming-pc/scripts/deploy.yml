@@ -242,6 +242,33 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
+    # This machine connects over wired Ethernet only - confirmed the address
+    # in the generated inventory is the wired adapter's, not WiFi's, before
+    # adding this, since disabling the wrong adapter would sever the deploy's
+    # own SSH connection mid-run. Matched by MediaType rather than adapter
+    # name, which varies by OEM/locale.
+    - name: Disable WiFi network adapters
+      ansible.windows.win_powershell:
+        script: |
+          $ErrorActionPreference = 'Stop'
+          $changed = $false
+          $adapters = @(Get-NetAdapter -Physical |
+            Where-Object { $_.MediaType -eq 'Native 802.11' -and $_.Status -ne 'Disabled' })
+
+          foreach ($adapter in $adapters) {
+            $changed = $true
+            if (-not $Ansible.CheckMode) {
+              Disable-NetAdapter -Name $adapter.Name -Confirm:$false
+            }
+          }
+
+          $Ansible.Changed = $changed
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
     - name: Disable notifications
       win_regedit:
         path: "{{ item.path }}"
@@ -254,6 +281,71 @@
         # ToastEnabled above is the user-facing toggle and apps can prompt to
         # re-enable it; this is the policy that stops toasts outright.
         - { path: 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications', name: NoToastApplicationNotification, data: 1 }
+
+    - name: Disable Xbox Game Bar
+      win_regedit:
+        path: "{{ item.path }}"
+        name: "{{ item.name }}"
+        data: "{{ item.data }}"
+        type: dword
+      loop:
+        # The Settings > Gaming > Xbox Game Bar toggle itself.
+        - { path: 'HKCU:\System\GameConfigStore', name: GameDVR_Enabled, data: 0 }
+        # Background game-capture, a separate switch from the toggle above.
+        - { path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR', name: AppCaptureEnabled, data: 0 }
+
+    # The machine-wide policy, not just the per-user toggle: this is what
+    # actually stops Win+G from opening Game Bar at all, and greys out the
+    # Settings toggle rather than leaving it re-enableable.
+    - name: Disable Xbox Game Bar via policy
+      win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR
+        name: AllowGameDVR
+        data: 0
+        type: dword
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    # A single semicolon-delimited string (e.g. "AutoHDREnable=1;GpuPreference=2;"),
+    # not a dword - the same DirectXUserGlobalSettings value also carries
+    # unrelated per-user DirectX preferences, so this parses the existing
+    # string and only touches the AutoHDREnable key rather than overwriting
+    # the whole value. Software-only: unlike physical HDR display output,
+    # this does not touch display signaling, so there is no risk of a broken
+    # display state.
+    - name: Enable Auto HDR
+      ansible.windows.win_powershell:
+        script: |
+          $ErrorActionPreference = 'Stop'
+          $path = 'HKCU:\SOFTWARE\Microsoft\DirectX\UserGpuPreferences'
+          if (-not (Test-Path $path)) {
+            New-Item -Path $path -Force | Out-Null
+          }
+
+          $current = (Get-ItemProperty -Path $path -Name DirectXUserGlobalSettings -ErrorAction SilentlyContinue).DirectXUserGlobalSettings
+          $pairs = [ordered]@{}
+          if ($current) {
+            foreach ($pair in ($current -split ';' | Where-Object { $_ })) {
+              $key, $value = $pair -split '=', 2
+              $pairs[$key] = $value
+            }
+          }
+
+          if ($pairs['AutoHDREnable'] -eq '1') {
+            $Ansible.Changed = $false
+            return
+          }
+
+          $Ansible.Changed = $true
+          if (-not $Ansible.CheckMode) {
+            $pairs['AutoHDREnable'] = '1'
+            $newValue = ($pairs.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ';'
+            $newValue += ';'
+            New-ItemProperty -Path $path -Name DirectXUserGlobalSettings -Value $newValue -PropertyType String -Force | Out-Null
+          }
 
     - name: Enable dark mode
       win_regedit:
@@ -537,16 +629,6 @@
     #     package_params: /GitAndUnixToolsOnPath /NoShellIntegration
     #     state: present
 
-    - name: Ensure vscode
-      win_chocolatey:
-        name: vscode
-        state: present
-      become: yes
-      become_method: runas
-      vars:
-        ansible_become_user: "{{ ansible_user }}"
-        ansible_become_password: "{{ windows_password }}"
-
     # SSH is both the machine's remote access method and Ansible's own
     # transport, so these tasks re-assert the configuration the connection
     # depends on. Use the OpenSSH server that ships with Windows: Ansible
@@ -822,10 +904,29 @@
         scope: user
         state: present
 
+    # win_copy is documented as unreliable at detecting *changed* existing
+    # files during a directory-mode copy (it diffs new files fine, but a
+    # modified file already present at the destination can silently keep its
+    # old content) - confirmed here when a rewritten nut-client.ps1 stayed
+    # stale on a real host across a re-deploy. Removing the destination first
+    # forces every deploy to get an exact, fresh copy regardless of what
+    # win_copy's own diffing decides.
+    - name: Remove existing developer/tools before copying fresh
+      ansible.windows.win_file:
+        path: C:\Users\{{ user }}\developer\tools
+        state: absent
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
     - name: Copy scripts to developer/tools
       ansible.windows.win_copy:
         src: ../src/
         dest: C:\Users\{{ user }}\developer\tools\
+      become: yes
+      become_method: runas
       vars:
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
@@ -875,26 +976,6 @@
       ansible.builtin.debug:
         var: software_user.stdout_lines
       when: "'warnings=0' not in software_user.stdout"
-
-    # A misconfigured NUT client here can shut this host down unexpectedly -
-    # the UPS name, NAS address and monitor credentials must be verified
-    # against the real Synology NUT server (out of scope for this repo)
-    # before merge or re-run against the real host. Kept as its own task,
-    # separate from the software.ps1 install above, so only this one is
-    # no_log'd - see README.md#nut-ups-monitoring.
-    - name: Configure and start WinNUT-Client (UPS monitoring)
-      win_shell: |
-        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\configure-nut-client.ps1"
-      register: nut_client_config
-      changed_when: "'configure=Configured' in nut_client_config.stdout or 'start=Started' in nut_client_config.stdout"
-      no_log: true
-      environment:
-        NUT_SERVER_ADDRESS: "{{ nut_server_address }}"
-        NUT_SERVER_PORT: "{{ nut_server_port }}"
-        NUT_UPS_NAME: "{{ nut_ups_name }}"
-        NUT_MONITOR_USERNAME: "{{ nut_monitor_username }}"
-        NUT_MONITOR_PASSWORD: "{{ nut_monitor_password }}"
-        NUT_BATTERY_CHARGE_FLOOR: "{{ nut_battery_charge_floor }}"
 
     # Zed registers itself as *a* handler for these types when winget installs
     # it; this policy is what makes it the default. Windows applies it at user
@@ -957,3 +1038,25 @@
       vars:
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
+
+    # Deliberately the last task in the playbook: the NUT server has not been
+    # provisioned yet (out of scope for this repo), so this is expected to
+    # fail until it is. Kept failing rather than made best-effort - a
+    # misconfigured client here can shut this host down unexpectedly, so
+    # silently tolerating a bad config would be worse than blocking the
+    # deploy. Ordered last so everything else still completes first. Kept as
+    # its own task, separate from the software.ps1 install above, so only
+    # this one is no_log'd - see README.md#nut-ups-monitoring.
+    - name: Configure and start WinNUT-Client (UPS monitoring)
+      win_shell: |
+        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\configure-nut-client.ps1"
+      register: nut_client_config
+      changed_when: "'configure=Configured' in nut_client_config.stdout or 'start=Started' in nut_client_config.stdout"
+      no_log: true
+      environment:
+        NUT_SERVER_ADDRESS: "{{ nut_server_address }}"
+        NUT_SERVER_PORT: "{{ nut_server_port }}"
+        NUT_UPS_NAME: "{{ nut_ups_name }}"
+        NUT_MONITOR_USERNAME: "{{ nut_monitor_username }}"
+        NUT_MONITOR_PASSWORD: "{{ nut_monitor_password }}"
+        NUT_BATTERY_CHARGE_FLOOR: "{{ nut_battery_charge_floor }}"

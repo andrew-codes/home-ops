@@ -71,13 +71,18 @@ them the same way before trusting a change to them.
 
 # Configuring a Windows app with no CLI or plain config file
 
-`src/nut-client.ps1` (WinNUT-Client) is the precedent: when a target app's only
-settings store is a per-user .NET `ClientSettingsSection` at a path derived from a
-hash of the install location, don't try to reproduce that path or hash. Instead load
-the app's own compiled assembly by reflection (`[System.Reflection.Assembly]::LoadFrom`)
-and call its own generated Settings class and `Save()` - the same mechanism its own
-Preferences UI uses. Reuse this pattern before inventing a new one for the next
-installed-but-unscriptable Windows app.
+`src/nut-client.ps1` (WinNUT-Client) is the precedent: don't assume where or how an
+app stores its settings from source alone, even its own published source - a
+reflection-based approach here was written and reviewed against WinNUT-Client's
+GitHub `main` branch, and failed completely against a real host because `main` was
+ahead of every actual release, including the one winget currently publishes.
+Confirm the real mechanism empirically instead: change one setting in the app's own
+UI and diff real state before and after (a registry export diff found this app's
+actual flat `HKCU:\Software\WinNUT\...` key tree in minutes, once GitHub archaeology
+had already burned much more time chasing a schema that doesn't exist in any
+shipped release). Reuse whichever mechanism that reveals - registry keys here,
+reflection into a compiled Settings class elsewhere - before inventing a new one for
+the next installed-but-unscriptable Windows app.
 
 # Confluence Sync
 

@@ -165,17 +165,25 @@ before acting, so a second deploy installs nothing.
 | ---------------------------------------------------------------- | ------------------------- | ---------------------------- |
 | Steam                                                            | winget                    | `Valve.Steam`                |
 | Apollo (streaming server)                                        | winget                    | `ClassicOldSong.Apollo`      |
-| Logi Options+                                                    | winget                    | `Logitech.OptionsPlus`       |
-| 1Password                                                        | winget                    | `AgileBits.1Password`        |
+| Logi Options+                                                    | direct download           | see below                    |
+| Microsoft Visual C++ Redistributable (Logi Options+ dependency)  | winget                    | `Microsoft.VCRedist.2015+.x64` |
+| 1Password                                                        | winget (user scope)       | `AgileBits.1Password`        |
 | Tailscale                                                        | winget                    | `Tailscale.Tailscale`        |
 | Zed                                                              | winget                    | `ZedIndustries.Zed`          |
 | Raycast                                                          | Microsoft Store           | `9PFXXSHC64H3`               |
 | Windows HDR Calibration                                          | Microsoft Store           | `9N7F2SM5D1LR`               |
 | Dolby Access                                                     | Microsoft Store           | `9N0866FS04W8`               |
+| Xbox Accessories                                                 | Microsoft Store           | `9NBLGGH30XJ3`               |
 | MoonDeck Buddy                                                   | GitHub release            | `FrogTheFrog/moondeck-buddy` |
 | NVIDIA App                                                       | Chocolatey                | `nvidia-app`                 |
 | NVIDIA game-ready driver                                         | NVIDIA, via `src/run.ps1` | -                            |
 | WinNUT-Client (UPS monitoring, see [below](#nut-ups-monitoring)) | winget (user scope)       | `nutdotnet.WinNUT`           |
+
+**1Password installs at user scope**, not machine scope like the other winget
+rows above it. A machine-scope install fails with "The current system
+configuration does not support the installation of this package" - a
+documented winget limitation provisioning certain packages machine-wide, not
+specific to this manifest or this machine.
 
 Kept absent: **Playnite**, **Discord**, **Visual Studio Code** (Zed is the
 installed editor, above), and **Epic Games Launcher**. Discord needs more than
@@ -186,11 +194,28 @@ removed via Chocolatey, in `scripts/deploy.yml`, rather than through
 `software.ps1`'s winget-based `$UnwantedPackages` - it was installed through
 Chocolatey originally, so removal uses the same package manager.
 
-Three of those rows are not winget, and each for its own reason:
+Four of those rows are not plain winget, and each for its own reason:
 
 - **NVIDIA App** has no manifest in the community winget source (the `Nvidia`
   publisher there carries CUDA, FrameView, PhysX and so on, but not the app), so
   Chocolatey stays for it alone.
+- **Logi Options+** installs by downloading
+  `logioptionsplus_installer.exe` directly and running it
+  (`Install-LogiOptionsPlus` in `src/software.ps1`), bypassing winget
+  entirely. Its winget manifest (`InstallerType: exe`,
+  `ElevationRequirement: elevatesSelf`) makes winget launch it through
+  `ShellExecuteEx`, which needs a real interactive desktop/token to elevate -
+  unavailable in this deploy's non-interactive `become`/`runas`-over-SSH
+  session, so it fails with
+  `APPINSTALLER_CLI_ERROR_SHELLEXEC_INSTALL_FAILED` (Win32 error 1008,
+  `ERROR_NO_TOKEN`). Steam, Apollo, Tailscale and Zed do not hit this because
+  winget installs those installer types through a `CreateProcess`-based path
+  that never needs `ShellExecute`. Running the installer directly - without
+  `-Verb RunAs`, so it also goes through `CreateProcess` - sidesteps it the
+  same way Chocolatey and MoonDeck Buddy already do in this same session:
+  this process is already elevated, so no further elevation dance is needed.
+  Idempotency comes from checking the installer's `ProductCode` in the
+  registry rather than winget's own presence check.
 - **MoonDeck Buddy** is published to neither winget nor Chocolatey. It is
   fetched from its GitHub releases - the same way `gsync-toggle` already is, and
   from the same author. Re-running downloads nothing: the installed Inno Setup
@@ -226,19 +251,26 @@ monitoring plus auto-shutdown, not just alerting.
   `Invoke-UserPhase` rather than `$MachinePackages`.
 - **Configured by [`src/configure-nut-client.ps1`](src/configure-nut-client.ps1)**,
   a separate deploy step from the winget install above. WinNUT-Client has no CLI or
-  plain config file - its settings are a per-user `.NET` `ClientSettingsSection`
-  stored at a path derived from a hash of the installed exe's location that is not
-  practical to reproduce by hand. Rather than guess that path,
-  [`src/nut-client.ps1`](src/nut-client.ps1) loads the app's own compiled Settings
-  class by reflection and calls its own `Save()` - the same mechanism its
-  Preferences dialog uses - so the file it writes is guaranteed to match what the
-  running app reads. Verified against the
-  [published source](https://github.com/nutdotnet/WinNUT-Client), not
-  execution-tested against a real Windows host - see
-  [Status: not execution-tested](#status-not-execution-tested-nut-ups-monitoring)
-  below.
-- **Idempotent**: each setting is compared against its current value and `Save()`
-  is only called when something actually changed.
+  plain config file - [`src/nut-client.ps1`](src/nut-client.ps1) writes directly to
+  its plain flat registry tree under `HKCU:\Software\WinNUT\{Appareance,Connexion,Power}`,
+  found by diffing the real registry before and after changing a setting in
+  WinNUT-Client's own Preferences dialog on a real host running the exact version
+  winget publishes (`v2.2.8719`). An earlier version of this file instead used
+  reflection against WinNUT-Client's compiled `My.Settings` class, matching the
+  schema on GitHub's `main` branch; that schema turned out not to exist in any
+  actual release - `main` is ahead of every shipped version, including the latest
+  tag - so `MySettings` had zero real properties and every write failed. `NutLogin`/
+  `NutPassword` are DPAPI-protected (`DataProtectionScope.CurrentUser`, Unicode
+  bytes) directly here, reproducing the same blob format
+  `WinNUT-Client_Common`'s `SerializedProtectedString` produces.
+- **Idempotent**: each registry value is compared against its current value and
+  only written when it actually needs to change.
+- **Deliberately the last task in the playbook.** The NUT server has not been
+  provisioned yet (out of scope for this repo), so this task is expected to fail
+  until it is. It is kept failing rather than made best-effort - a misconfigured
+  client here can shut this host down unexpectedly, so silently tolerating a bad
+  config would be worse than blocking the deploy - and ordered last so every other
+  task still completes first.
 - **Runs as its own Ansible task, `no_log`'d**, separate from the software.ps1
   install task above, so the NUT monitor credentials never appear in Ansible's
   output while the existing Microsoft Store warning visibility
@@ -260,29 +292,19 @@ monitoring plus auto-shutdown, not just alerting.
   `configurationApi` in [`scripts/deploy.ts`](scripts/deploy.ts) - one monitor
   account for every client, matching how the NAS itself models it.
 
-#### Status: not execution-tested (NUT UPS monitoring)
-
-The reflection-based settings configuration in
-[`src/nut-client.ps1`](src/nut-client.ps1) was written and reviewed against
-WinNUT-Client's published VB.NET source (its `Settings.settings` schema and
-`SerializedProtectedString`'s DPAPI usage), matching this repo's existing precedent
-of documenting what has and has not been run against a real host (see `pve`'s
-[Status: not yet applied](../pve/README.md#status-not-yet-applied)). It has **not**
-been run against a real Windows host - confirm the settings actually take
-(`Get-Process WinNUT-Client`, and its tray icon reachable) after the first real
-deploy.
-
 ### The Microsoft Store apps are best-effort
 
-Raycast, Windows HDR Calibration and Dolby Access are the only entries allowed
-to fail without failing the deploy, matching the ticket's own "if possible".
-An MSIX install can require an interactive, signed-in Microsoft Store session,
-which a deploy driven over SSH does not necessarily have.
+Raycast, Windows HDR Calibration, Dolby Access and Xbox Accessories are the
+only entries allowed to fail without failing the deploy - the first three
+matching the ticket's own "if possible", Xbox Accessories added later for the
+same technical reason. An MSIX install can require an interactive, signed-in
+Microsoft Store session, which a deploy driven over SSH does not necessarily
+have.
 
 They are not silent about it: a failure is logged as `WARNING`, repeated in the
 run's `SUMMARY` lines, and counted in the `RESULT ... warnings=` line the
-playbook prints. If they warn, install those three from the Store by hand once;
-`AutoDownload` keeps them updated afterwards.
+playbook prints. If they warn, install that app from the Store by hand once;
+`AutoDownload` keeps it updated afterwards.
 
 ## Windows settings the deploy applies
 
@@ -299,9 +321,18 @@ playbook prints. If they warn, install those three from the Store by hand once;
 | OS notifications off                       | `ToastEnabled`, notification centre and toast policies                                                                    |
 | Dark mode                                  | `AppsUseLightTheme` / `SystemUsesLightTheme`                                                                              |
 | All desktop icons hidden                   | `HideIcons`                                                                                                               |
-| Taskbar widgets off                        | `Dsh\AllowNewsAndInterests` policy, plus `TaskbarDa`                                                                      |
+| Taskbar widgets off                        | `Dsh\AllowNewsAndInterests` policy                                                                                        |
 | UAC off                                    | `EnableLUA`, `ConsentPromptBehaviorAdmin`, `PromptOnSecureDesktop`                                                        |
 | Zed as the default text and code editor    | `DefaultAssociationsConfiguration` policy, 139 file types                                                                 |
+| Xbox Game Bar off                          | `GameDVR_Enabled`, `AppCaptureEnabled`, plus the `AllowGameDVR` machine policy                                            |
+| Auto HDR on                                | `AutoHDREnable=1` merged into the `DirectXUserGlobalSettings` string, preserving any other keys already in it            |
+| WiFi off                                   | `Disable-NetAdapter` on adapters with `MediaType -eq 'Native 802.11'` - this machine is wired-only                       |
+
+**Disabling WiFi assumes the deploy itself connects over the wired adapter**,
+confirmed against `gaming-pc/ip` before this was added. Disabling the wrong
+adapter would sever the deploy's own SSH connection mid-run. If this machine
+is ever moved to WiFi, remove this task before the next deploy rather than
+after it fails partway through.
 
 Four of these need something the ticket did not ask for, or do not take effect
 the moment the deploy finishes:
@@ -368,6 +399,19 @@ Running Ansible _on_ the gaming PC was evaluated and rejected: Ansible cannot
 run on Windows as a control node, so every local option needs WSL, which costs a
 reboot - and WSL2 additionally needs hardware virtualization enabled in UEFI,
 which no script can do. Neither delivers one-command setup on a fresh machine.
+
+## Deploying `src/` scripts to the machine
+
+`Copy scripts to developer/tools` (`win_copy`, `src/` -> `C:\Users\<user>\developer\tools\`)
+is preceded by a task that deletes that destination directory first.
+`win_copy` is documented as unreliable at detecting a *changed* existing file
+during a directory-mode copy - it diffs new files fine, but a modified file
+already present at the destination can silently keep its old content. This
+was confirmed on a real deploy: a rewritten `src/nut-client.ps1` stayed stale
+on the machine across a re-deploy with no error. Deleting the destination
+first forces every deploy to get an exact, fresh copy regardless of what
+`win_copy`'s own diffing decides, at the cost of always re-copying rather than
+skipping unchanged files - cheap here since these are small script files.
 
 ## Transport-sensitive tasks
 

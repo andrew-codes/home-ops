@@ -37,12 +37,13 @@ $script:Warnings = New-Object System.Collections.Generic.List[string]
 # ---------------------------------------------------------------------------
 
 # Machine-wide, installed from the community winget source. Ids verified
-# against microsoft/winget-pkgs.
+# against microsoft/winget-pkgs. Logi Options+ is not here - see
+# Install-LogiOptionsPlus below for why - but its VCRedist dependency is,
+# since that installs fine through winget in this same session.
 $MachinePackages = @(
     @{ Name = 'Steam'; Id = 'Valve.Steam' }
     @{ Name = 'Apollo'; Id = 'ClassicOldSong.Apollo' }
-    @{ Name = 'Logi Options+'; Id = 'Logitech.OptionsPlus' }
-    @{ Name = '1Password'; Id = 'AgileBits.1Password' }
+    @{ Name = 'Microsoft Visual C++ Redistributable'; Id = 'Microsoft.VCRedist.2015+.x64' }
     @{ Name = 'Tailscale'; Id = 'Tailscale.Tailscale' }
     @{ Name = 'Zed'; Id = 'ZedIndustries.Zed' }
 )
@@ -56,22 +57,29 @@ $UnwantedPackages = @(
     @{ Name = 'Visual Studio Code'; Id = 'Microsoft.VisualStudioCode' }
 )
 
-# Microsoft Store apps. Optional by ticket wording ("if possible"): an MSIX
-# install can require an interactive, signed-in Microsoft Store session that a
-# remote deploy does not have. A failure here is reported loudly and listed in
-# the summary rather than failing the deploy.
+# Microsoft Store apps. An MSIX install can require an interactive, signed-in
+# Microsoft Store session that a remote deploy does not have (the original
+# three were made optional for exactly this reason, per the ticket's "if
+# possible" wording). A failure here is reported loudly and listed in the
+# summary rather than failing the deploy.
 $StorePackages = @(
     @{ Name = 'Raycast'; Id = '9PFXXSHC64H3' }
     @{ Name = 'Windows HDR Calibration'; Id = '9N7F2SM5D1LR' }
     @{ Name = 'Dolby Access'; Id = '9N0866FS04W8' }
+    @{ Name = 'Xbox Accessories'; Id = '9NBLGGH30XJ3' }
 )
 
-# Community winget source, but its only installer is a per-user MSI (no
-# machine-scope build is published), so it is installed here in the user
-# phase alongside the Store apps rather than with $MachinePackages. See
-# README.md#nut-ups-monitoring for what configures and starts it.
+# Community winget source, but installed at user scope rather than with
+# $MachinePackages. WinNUT-Client's only published installer is a per-user
+# MSI (no machine-scope build exists); see README.md#nut-ups-monitoring for
+# what configures and starts it. 1Password's winget manifest fails a
+# machine-scope install with "The current system configuration does not
+# support the installation of this package" - a documented winget limitation
+# provisioning certain packages machine-wide - so it installs per-user here
+# instead.
 $UserWingetPackages = @(
     @{ Name = 'WinNUT-Client'; Id = 'nutdotnet.WinNUT' }
+    @{ Name = '1Password'; Id = 'AgileBits.1Password' }
 )
 
 # ---------------------------------------------------------------------------
@@ -273,6 +281,71 @@ function Install-MoonDeckBuddy {
 }
 
 # ---------------------------------------------------------------------------
+# Logi Options+
+# ---------------------------------------------------------------------------
+
+# winget's own manifest for this package (InstallerType: exe,
+# ElevationRequirement: elevatesSelf) makes winget launch it through
+# ShellExecuteEx, which needs a real interactive desktop/token to elevate -
+# unavailable in this non-interactive `become`/`runas`-over-SSH session, so it
+# fails with APPINSTALLER_CLI_ERROR_SHELLEXEC_INSTALL_FAILED (Win32 1008,
+# ERROR_NO_TOKEN, surfaced by winget as exit code -1978335226). Steam, Apollo,
+# Tailscale and Zed above do not hit this: winget installs those installer
+# types through a CreateProcess-based path that never needs ShellExecute.
+# Bypassing winget and invoking the installer directly (no `-Verb RunAs`, so
+# this also goes through CreateProcess) sidesteps it the same way Chocolatey
+# and MoonDeck Buddy already do in this same session - this process is already
+# elevated, so no further elevation dance is needed.
+$script:LogiOptionsPlusProductCode = '{850cdc16-85df-4052-b06e-4e3e9e83c5c6}'
+$script:LogiOptionsPlusInstallerUrl = 'https://download01.logi.com/web/ftp/pub/techsupport/optionsplus/logioptionsplus_installer.exe'
+
+function Test-LogiOptionsPlusInstalled {
+    $key = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$script:LogiOptionsPlusProductCode"
+    return $null -ne (Get-ItemProperty -Path $key -ErrorAction SilentlyContinue)
+}
+
+function Install-LogiOptionsPlus {
+    <#
+    .SYNOPSIS
+        Installs Logi Options+ by running its installer directly.
+    .DESCRIPTION
+        See the comment above for why this bypasses winget. Silent switches
+        (/quiet /analytics no) match what winget's own manifest for this
+        package declares (InstallerSwitches.Silent + .Custom), so behavior is
+        the same as a working winget install would have produced.
+    .OUTPUTS
+        'Present' when already installed, 'Installed' otherwise.
+    #>
+    if (Test-LogiOptionsPlusInstalled) {
+        Write-Log '  Logi Options+: already installed'
+        return 'Present'
+    }
+
+    Write-Log '  Logi Options+: not installed; installing...'
+
+    $downloadDir = Join-Path $env:TEMP 'gaming-pc-software'
+    New-Item -ItemType Directory -Path $downloadDir -Force | Out-Null
+    $installer = Join-Path $downloadDir 'logioptionsplus_installer.exe'
+
+    try {
+        Invoke-WebRequest -Uri $script:LogiOptionsPlusInstallerUrl -OutFile $installer
+
+        $process = Start-Process -FilePath $installer `
+            -ArgumentList '/quiet', '/analytics', 'no' `
+            -Wait -PassThru
+        if ($process.ExitCode -ne 0) {
+            throw "the installer exited with code $($process.ExitCode)"
+        }
+    }
+    finally {
+        Remove-Item $installer -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Log '  Logi Options+: installed'
+    return 'Installed'
+}
+
+# ---------------------------------------------------------------------------
 # Phases
 # ---------------------------------------------------------------------------
 
@@ -283,6 +356,9 @@ function Invoke-MachinePhase {
             Install-WingetPackage -Id $package.Id -Name $package.Name -Scope machine
         }.GetNewClosure()
     }
+
+    Write-Log 'Installing Logi Options+ (bypasses winget - see comment above Install-LogiOptionsPlus)...'
+    Invoke-Step -Name 'Logi Options+' -Action { Install-LogiOptionsPlus }
 
     Write-Log 'Ensuring unwanted packages are absent...'
     foreach ($package in $UnwantedPackages) {

@@ -1,17 +1,26 @@
 # WinNUT-Client (NUT UPS monitoring client) helpers for software.ps1 and
 # scripts/configure-nut-client.ps1.
 #
-# WinNUT-Client has no CLI or plain config file of its own to script against:
-# its settings are a per-user .NET ClientSettingsSection (My.Settings), stored
-# at a path derived from a hash of the installed exe's location that is not
-# practical to reproduce by hand. Rather than guess that path, this loads the
-# app's own compiled Settings class by reflection and calls its own Save() -
-# the same mechanism its Preferences dialog uses - so the file this writes is
-# guaranteed to match what the running app actually reads. Verified against
-# the published source at https://github.com/nutdotnet/WinNUT-Client
-# (WinNUT_V2/WinNUT-Client/My Project/Settings.settings and
-# WinNUT_V2/WinNUT-Client_Common/SerializedProtectedString.vb), not
-# execution-tested against a real Windows host - see README.md.
+# WinNUT-Client has no CLI or plain config file of its own to script against.
+# An earlier version of this file loaded the app's compiled Settings class by
+# reflection (My.Settings), matching the schema on GitHub's main branch and
+# documented as "not execution-tested". Running it against a real host (winget
+# currently publishes v2.2.8719) showed that schema does not exist in any
+# shipped release: MySettings has zero properties, compile-time or dynamic, at
+# both v2.2.8719 and the latest real tag (v7.7.1.0) - main is ahead of every
+# release. The real, confirmed mechanism (found via a before/after registry
+# diff around WinNUT-Client's own Preferences dialog, against v2.2.8719) is a
+# plain flat key tree under HKCU:\Software\WinNUT, one subkey per settings
+# page:
+#
+#   Appareance\{MinimizeToTray,MinimizeOnStart,CloseToTray,StartWithWindows}
+#   Connexion\{ServerAddress,Port,UPSName,NutLogin,NutPassword,AutoReconnect}
+#   Power\{ShutdownLimitBatteryCharge,Follow_FSD,...}
+#
+# NutLogin/NutPassword are DPAPI-protected (DataProtectionScope.CurrentUser)
+# and Unicode-encoded before protecting, matching WinNUT-Client_Common's
+# SerializedProtectedString.vb exactly - same CryptProtectData blob format,
+# reproduced directly here rather than through that type.
 #
 # Requires logging.ps1 (Write-Log) to be dot-sourced first.
 
@@ -42,15 +51,87 @@ function Get-WinNutClientInstallDirectory {
     return $entry.InstallLocation.TrimEnd('\')
 }
 
+function Protect-NutClientString {
+    <#
+    .SYNOPSIS
+        DPAPI-protects a string the same way SerializedProtectedString.vb
+        does: Unicode bytes, CurrentUser scope, no extra entropy.
+    #>
+    param([Parameter(Mandatory = $true)] [string]$PlainText)
+
+    $bytes = [System.Text.Encoding]::Unicode.GetBytes($PlainText)
+    $protected = [System.Security.Cryptography.ProtectedData]::Protect(
+        $bytes, $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
+    return [Convert]::ToBase64String($protected)
+}
+
+function Unprotect-NutClientString {
+    <#
+    .SYNOPSIS
+        Reverses Protect-NutClientString, for idempotency comparisons.
+    .OUTPUTS
+        The plaintext, or $null if the stored value is absent or cannot be
+        unprotected (e.g. it was written under a different Windows account -
+        DPAPI CurrentUser-scoped values are not portable across accounts).
+    #>
+    param([string]$Protected)
+
+    if ([string]::IsNullOrEmpty($Protected)) {
+        return $null
+    }
+    try {
+        $bytes = [Convert]::FromBase64String($Protected)
+        $plain = [System.Security.Cryptography.ProtectedData]::Unprotect(
+            $bytes, $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
+        return [System.Text.Encoding]::Unicode.GetString($plain)
+    }
+    catch {
+        return $null
+    }
+}
+
+function Set-NutClientRegistryValues {
+    <#
+    .SYNOPSIS
+        Idempotently applies a table of registry values under one key,
+        creating the key first if it does not exist yet (a machine that has
+        never launched WinNUT-Client once has none of this key tree).
+    .OUTPUTS
+        $true if anything actually changed, otherwise $false.
+    #>
+    param(
+        [Parameter(Mandatory = $true)] [string]$Path,
+        [Parameter(Mandatory = $true)] [hashtable]$Values
+    )
+
+    if (-not (Test-Path $Path)) {
+        New-Item -Path $Path -Force | Out-Null
+    }
+
+    $changed = $false
+    $current = Get-ItemProperty -Path $Path -ErrorAction SilentlyContinue
+
+    foreach ($name in $Values.Keys) {
+        $desired = $Values[$name]
+        $existing = if ($current) { $current.$name } else { $null }
+        if ("$existing" -ne "$desired") {
+            New-ItemProperty -Path $Path -Name $name -Value $desired -Force | Out-Null
+            $changed = $true
+        }
+    }
+
+    return $changed
+}
+
 function Set-WinNutClientSettings {
     <#
     .SYNOPSIS
         Points WinNUT-Client at the NUT server and configures its shutdown
-        thresholds, via the app's own compiled Settings class.
+        thresholds, by writing its registry settings directly.
     .DESCRIPTION
-        Idempotent: only calls Save() when a value actually needs to change.
+        Idempotent: only writes a value when it actually needs to change.
         Must run in the same Windows user session WinNUT-Client will run in -
-        its NUT_Username/NUT_Password fields are DPAPI-protected with
+        NutLogin/NutPassword are DPAPI-protected with
         DataProtectionScope.CurrentUser, so a value protected under one
         account cannot be read back correctly under another.
     .OUTPUTS
@@ -65,77 +146,46 @@ function Set-WinNutClientSettings {
         [Parameter(Mandatory = $true)] [int]$BatteryChargeFloor
     )
 
-    $installDir = Get-WinNutClientInstallDirectory
-    if (-not $installDir) {
-        throw 'WinNUT-Client install directory could not be found via its registered uninstall entry.'
-    }
-
-    $exePath = Join-Path $installDir 'WinNUT-Client.exe'
-    $commonDllPath = Join-Path $installDir 'WinNUT-Client_Common.dll'
-    if (-not (Test-Path $exePath) -or -not (Test-Path $commonDllPath)) {
-        throw "WinNUT-Client.exe or WinNUT-Client_Common.dll not found under $installDir."
-    }
-
-    # Loading these only inspects their types via reflection - it does not run
-    # the app's Sub Main or show its UI.
-    $commonAssembly = [System.Reflection.Assembly]::LoadFrom($commonDllPath)
-    $exeAssembly = [System.Reflection.Assembly]::LoadFrom($exePath)
-
-    $settingsType = $exeAssembly.GetType('WinNUT_Client.My.MySettings')
-    if (-not $settingsType) {
-        throw 'WinNUT_Client.My.MySettings type not found - WinNUT-Client may have changed its internal structure.'
-    }
-    $settings = $settingsType.GetProperty('Default').GetValue($null)
-
-    $protectedStringType = $commonAssembly.GetType('WinNUT_Client_Common.SerializedProtectedString')
-    if (-not $protectedStringType) {
-        throw 'WinNUT_Client_Common.SerializedProtectedString type not found - WinNUT-Client may have changed its internal structure.'
-    }
-
-    function New-ProtectedStringValue([string]$PlainText) {
-        return [Activator]::CreateInstance($protectedStringType, @([string]$PlainText, $false))
-    }
-
-    function Get-CurrentPlainValue([string]$PropertyName) {
-        $value = $settings.$PropertyName
-        if (-not $value) { return $null }
-        return $value.ToString()
-    }
-
+    $base = 'HKCU:\Software\WinNUT'
     $changed = $false
 
-    $desired = [ordered]@{
-        NUT_ServerAddress = $ServerAddress
-        NUT_ServerPort    = $ServerPort
-        NUT_UPSName       = $UpsName
-        NUT_AutoReconnect = $true
-        StartWithWindows  = $true
-        MinimizeOnStart   = $true
-        CloseToTray       = $true
-        MinimizeToTray    = $true
-        PW_RespectFSD     = $true
-        PW_BattChrgFloor  = $BatteryChargeFloor
-        IsFirstRun        = $false
-    }
+    $changed = (Set-NutClientRegistryValues -Path "$base\Appareance" -Values @{
+            MinimizeToTray   = 'True'
+            MinimizeOnStart  = 'True'
+            CloseToTray      = 'True'
+            StartWithWindows = 'True'
+        }) -or $changed
 
-    foreach ($key in $desired.Keys) {
-        if ("$($settings.$key)" -ne "$($desired[$key])") {
-            $settings.$key = $desired[$key]
-            $changed = $true
-        }
-    }
+    $connexionPath = "$base\Connexion"
+    $changed = (Set-NutClientRegistryValues -Path $connexionPath -Values @{
+            ServerAddress = $ServerAddress
+            Port          = $ServerPort
+            UPSName       = $UpsName
+            AutoReconnect = 'True'
+        }) -or $changed
 
-    if ((Get-CurrentPlainValue 'NUT_Username') -ne $MonitorUsername) {
-        $settings.NUT_Username = New-ProtectedStringValue $MonitorUsername
+    # NutLogin/NutPassword are handled separately from the flat values above:
+    # DPAPI protection is not deterministic (a fresh random blob each time),
+    # so equality has to be checked against the *decrypted* current value,
+    # not the stored ciphertext.
+    $currentConnexion = Get-ItemProperty -Path $connexionPath -ErrorAction SilentlyContinue
+    if ((Unprotect-NutClientString $currentConnexion.NutLogin) -ne $MonitorUsername) {
+        New-ItemProperty -Path $connexionPath -Name 'NutLogin' `
+            -Value (Protect-NutClientString $MonitorUsername) -Force | Out-Null
         $changed = $true
     }
-    if ((Get-CurrentPlainValue 'NUT_Password') -ne $MonitorPassword) {
-        $settings.NUT_Password = New-ProtectedStringValue $MonitorPassword
+    if ((Unprotect-NutClientString $currentConnexion.NutPassword) -ne $MonitorPassword) {
+        New-ItemProperty -Path $connexionPath -Name 'NutPassword' `
+            -Value (Protect-NutClientString $MonitorPassword) -Force | Out-Null
         $changed = $true
     }
+
+    $changed = (Set-NutClientRegistryValues -Path "$base\Power" -Values @{
+            ShutdownLimitBatteryCharge = $BatteryChargeFloor
+            Follow_FSD                 = 'True'
+        }) -or $changed
 
     if ($changed) {
-        $settings.Save()
         Write-Log '  WinNUT-Client: settings updated'
         return 'Configured'
     }
