@@ -949,20 +949,6 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
-    # Must run after the machine-scope software install above, not before:
-    # Steam itself is installed there via winget ($MachinePackages in
-    # software.ps1), and this only needs the path it installs to (the same
-    # one the Chocolatey package used). Setting this any earlier would point
-    # the gaming account's shell at a Steam.exe that does not exist yet,
-    # breaking that account's desktop on any login that happens before a
-    # deploy finishes.
-    - name: Set Steam Big Picture as default shell for gaming user
-      win_regedit:
-        path: HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
-        name: Shell
-        data: "C:\\Program Files (x86)\\Steam\\Steam.exe -bigpicture"
-        type: string
-
     - name: Install software (user scope, including Microsoft Store apps)
       win_shell: |
         pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\software.ps1" -Phase User
