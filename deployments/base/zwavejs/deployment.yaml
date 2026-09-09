@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: zwavejs
-          image: zwavejs/zwave-js-ui:11.22.3
+          image: zwavejs/zwave-js-ui:11.23.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
