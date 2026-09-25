@@ -161,23 +161,24 @@ hive.
 winget is preferred over Chocolatey throughout. Every entry checks for presence
 before acting, so a second deploy installs nothing.
 
-| Software                                                         | Source                    | Package                      |
-| ---------------------------------------------------------------- | ------------------------- | ---------------------------- |
-| Steam                                                            | winget                    | `Valve.Steam`                |
-| Apollo (streaming server)                                        | winget                    | `ClassicOldSong.Apollo`      |
-| Logi Options+                                                    | direct download           | see below                    |
-| Microsoft Visual C++ Redistributable (Logi Options+ dependency)  | winget                    | `Microsoft.VCRedist.2015+.x64` |
-| 1Password                                                        | winget (user scope)       | `AgileBits.1Password`        |
-| Tailscale                                                        | winget                    | `Tailscale.Tailscale`        |
-| Zed                                                              | winget                    | `ZedIndustries.Zed`          |
-| Raycast                                                          | Microsoft Store           | `9PFXXSHC64H3`               |
-| Windows HDR Calibration                                          | Microsoft Store           | `9N7F2SM5D1LR`               |
-| Dolby Access                                                     | Microsoft Store           | `9N0866FS04W8`               |
-| Xbox Accessories                                                 | Microsoft Store           | `9NBLGGH30XJ3`               |
-| MoonDeck Buddy                                                   | GitHub release            | `FrogTheFrog/moondeck-buddy` |
-| NVIDIA App                                                       | Chocolatey                | `nvidia-app`                 |
-| NVIDIA game-ready driver                                         | NVIDIA, via `src/run.ps1` | -                            |
-| WinNUT-Client (UPS monitoring, see [below](#nut-ups-monitoring)) | winget (user scope)       | `nutdotnet.WinNUT`           |
+| Software                                                         | Source                            | Package                        |
+| ---------------------------------------------------------------- | --------------------------------- | ------------------------------ |
+| Steam                                                            | winget                            | `Valve.Steam`                  |
+| Apollo (streaming server)                                        | winget                            | `ClassicOldSong.Apollo`        |
+| Logi Options+                                                    | direct download                   | see below                      |
+| Microsoft Visual C++ Redistributable (Logi Options+ dependency)  | winget                            | `Microsoft.VCRedist.2015+.x64` |
+| 1Password                                                        | winget (user scope)               | `AgileBits.1Password`          |
+| Tailscale                                                        | winget                            | `Tailscale.Tailscale`          |
+| Zed                                                              | winget                            | `ZedIndustries.Zed`            |
+| Raycast                                                          | Microsoft Store                   | `9PFXXSHC64H3`                 |
+| Windows HDR Calibration                                          | Microsoft Store                   | `9N7F2SM5D1LR`                 |
+| Dolby Access                                                     | Microsoft Store                   | `9N0866FS04W8`                 |
+| Xbox Accessories                                                 | Microsoft Store                   | `9NBLGGH30XJ3`                 |
+| MoonDeck Buddy                                                   | GitHub release                    | `FrogTheFrog/moondeck-buddy`   |
+| NVIDIA App                                                       | Chocolatey                        | `nvidia-app`                   |
+| NVIDIA game-ready driver                                         | NVIDIA, via `src/run.ps1`         | -                              |
+| DXL (DLSS eXtended Loader)                                       | GitHub release, via `src/dxl.ps1` | `LCPD15/DXL`                   |
+| WinNUT-Client (UPS monitoring, see [below](#nut-ups-monitoring)) | winget (user scope)               | `nutdotnet.WinNUT`             |
 
 **1Password installs at user scope**, not machine scope like the other winget
 rows above it. A machine-scope install fails with "The current system
@@ -227,6 +228,21 @@ Four of those rows are not plain winget, and each for its own reason:
   latest" asks for. It is also the payload of the nightly `Update-Gaming-PC`
   task, so the deploy-time run exists only so a freshly rebuilt machine gets its
   driver during setup rather than at the next midnight.
+- **DXL** ([`LCPD15/DXL`](https://github.com/LCPD15/DXL)) is updated by
+  [`src/dxl.ps1`](src/dxl.ps1), driven from the same `Update-Gaming-PC` task as
+  the NVIDIA driver above, to `~/developer/tools/dxl`. Its release zip
+  (`DXL-v<version>-win64.zip`) has a single version-named top-level folder,
+  which extraction flattens away so `dxl/` holds the application files
+  directly; idempotency compares the installed `PACKAGE_MANIFEST.json`
+  version against the latest release tag, the same shape as MoonDeck Buddy and
+  the NVIDIA driver above. DXL's own README documents no elevation
+  requirement, confirmed by running a real downloaded release, so unlike
+  `Update-Gaming-PC` (SYSTEM, headless), the `Start-DXL` task that launches it
+  runs at normal privilege in the logged-in user's own session (`install.ps1`)
+  - a GUI app that injects into games needs the interactive desktop, which a
+    SYSTEM-run task cannot reach. [`src/start-dxl.ps1`](src/start-dxl.ps1) is
+    also installed for starting DXL by hand; it no-ops if DXL is already running
+    and minimizes the window after launch.
 
 Chocolatey's own bootstrap script trips a Windows Defender false positive -
 see [Turn off Windows Defender Tamper Protection](#turn-off-windows-defender-tamper-protection-once-in-windows-security)
@@ -325,8 +341,8 @@ playbook prints. If they warn, install that app from the Store by hand once;
 | UAC off                                    | `EnableLUA`, `ConsentPromptBehaviorAdmin`, `PromptOnSecureDesktop`                                                        |
 | Zed as the default text and code editor    | `DefaultAssociationsConfiguration` policy, 139 file types                                                                 |
 | Xbox Game Bar off                          | `GameDVR_Enabled`, `AppCaptureEnabled`, plus the `AllowGameDVR` machine policy                                            |
-| Auto HDR on                                | `AutoHDREnable=1` merged into the `DirectXUserGlobalSettings` string, preserving any other keys already in it            |
-| WiFi off                                   | `Disable-NetAdapter` on adapters with `MediaType -eq 'Native 802.11'` - this machine is wired-only                       |
+| Auto HDR on                                | `AutoHDREnable=1` merged into the `DirectXUserGlobalSettings` string, preserving any other keys already in it             |
+| WiFi off                                   | `Disable-NetAdapter` on adapters with `MediaType -eq 'Native 802.11'` - this machine is wired-only                        |
 
 **Disabling WiFi assumes the deploy itself connects over the wired adapter**,
 confirmed against `gaming-pc/ip` before this was added. Disabling the wrong
@@ -404,7 +420,7 @@ which no script can do. Neither delivers one-command setup on a fresh machine.
 
 `Copy scripts to developer/tools` (`win_copy`, `src/` -> `C:\Users\<user>\developer\tools\`)
 is preceded by a task that deletes that destination directory first.
-`win_copy` is documented as unreliable at detecting a *changed* existing file
+`win_copy` is documented as unreliable at detecting a _changed_ existing file
 during a directory-mode copy - it diffs new files fine, but a modified file
 already present at the destination can silently keep its old content. This
 was confirmed on a real deploy: a rewritten `src/nut-client.ps1` stayed stale
