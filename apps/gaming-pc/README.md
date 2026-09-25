@@ -177,6 +177,7 @@ before acting, so a second deploy installs nothing.
 | MoonDeck Buddy                                                   | GitHub release            | `FrogTheFrog/moondeck-buddy` |
 | NVIDIA App                                                       | Chocolatey                | `nvidia-app`                 |
 | NVIDIA game-ready driver                                         | NVIDIA, via `src/run.ps1` | -                            |
+| DXL (DLSS eXtended Loader)                                       | GitHub release, via `src/dxl.ps1` | `LCPD15/DXL`          |
 | WinNUT-Client (UPS monitoring, see [below](#nut-ups-monitoring)) | winget (user scope)       | `nutdotnet.WinNUT`           |
 
 **1Password installs at user scope**, not machine scope like the other winget
@@ -227,6 +228,21 @@ Four of those rows are not plain winget, and each for its own reason:
   latest" asks for. It is also the payload of the nightly `Update-Gaming-PC`
   task, so the deploy-time run exists only so a freshly rebuilt machine gets its
   driver during setup rather than at the next midnight.
+- **DXL** ([`LCPD15/DXL`](https://github.com/LCPD15/DXL)) is updated by
+  [`src/dxl.ps1`](src/dxl.ps1), driven from the same `Update-Gaming-PC` task as
+  the NVIDIA driver above, to `~/developer/tools/dxl`. Its release zip
+  (`DXL-v<version>-win64.zip`) has a single version-named top-level folder,
+  which extraction flattens away so `dxl/` holds the application files
+  directly; idempotency compares the installed `PACKAGE_MANIFEST.json`
+  version against the latest release tag, the same shape as MoonDeck Buddy and
+  the NVIDIA driver above. DXL's own README documents no elevation
+  requirement, confirmed by running a real downloaded release, so unlike
+  `Update-Gaming-PC` (SYSTEM, headless), the `Start-DXL` task that launches it
+  runs at normal privilege in the logged-in user's own session (`install.ps1`)
+  - a GUI app that injects into games needs the interactive desktop, which a
+  SYSTEM-run task cannot reach. [`src/start-dxl.ps1`](src/start-dxl.ps1) is
+  also installed for starting DXL by hand; it no-ops if DXL is already running
+  and minimizes the window after launch.
 
 Chocolatey's own bootstrap script trips a Windows Defender false positive -
 see [Turn off Windows Defender Tamper Protection](#turn-off-windows-defender-tamper-protection-once-in-windows-security)

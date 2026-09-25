@@ -1,6 +1,7 @@
-# Load shared logging module
+# Load shared modules
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 . (Join-Path $ScriptDir "logging.ps1")
+. (Join-Path $ScriptDir "dxl.ps1")
 
 function UpdateNVIDIADriver {
     param (
@@ -324,13 +325,31 @@ function UpdateNVIDIADriver {
     }
 }
 
-# Actually run the function. A failure must reach the exit code: this script is
-# invoked both by scripts/deploy.yml and by the Update-Gaming-PC scheduled task,
-# and neither can tell "up to date" from "blew up" without it.
+# Actually run the update steps. A failure must reach the exit code: this
+# script is invoked both by scripts/deploy.yml and by the Update-Gaming-PC
+# scheduled task, and neither can tell "up to date" from "blew up" without it.
+# The two steps are isolated from each other - one failing must not skip or
+# mask the other, matching the Invoke-Step failure-isolation pattern in
+# software.ps1 - and the exit code still reflects a real failure in either.
+$script:StepFailed = $false
+
 try {
     UpdateNVIDIADriver -Clean
 }
 catch {
+    Write-Log "NVIDIA driver update failed: $($_.Exception.Message)"
+    $script:StepFailed = $true
+}
+
+try {
+    Update-DXL -DxlDir (Join-Path $ScriptDir "dxl")
+}
+catch {
+    Write-Log "DXL update failed: $($_.Exception.Message)"
+    $script:StepFailed = $true
+}
+
+if ($script:StepFailed) {
     exit 1
 }
 exit 0

@@ -84,6 +84,18 @@ shipped release). Reuse whichever mechanism that reveals - registry keys here,
 reflection into a compiled Settings class elsewhere - before inventing a new one for
 the next installed-but-unscriptable Windows app.
 
+# Adding a scheduled task for a GUI app
+
+`Start-DXL` (in `src/install.ps1`) is the precedent for a task that launches a
+visible app rather than running headless maintenance like `Update-Gaming-PC`:
+it runs `LogonType Interactive` / `RunLevel Limited` at the logged-in user's
+own logon, not `ServiceAccount`/`SYSTEM`, because a SYSTEM-run task cannot
+reach the interactive desktop a GUI app needs. Verify a new app's actual
+elevation requirement (its README/docs) empirically rather than copying
+`Update-Gaming-PC`'s `Highest`/`SYSTEM` settings by default - see
+`src/dxl.ps1` and the DXL row in [README.md](README.md#software-the-deploy-installs)
+for how that was confirmed for DXL.
+
 # Confluence Sync
 
 When making changes to `scripts/deploy.yml`, update the Confluence page
