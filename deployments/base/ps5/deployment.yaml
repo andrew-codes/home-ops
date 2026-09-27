@@ -16,7 +16,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: ps5
-          image: ghcr.io/andrew-codes/ps5-mqtt:dev
+          image: ghcr.io/andrew-codes/ps5-mqtt:edge
           imagePullPolicy: Always
           command:
 
