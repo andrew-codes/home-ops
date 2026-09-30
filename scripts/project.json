@@ -1,0 +1,17 @@
+{
+  "name": "scripts",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "scripts",
+  "projectType": "application",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "./tests/cloudflare-access-azure-idp.test.sh",
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}
