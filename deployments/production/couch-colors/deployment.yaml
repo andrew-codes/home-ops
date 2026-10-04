@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: couch-colors
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: couch-colors
+  template:
+    metadata:
+      labels:
+        app: couch-colors
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+      volumes:
+        - name: couch-colors-data
+          persistentVolumeClaim:
+            claimName: couch-colors-data
+            readOnly: true
+      containers:
+        - name: static-web-server
+          image: joseluisq/static-web-server:2.44.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: couch-colors-data
+              mountPath: /public
+              readOnly: true
+          env:
+            - name: SERVER_PORT
+              value: "8080"
+            - name: SERVER_ROOT
+              value: /public
+            - name: SERVER_HEALTH
+              value: "true"
+            - name: SERVER_DIRECTORY_LISTING
+              value: "false"
+            # Large files are streamed from disk with byte-range support; on-the-fly compression would buffer them.
+            - name: SERVER_COMPRESSION
+              value: "false"
+            - name: SERVER_COMPRESSION_STATIC
+              value: "false"
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: "1"
+              memory: 256Mi
