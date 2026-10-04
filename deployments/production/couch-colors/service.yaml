@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: couch-colors
+  namespace: default
+spec:
+  selector:
+    app: couch-colors
+  ports:
+    - name: couch-colors
+      port: 80
+      targetPort: http
+      protocol: TCP
+      nodePort: 30611
+  type: NodePort
+---

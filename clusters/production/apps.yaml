@@ -57,6 +57,40 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
+  name: couch-colors
+  namespace: default
+spec:
+  dependsOn:
+    - name: nfs-provisioner
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/couch-colors
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: asset-catalog
+  namespace: default
+spec:
+  dependsOn:
+    - name: nfs-provisioner
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/asset-catalog
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
   name: home-assistant-db
   namespace: default
 spec:

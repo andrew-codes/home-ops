@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asset-catalog
+  namespace: default
+spec:
+  selector:
+    app: asset-catalog
+  ports:
+    - name: asset-catalog
+      port: 80
+      targetPort: http
+      protocol: TCP
+      nodePort: 30612
+  type: NodePort
+---
