@@ -7,7 +7,6 @@
       ["Home", "/", /^\/$/],
       ["Couch colours", "/couch-colors/", /^\/couch-colors(\/|$)/],
       ["Gallery", "/gallery/", /^\/gallery(\/|$)/],
-      ["Assets", "/assets/", /^\/assets(\/|$)/],
     ]
     var path = location.pathname
     var host = document.createElement("div")

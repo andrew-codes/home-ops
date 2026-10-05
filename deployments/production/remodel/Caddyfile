@@ -62,12 +62,7 @@
 
 	redir /gallery /gallery/ 308
 	handle /gallery/* {
-		reverse_proxy gallery:8080
-	}
-
-	redir /assets /assets/ 308
-	handle_path /assets/* {
-		reverse_proxy asset-catalog:80
+		reverse_proxy remodel-gallery:8080
 	}
 
 	# Landing page only; no `browse`, so there are no directory listings.
