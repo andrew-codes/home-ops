@@ -38,7 +38,9 @@
 
 	redir /couch-colors /couch-colors/ 308
 	handle_path /couch-colors/* {
-		reverse_proxy couch-colors:80
+		reverse_proxy couch-colors:80 {
+			header_up X-Client-Ip {client_ip}
+		}
 	}
 
 	# The vote page calls these on the site root. The collector enforces its own
