@@ -31,9 +31,10 @@
   function encodePath(p) {
     return p.split("/").map(encodeURIComponent).join("/");
   }
-  // imgproxy takes the source as base64url("local:///" + path); see the Caddyfile.
+  // imgproxy takes the source as base64url of the URL-encoded path, which it
+  // appends to its base URL (the originals route); see the Caddyfile.
   function previewUrl(preset, path) {
-    var bytes = new TextEncoder().encode("local:///" + path), bin = "";
+    var bytes = new TextEncoder().encode(encodePath(path)), bin = "";
     bytes.forEach(function (b) { bin += String.fromCharCode(b); });
     var token = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     return BASE + "/img/" + preset + "/" + token + "." + FORMAT;

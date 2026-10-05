@@ -112,10 +112,15 @@ spec:
           env:
             - name: IMGPROXY_BIND
               value: 127.0.0.1:8081
-            - name: IMGPROXY_LOCAL_FILESYSTEM_ROOT
-              value: /captures
+            # Sources are fetched back through Caddy's originals route, so imgproxy
+            # sees only what the public site serves (images, no dotfiles) and has no
+            # filesystem access of its own.
+            - name: IMGPROXY_BASE_URL
+              value: "http://127.0.0.1:8080/gallery/originals/"
             - name: IMGPROXY_ALLOWED_SOURCES
-              value: "local://"
+              value: "http://127.0.0.1:8080/gallery/originals/"
+            - name: IMGPROXY_ALLOW_LOOPBACK_SOURCE_ADDRESSES
+              value: "true"
             # Presets only: visitors pick a named preset and cannot request arbitrary
             # sizes or processing options. Signing is not needed because nothing else is
             # controllable, and IMGPROXY_ALLOW_INSECURE is deliberately not set.
@@ -141,9 +146,6 @@ spec:
             - name: IMGPROXY_DEVELOPMENT_ERRORS_MODE
               value: "false"
           volumeMounts:
-            - name: captures
-              mountPath: /captures
-              readOnly: true
             - name: tmp
               mountPath: /tmp
           resources:

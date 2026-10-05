@@ -26,7 +26,7 @@
 	}
 
 	# Resized images come from imgproxy, which only knows the named presets and
-	# can only read the captures volume. The page asks for
+	# fetches sources through the originals route below (so dotfiles stay hidden). The page asks for
 	# /gallery/img/<preset>/<base64url of the album path>.<webp|jpg>: the opaque
 	# token keeps '#', '%' and '..' in file names from being interpreted as
 	# URL syntax, and arbitrary sizes are not routable.
