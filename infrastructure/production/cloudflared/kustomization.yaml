@@ -1,4 +1,10 @@
 namespace: default
 resources:
-  - cloudflared-config.yaml
   - ../../base/cloudflared
+
+# The hashed name makes any change to the ingress list roll the cloudflared pod,
+# since cloudflared only reads its config at startup.
+configMapGenerator:
+  - name: cloudflared-config
+    files:
+      - config.yaml
