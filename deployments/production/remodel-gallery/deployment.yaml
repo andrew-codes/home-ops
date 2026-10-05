@@ -58,6 +58,10 @@ spec:
             capabilities:
               drop:
                 - ALL
+              # The caddy binary carries a file capability (cap_net_bind_service), so exec
+              # fails with "operation not permitted" when it is missing from the bounding set.
+              add:
+                - NET_BIND_SERVICE
           env:
             - name: XDG_DATA_HOME
               value: /data
