@@ -2,15 +2,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: couch-colors
+  name: remodel
   namespace: default
 spec:
   selector:
-    app: couch-colors
+    app: remodel
   ports:
-    - name: couch-colors
+    - name: http
       port: 80
       targetPort: http
       protocol: TCP
-  type: ClusterIP
----
+      nodePort: 30613
+  type: NodePort
