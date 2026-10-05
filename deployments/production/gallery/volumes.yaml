@@ -1,0 +1,17 @@
+---
+# The captain copies captures into this volume by hand; the pod only reads it.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gallery-captures
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+    volume.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+spec:
+  resources:
+    requests:
+      storage: 100Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+---

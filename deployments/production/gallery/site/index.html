@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gallery</title>
+<link rel="stylesheet" href="/_site/nav.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="bar">
+  <button id="menu" class="icon" aria-label="Toggle albums" aria-expanded="false" aria-controls="tree">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+  <h1>Gallery</h1>
+  <nav id="crumbs" aria-label="Current album"></nav>
+</header>
+<div class="layout">
+  <nav id="tree" aria-label="Albums"></nav>
+  <main>
+    <p id="status" role="status"></p>
+    <div id="folders" class="grid"></div>
+    <div id="grid" class="grid"></div>
+  </main>
+</div>
+
+<div id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Image preview">
+  <div class="lb-top">
+    <span id="lb-name"></span>
+    <span class="lb-actions">
+      <a id="lb-download" class="btn" download>Download original</a>
+      <button id="lb-close" class="icon" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </span>
+  </div>
+  <button id="lb-prev" class="nav" aria-label="Previous image">&#8249;</button>
+  <div class="lb-stage"><img id="lb-img" alt=""><div id="lb-spin" aria-hidden="true"></div></div>
+  <button id="lb-next" class="nav" aria-label="Next image">&#8250;</button>
+  <div id="lb-count"></div>
+</div>
+
+<script src="/_site/nav.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>

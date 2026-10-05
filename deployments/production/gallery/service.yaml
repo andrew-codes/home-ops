@@ -1,0 +1,17 @@
+---
+# ClusterIP only: the front door reaches this at gallery:8080.
+apiVersion: v1
+kind: Service
+metadata:
+  name: gallery
+  namespace: default
+spec:
+  selector:
+    app: gallery
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+  type: ClusterIP
+---
