@@ -28,7 +28,7 @@
 	# Resized images come from imgproxy, which only knows the named presets and
 	# can only read the captures volume. The page asks for
 	# /gallery/img/<preset>/<base64url of the album path>.<webp|jpg>: the opaque
-	# token keeps '#', '?', '%' and '..' in file names from being interpreted as
+	# token keeps '#', '%' and '..' in file names from being interpreted as
 	# URL syntax, and arbitrary sizes are not routable.
 	@img path_regexp img ^/gallery/img/(thumb|preview)/([A-Za-z0-9_-]+)\.(webp|jpg)$
 	handle @img {

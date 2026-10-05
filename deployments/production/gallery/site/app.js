@@ -52,7 +52,8 @@
         .then(function (items) {
           var dirs = [], images = [];
           items.forEach(function (it) {
-            if (it.name.charAt(0) === ".") return;
+            // imgproxy parses the source as a URL and drops everything after '?', so such names cannot be previewed.
+            if (it.name.charAt(0) === "." || it.name.indexOf("?") >= 0) return;
             if (it.is_dir) dirs.push(it.name.replace(/\/$/, ""));
             else if (IMAGE_RE.test(it.name)) images.push(it.name);
           });
