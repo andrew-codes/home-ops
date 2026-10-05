@@ -7,10 +7,10 @@ resources:
   - deployment.yaml
 # Generated ConfigMaps get a content hash in their name, so editing any file rolls the pod.
 configMapGenerator:
-  - name: gallery-caddyfile
+  - name: remodel-gallery-caddyfile
     files:
       - Caddyfile
-  - name: gallery-site
+  - name: remodel-gallery-site
     files:
       - site/index.html
       - site/app.js

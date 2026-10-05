@@ -93,7 +93,7 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: gallery
+  name: remodel-gallery
   namespace: default
 spec:
   dependsOn:
@@ -102,7 +102,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: default
-  path: ./deployments/production/gallery
+  path: ./deployments/production/remodel-gallery
   prune: true
   wait: true
   timeout: 5m0s

@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gallery
+  name: remodel-gallery
   namespace: default
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gallery
+      app: remodel-gallery
   template:
     metadata:
       labels:
-        app: gallery
+        app: remodel-gallery
     spec:
       securityContext:
         runAsNonRoot: true
@@ -22,14 +22,14 @@ spec:
       volumes:
         - name: captures
           persistentVolumeClaim:
-            claimName: gallery-captures
+            claimName: remodel-gallery-captures
             readOnly: true
         - name: caddyfile
           configMap:
-            name: gallery-caddyfile
+            name: remodel-gallery-caddyfile
         - name: site
           configMap:
-            name: gallery-site
+            name: remodel-gallery-site
         # Caddy wants a writable data and config dir even with nothing to store.
         - name: caddy-data
           emptyDir:
