@@ -2,15 +2,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: asset-catalog
+  name: site
   namespace: default
 spec:
   selector:
-    app: asset-catalog
+    app: site
   ports:
-    - name: asset-catalog
+    - name: http
       port: 80
       targetPort: http
       protocol: TCP
-  type: ClusterIP
----
+      nodePort: 30613
+  type: NodePort

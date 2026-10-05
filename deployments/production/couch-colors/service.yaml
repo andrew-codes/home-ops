@@ -12,6 +12,5 @@ spec:
       port: 80
       targetPort: http
       protocol: TCP
-      nodePort: 30611
-  type: NodePort
+  type: ClusterIP
 ---

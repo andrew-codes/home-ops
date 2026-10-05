@@ -1,0 +1,78 @@
+{
+	admin off
+	auto_https off
+	persist_config off
+	servers {
+		timeouts {
+			read_header 10s
+			read_body 30s
+		}
+		# cloudflared reaches this pod from inside the cluster and passes the
+		# visitor address in CF-Connecting-IP.
+		trusted_proxies static private_ranges
+		client_ip_headers CF-Connecting-IP X-Forwarded-For
+	}
+}
+
+:80 {
+	root * /srv
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	handle /health {
+		respond "ok" 200
+	}
+
+	# Shared navigation, served from here so any page can include it with one script tag.
+	handle /_site/* {
+		header Cache-Control "public, max-age=300"
+		uri strip_prefix /_site
+		file_server {
+			hide .*
+		}
+	}
+
+	redir /couch-colors /couch-colors/ 308
+	handle_path /couch-colors/* {
+		reverse_proxy couch-colors:80
+	}
+
+	# The vote page calls these on the site root. The collector enforces its own
+	# limits and the /results token check; the query string is forwarded untouched.
+	handle /api/* {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy couch-colors:80 {
+			# The collector rate-limits per client; hand it the visitor, not this pod.
+			header_up X-Client-Ip {client_ip}
+		}
+	}
+	handle /results {
+		reverse_proxy couch-colors:80 {
+			header_up X-Client-Ip {client_ip}
+		}
+	}
+
+	redir /gallery /gallery/ 308
+	handle /gallery/* {
+		reverse_proxy gallery:8080
+	}
+
+	redir /assets /assets/ 308
+	handle_path /assets/* {
+		reverse_proxy asset-catalog:80
+	}
+
+	# Landing page only; no `browse`, so there are no directory listings.
+	handle {
+		rewrite / /index.html
+		file_server {
+			hide .*
+		}
+	}
+}
