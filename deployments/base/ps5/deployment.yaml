@@ -4,6 +4,8 @@ metadata:
   name: ps5
   namespace: default
 spec:
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: ps5
