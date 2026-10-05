@@ -25,7 +25,8 @@
   var cache = {};       // album path ("a/b/") -> Promise<{dirs, images}>
   var current = null;   // {path, images}
   var lbIndex = -1;
-  var rootList = null;  // <ul> holding the top-level album nodes
+  var navSeq = 0;       // bumped per showAlbum; older async work checks it and bails
+  var rootList = null; // <ul> holding the top-level album nodes
 
   function encodePath(p) {
     return p.split("/").map(encodeURIComponent).join("/");
@@ -87,16 +88,17 @@
     row.appendChild(tog);
     row.appendChild(a);
     li.appendChild(row);
-    var ul = null;
+    var ul = null, filled = null;
     tog.addEventListener("click", function () { toggle(); });
     function toggle(force) {
       var open = force != null ? force : tog.getAttribute("aria-expanded") !== "true";
       tog.setAttribute("aria-expanded", String(open));
       if (!open) { if (ul) ul.hidden = true; return Promise.resolve(); }
-      if (ul) { ul.hidden = false; return Promise.resolve(); }
+      if (ul) { ul.hidden = false; return filled; }
       ul = el("ul");
       li.appendChild(ul);
-      return fillList(ul, path);
+      filled = fillList(ul, path);
+      return filled;
     }
     li._open = function () { return toggle(true); };
     return li;
@@ -113,12 +115,13 @@
   }
 
   // Expand the tree down to `path` and highlight it.
-  function syncTree(path) {
+  function syncTree(path, seq) {
     var parts = path.split("/").filter(Boolean);
     var container = rootList;
     var chain = Promise.resolve();
     parts.forEach(function (part, i) {
       chain = chain.then(function () {
+        if (seq !== navSeq) return;
         var want = parts.slice(0, i + 1).join("/") + "/";
         var li = Array.prototype.find.call(container.children, function (x) {
           return x.firstChild.dataset.path === want;
@@ -128,6 +131,7 @@
       });
     });
     chain.then(function () {
+      if (seq !== navSeq) return;
       Array.prototype.forEach.call(treeEl.querySelectorAll(".row.current"), function (r) { r.classList.remove("current"); });
       var cur = path ? Array.prototype.find.call(treeEl.querySelectorAll(".row"), function (r) { return r.dataset.path === path; }) : treeEl.querySelector(".row.root");
       if (cur) cur.classList.add("current");
@@ -176,10 +180,13 @@
   function showAlbum(path) {
     renderCrumbs(path);
     document.title = (path ? leaf(path) + " - " : "") + "Gallery";
-    syncTree(path);
+    var seq = ++navSeq;
+    syncTree(path, seq);
     if (current && current.path === path) return Promise.resolve(current);
     statusEl.textContent = "Loading...";
+    current = null;
     return loadAlbum(path).then(function (a) {
+      if (seq !== navSeq) return null;
       current = { path: path, images: a.images.map(function (n) { return path + n; }) };
       gridEl.textContent = "";
       foldersEl.textContent = "";
@@ -209,6 +216,7 @@
         : count + (count === 1 ? " image" : " images") + (a.dirs.length ? ", " + a.dirs.length + (a.dirs.length === 1 ? " folder" : " folders") : "");
       return current;
     }).catch(function () {
+      if (seq !== navSeq) return null;
       gridEl.textContent = "";
       foldersEl.textContent = "";
       current = null;
@@ -281,7 +289,9 @@
     try { path = raw.split("/").map(decodeURIComponent).join("/"); } catch (e) { path = ""; }
     var isImage = path && path.slice(-1) !== "/";
     var album = isImage ? path.slice(0, path.lastIndexOf("/") + 1) : path;
+    var seq = navSeq + 1;
     showAlbum(album).then(function () {
+      if (seq !== navSeq) return;
       if (isImage) openImage(path);
       else if (!lb.hidden) closeLightbox(true);
     });
