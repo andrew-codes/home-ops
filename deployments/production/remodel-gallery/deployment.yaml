@@ -1,0 +1,157 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: remodel-gallery
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: remodel-gallery
+  template:
+    metadata:
+      labels:
+        app: remodel-gallery
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: captures
+          persistentVolumeClaim:
+            claimName: remodel-gallery-captures
+            readOnly: true
+        - name: caddyfile
+          configMap:
+            name: remodel-gallery-caddyfile
+        - name: site
+          configMap:
+            name: remodel-gallery-site
+        # Caddy wants a writable data and config dir even with nothing to store.
+        - name: caddy-data
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: caddy-config
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+      containers:
+        # Public entrypoint: serves the page and originals, and routes previews to imgproxy.
+        - name: caddy
+          image: caddy:2.11.6-alpine
+          imagePullPolicy: IfNotPresent
+          args:
+            - caddy
+            - run
+            - --config
+            - /etc/caddy/Caddyfile
+            - --adapter
+            - caddyfile
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: XDG_DATA_HOME
+              value: /data
+            - name: XDG_CONFIG_HOME
+              value: /config
+          volumeMounts:
+            - name: captures
+              mountPath: /captures
+              readOnly: true
+            - name: site
+              mountPath: /srv/site
+              readOnly: true
+            - name: caddyfile
+              mountPath: /etc/caddy
+              readOnly: true
+            - name: caddy-data
+              mountPath: /data
+            - name: caddy-config
+              mountPath: /config
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+        # Resizes captures on demand. Listens on loopback only, so Caddy is the only way in.
+        - name: imgproxy
+          image: darthsim/imgproxy:v3.31.4
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: IMGPROXY_BIND
+              value: 127.0.0.1:8081
+            # Sources are fetched back through Caddy's originals route, so imgproxy
+            # sees only what the public site serves (images, no dotfiles) and has no
+            # filesystem access of its own.
+            - name: IMGPROXY_BASE_URL
+              value: "http://127.0.0.1:8080/gallery/originals/"
+            - name: IMGPROXY_ALLOWED_SOURCES
+              value: "http://127.0.0.1:8080/gallery/originals/"
+            - name: IMGPROXY_ALLOW_LOOPBACK_SOURCE_ADDRESSES
+              value: "true"
+            # Presets only: visitors pick a named preset and cannot request arbitrary
+            # sizes or processing options. Signing is not needed because nothing else is
+            # controllable, and IMGPROXY_ALLOW_INSECURE is deliberately not set.
+            - name: IMGPROXY_ONLY_PRESETS
+              value: "true"
+            - name: IMGPROXY_PRESETS
+              value: "thumb=resize:fit:480:480/quality:72,preview=resize:fit:1800:1800/quality:82"
+            # Source limits: megapixels, bytes, and animation frames.
+            - name: IMGPROXY_MAX_SRC_RESOLUTION
+              value: "50"
+            - name: IMGPROXY_MAX_SRC_FILE_SIZE
+              value: "104857600"
+            - name: IMGPROXY_MAX_ANIMATION_FRAMES
+              value: "1"
+            - name: IMGPROXY_CONCURRENCY
+              value: "4"
+            - name: IMGPROXY_TIMEOUT
+              value: "30"
+            - name: IMGPROXY_TTL
+              value: "31536000"
+            - name: IMGPROXY_ETAG_ENABLED
+              value: "true"
+            - name: IMGPROXY_DEVELOPMENT_ERRORS_MODE
+              value: "false"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi

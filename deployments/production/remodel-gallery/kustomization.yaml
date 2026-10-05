@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: default
+resources:
+  - volumes.yaml
+  - service.yaml
+  - deployment.yaml
+# Generated ConfigMaps get a content hash in their name, so editing any file rolls the pod.
+configMapGenerator:
+  - name: remodel-gallery-caddyfile
+    files:
+      - Caddyfile
+  - name: remodel-gallery-site
+    files:
+      - site/index.html
+      - site/app.js
+      - site/style.css

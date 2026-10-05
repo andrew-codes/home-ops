@@ -1,0 +1,82 @@
+{
+	admin off
+	auto_https off
+	persist_config off
+	servers {
+		timeouts {
+			read_header 10s
+		}
+	}
+}
+
+:8080 {
+	handle /health {
+		respond "ok" 200
+	}
+
+	# Everything below is read-only: only GET and HEAD are served.
+	@writes not method GET HEAD
+	handle @writes {
+		respond "method not allowed" 405
+	}
+
+	# Requests here are bodyless GETs; cap anything that sneaks a body in.
+	request_body {
+		max_size 1KB
+	}
+
+	# Resized images come from imgproxy, which only knows the named presets and
+	# fetches sources through the originals route below (so dotfiles stay hidden). The page asks for
+	# /gallery/img/<preset>/<base64url of the album path>.<webp|jpg>: the opaque
+	# token keeps '#', '%' and '..' in file names from being interpreted as
+	# URL syntax, and arbitrary sizes are not routable.
+	@img path_regexp img ^/gallery/img/(thumb|preview)/([A-Za-z0-9_-]+)\.(webp|jpg)$
+	handle @img {
+		rewrite * /_/{re.img.1}/{re.img.2}.{re.img.3}
+		reverse_proxy 127.0.0.1:8081
+	}
+
+	# Originals are streamed byte-for-byte from the volume with range support.
+	# Only image files are served, dotfiles are hidden, and there is no `browse`
+	# here. ?download=1 forces a save dialog instead of inline display.
+	@original path_regexp origfile (?i)^/gallery/originals/.+\.(png|jpe?g|webp|gif|avif|tiff?)$
+	handle @original {
+		@download query download=1
+		header @download Content-Disposition attachment
+		header Cache-Control "public, max-age=86400"
+		uri strip_prefix /gallery/originals
+		file_server {
+			root /captures
+			hide .*
+		}
+	}
+
+	# The only directory listing: JSON for one folder at a time, directories
+	# only (trailing slash required, so a file path cannot fall through to a
+	# file download). The page turns this into the album tree.
+	@albums path_regexp albums ^/gallery/api/albums/(.*/)?$
+	handle @albums {
+		request_header Accept application/json
+		uri strip_prefix /gallery/api/albums
+		header Cache-Control "no-cache"
+		file_server browse {
+			root /captures
+			hide .*
+		}
+	}
+
+	# The browsing page (index.html, app.js, style.css).
+	handle /gallery/* {
+		uri strip_prefix /gallery
+		header Cache-Control "no-cache"
+		file_server {
+			root /srv/site
+			index index.html
+		}
+	}
+	redir /gallery /gallery/ 308
+
+	handle {
+		respond "not found" 404
+	}
+}
