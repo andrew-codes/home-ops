@@ -5,3 +5,11 @@ resources:
   - volumes.yaml
   - service.yaml
   - deployment.yaml
+# Generated ConfigMaps get a content hash in their name, so editing either file rolls the pod.
+configMapGenerator:
+  - name: couch-colors-caddyfile
+    files:
+      - Caddyfile
+  - name: couch-colors-collector
+    files:
+      - collector/collector.py

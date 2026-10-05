@@ -1,0 +1,38 @@
+{
+	admin off
+	auto_https off
+	persist_config off
+	servers {
+		timeouts {
+			read_header 10s
+		}
+	}
+}
+
+:8080 {
+	root * /public
+
+	handle /health {
+		respond "ok" 200
+	}
+
+	# The page calls these on its own origin; the collector sidecar answers.
+	handle /api/* {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy 127.0.0.1:8081
+	}
+	handle /results {
+		reverse_proxy 127.0.0.1:8081
+	}
+
+	# Large files are streamed from disk with byte-range support. There is no
+	# `encode` directive, so nothing is compressed, and no `browse`, so there
+	# are no directory listings.
+	handle {
+		file_server {
+			hide .*
+		}
+	}
+}

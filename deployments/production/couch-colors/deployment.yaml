@@ -5,6 +5,9 @@ metadata:
   namespace: default
 spec:
   replicas: 1
+  # The votes file lives on a shared volume; never run two collectors against it at once.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: couch-colors
@@ -17,39 +20,62 @@ spec:
         runAsNonRoot: true
         runAsUser: 65534
         runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
       volumes:
         - name: couch-colors-data
           persistentVolumeClaim:
             claimName: couch-colors-data
             readOnly: true
+        - name: couch-colors-votes
+          persistentVolumeClaim:
+            claimName: couch-colors-votes
+        - name: caddyfile
+          configMap:
+            name: couch-colors-caddyfile
+        - name: collector
+          configMap:
+            name: couch-colors-collector
+        # Caddy wants a writable data and config dir even with nothing to store.
+        - name: caddy-data
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: caddy-config
+          emptyDir:
+            sizeLimit: 16Mi
       containers:
-        - name: static-web-server
-          image: joseluisq/static-web-server:2.44.0
+        # Serves the page volume and routes /api/* and /results to the collector.
+        - name: caddy
+          image: caddy:2.11.6-alpine
           imagePullPolicy: IfNotPresent
+          args:
+            - caddy
+            - run
+            - --config
+            - /etc/caddy/Caddyfile
+            - --adapter
+            - caddyfile
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
+              # The caddy binary carries a file capability for low ports; exec fails
+              # with "operation not permitted" if it is missing from the bounding set.
+              add:
+                - NET_BIND_SERVICE
           volumeMounts:
             - name: couch-colors-data
               mountPath: /public
               readOnly: true
-          env:
-            - name: SERVER_PORT
-              value: "8080"
-            - name: SERVER_ROOT
-              value: /public
-            - name: SERVER_HEALTH
-              value: "true"
-            - name: SERVER_DIRECTORY_LISTING
-              value: "false"
-            # Large files are streamed from disk with byte-range support; on-the-fly compression would buffer them.
-            - name: SERVER_COMPRESSION
-              value: "false"
-            - name: SERVER_COMPRESSION_STATIC
-              value: "false"
+            - name: caddyfile
+              mountPath: /etc/caddy
+              readOnly: true
+            - name: caddy-data
+              mountPath: /data
+            - name: caddy-config
+              mountPath: /config
           ports:
             - name: http
               containerPort: 8080
@@ -72,3 +98,58 @@ spec:
             limits:
               cpu: "1"
               memory: 256Mi
+        # Collects votes into a JSON-lines file on its own writable volume.
+        - name: vote-collector
+          image: python:3.13.16-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - python3
+            - /app/collector.py
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PORT
+              value: "8081"
+            - name: VOTES_FILE
+              value: /votes/votes.jsonl
+            - name: RESULTS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: couch-colors-results
+                  key: token
+          volumeMounts:
+            - name: collector
+              mountPath: /app
+              readOnly: true
+            - name: couch-colors-votes
+              mountPath: /votes
+          ports:
+            - name: collector
+              containerPort: 8081
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: collector
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: collector
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
