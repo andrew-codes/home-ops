@@ -7,12 +7,13 @@ spec:
   replicas: 1
   # The votes file lives on a shared volume; never run two collectors against it at once.
   # Step 1 of 2: pin the RollingUpdate parameters explicitly so kustomize-controller owns them.
-  # Step 2 switches to Recreate and drops this block, which releases the owned field.
+  # maxSurge 0 and maxUnavailable 1 stop the old pod before the new one starts, which behaves like Recreate.
+  # Step 2 still replaces this with type Recreate and drops the rollingUpdate block, which releases the owned field.
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: couch-colors
