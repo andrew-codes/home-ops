@@ -43,7 +43,7 @@
 		}
 	}
 
-	# The vote page calls these on the site root. The collector enforces its own
+	# The vote page calls these on the root. The collector enforces its own
 	# limits and the /results token check; the query string is forwarded untouched.
 	handle /api/* {
 		request_body {

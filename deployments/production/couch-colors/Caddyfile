@@ -22,14 +22,14 @@
 			max_size 16KB
 		}
 		reverse_proxy 127.0.0.1:8081 {
-			# The site front door puts the visitor address in X-Client-Ip; the collector
+			# The remodel front door puts the visitor address in X-Client-Ip; the collector
 			# rate-limits on the last X-Forwarded-For entry, so replace it with that.
 			header_up X-Forwarded-For {header.X-Client-Ip}
 		}
 	}
 	handle /results {
 		reverse_proxy 127.0.0.1:8081 {
-			# The site front door puts the visitor address in X-Client-Ip; the collector
+			# The remodel front door puts the visitor address in X-Client-Ip; the collector
 			# rate-limits on the last X-Forwarded-For entry, so replace it with that.
 			header_up X-Forwarded-For {header.X-Client-Ip}
 		}

@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: site
+  name: remodel
   namespace: default
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: site
+      app: remodel
   template:
     metadata:
       labels:
-        app: site
+        app: remodel
     spec:
       securityContext:
         runAsNonRoot: true
@@ -22,10 +22,10 @@ spec:
       volumes:
         - name: caddyfile
           configMap:
-            name: site-caddyfile
+            name: remodel-caddyfile
         - name: pages
           configMap:
-            name: site-pages
+            name: remodel-pages
         # Caddy wants a writable data and config dir even with nothing to store.
         - name: caddy-data
           emptyDir:
