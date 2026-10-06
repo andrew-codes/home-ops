@@ -5,7 +5,16 @@
   try {
     var links = [
       ["Home", "/", /^\/$/],
-      ["Couch colours", "/couch-colors/", /^\/couch-colors(\/|$)/],
+      [
+        "Couch colours",
+        "/couch-colors/",
+        /^\/couch-colors(\/(?!couch-layouts)|$)/,
+      ],
+      [
+        "Couch layouts",
+        "/couch-colors/couch-layouts/",
+        /^\/couch-colors\/couch-layouts(\/|$)/,
+      ],
       ["Gallery", "/gallery/", /^\/gallery(\/|$)/],
     ]
     var path = location.pathname
