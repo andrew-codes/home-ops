@@ -94,6 +94,16 @@ check "bytes still match" "$(cmp -s "$SRC" "$WORK/state/$UID_.bin" && echo 0 || 
 check "the failed chunk was retried from Stream's offset" "$(grep -q '"method": "HEAD"' "$WORK/state/requests.jsonl" && echo 0 || echo 1)"
 check "no thumbAt when not asked" "$([ "$(jq 'has("thumbAt")' "$ALBUM2/Resumed.stream.json")" = false ] && echo 0 || echo 1)"
 
+echo "--- resume after Stream kept part of a failed chunk"
+start_mock partial-first-patch
+ALBUM2P="$WORK/album2p"
+mkdir -p "$ALBUM2P"
+run "$SCRIPT" "$SRC" "$ALBUM2P" --name "Partial" --no-wait
+check "exit status 0" "$RC" "$OUT"
+UID_="$(jq -r .uid "$ALBUM2P/Partial.stream.json" 2>/dev/null)"
+check "bytes still match" "$(cmp -s "$SRC" "$WORK/state/$UID_.bin" && echo 0 || echo 1)"
+check "resumed from a byte offset that is not a whole MiB" "$([ "$(jq -s '[.[] | select(.method=="PATCH" and (.offset | tonumber) % 1048576 != 0)] | length' "$WORK/state/requests.jsonl")" -ge 1 ] && echo 0 || echo 1)"
+
 echo "--- wrong token"
 start_mock
 ALBUM3="$WORK/album3"

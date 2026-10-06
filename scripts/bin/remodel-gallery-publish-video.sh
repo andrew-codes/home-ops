@@ -96,7 +96,7 @@ server_offset() {
 tus_upload() {
   local url="$1" file="$2" size="$3" chunk=$((CHUNK_MIB * 1048576)) offset=0 attempt=0 out status new
   while [ "$offset" -lt "$size" ]; do
-    out="$(dd if="$file" bs=1048576 skip=$((offset / 1048576)) count="$CHUNK_MIB" 2>/dev/null |
+    out="$({ tail -c +$((offset + 1)) "$file" | head -c "$chunk" || true; } |
       api_curl "$url" -i -X PATCH --data-binary @- \
         -H "Tus-Resumable: 1.0.0" -H "Upload-Offset: $offset" \
         -H "Content-Type: application/offset+octet-stream")" || out=""

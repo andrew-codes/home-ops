@@ -7,7 +7,7 @@ details read. It checks the bearer token on API calls, enforces tus offsets and
 chunk rules, and appends one JSON line per request to the log file so a test can
 assert what was sent (including that the token never went anywhere unexpected).
 
-Usage: mock-stream-api.py PORT STATE_DIR TOKEN [fail-first-patch] [encode-error] [evil-location]
+Usage: mock-stream-api.py PORT STATE_DIR TOKEN [fail-first-patch] [partial-first-patch] [encode-error] [evil-location]
 Writes STATE_DIR/ready once it is listening. Uploaded bytes land in STATE_DIR/<uid>.bin
 and the request log in STATE_DIR/requests.jsonl.
 """
@@ -135,6 +135,12 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(404)
         if "fail-first-patch" in FLAGS and not failed_once[0] and up["offset"] > 0:
             failed_once[0] = True
+            return self.send(500)
+        if "partial-first-patch" in FLAGS and not failed_once[0] and up["offset"] > 0:
+            failed_once[0] = True
+            with open(os.path.join(STATE, m.group(1) + ".bin"), "ab") as f:
+                f.write(body[:100000])
+            up["offset"] += 100000
             return self.send(500)
         if int(self.headers.get("Upload-Offset", -1)) != up["offset"]:
             return self.send(409)
