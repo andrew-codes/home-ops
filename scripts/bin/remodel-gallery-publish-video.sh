@@ -28,7 +28,14 @@
 #   --no-wait          do not wait for Stream to finish encoding
 #   -h, --help         this text
 #
-# Environment (never committed; set it in your shell profile or a local env file):
+# Run it through the wrapper, which reads the credentials from 1Password and gives
+# them to this script alone, so nobody ever reads, prints or pastes the token:
+#
+#   scripts/bin/with-stream-token.sh scripts/bin/remodel-gallery-publish-video.sh <args>
+#
+# Do not read, print, echo, export or paste CF_STREAM_API_TOKEN by hand.
+#
+# Environment (set by with-stream-token.sh; never committed):
 #   CF_ACCOUNT_ID                Cloudflare account id
 #   CF_STREAM_API_TOKEN          API token with Stream: Edit on that account, and
 #                                nothing else. Sent only to Cloudflare, never on a
