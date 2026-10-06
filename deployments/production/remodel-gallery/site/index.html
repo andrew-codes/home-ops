@@ -37,10 +37,7 @@
   <button id="lb-prev" class="nav" aria-label="Previous">&#8249;</button>
   <div class="lb-stage">
     <img id="lb-img" alt="">
-    <video id="lb-video" preload="metadata" playsinline></video>
-    <button id="lb-play" type="button" aria-label="Play video" hidden>
-      <svg viewBox="0 0 48 48" width="72" height="72" aria-hidden="true"><circle cx="24" cy="24" r="23" fill="rgba(0,0,0,.6)" stroke="#fff" stroke-width="2"/><path d="M19 15l16 9-16 9z" fill="#fff"/></svg>
-    </button>
+    <iframe id="lb-frame" title="Video player" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
     <div id="lb-spin" aria-hidden="true"></div>
   </div>
   <button id="lb-next" class="nav" aria-label="Next">&#8250;</button>

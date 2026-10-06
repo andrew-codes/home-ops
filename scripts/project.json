@@ -7,7 +7,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "./tests/cloudflare-access-azure-idp.test.sh",
+        "command": "./tests/cloudflare-access-azure-idp.test.sh && ./tests/remodel-gallery-publish-video.test.sh",
         "cwd": "{projectRoot}"
       }
     }
