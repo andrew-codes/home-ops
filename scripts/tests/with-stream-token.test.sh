@@ -17,6 +17,7 @@ trap 'rm -rf "$WORK"' EXIT
 
 SECRET="dummy-stream-secret_9f3a7c1e"
 ACCOUNT="dummy-account-id_42"
+OTHER_ACCOUNT="dummy-other-account_77"
 FAKE_BIN="$WORK/bin"
 EMPTY_BIN="$WORK/empty"
 mkdir -p "$FAKE_BIN" "$EMPTY_BIN"
@@ -34,7 +35,8 @@ case "\${FAKE_OP_MODE:-ok}" in
 esac
 case "\$ref" in
   *stream-api-token) printf '%s' '$SECRET' ;;
-  *account-id) printf '%s' '$ACCOUNT' ;;
+  op://home-ops/cloudflare/account-id) printf '%s' '$ACCOUNT' ;;
+  op://other/item/acct) printf '%s' '$OTHER_ACCOUNT' ;;
   *) exit 1 ;;
 esac
 EOF
@@ -62,7 +64,7 @@ no_leak() { # no_leak "name" -- the dummy secret is not in $OUT
 }
 
 run() { # run args... ; stdout+stderr in $OUT, status in $RC
-  OUT="$(env PATH="$FAKE_BIN:$PATH" STREAM_ACCOUNT_ID_OP_REF="op://home-ops/cloudflare/account-id" \
+  OUT="$(env PATH="$FAKE_BIN:$PATH" \
     STREAM_TOKEN_OP_TIMEOUT=2 EXPECT_SECRET="$SECRET" EXPECT_ACCOUNT="$ACCOUNT" "$@" 2>&1)"
   RC=$?
 }
@@ -76,13 +78,16 @@ check "arguments pass through" "$(printf '%s' "$OUT" | grep -qF 'child: args=one
 no_leak "success"
 check "quiet: only the child's own output" "$([ "$(printf '%s\n' "$OUT" | wc -l | tr -d ' ')" = 3 ] && echo 0 || echo 1)" "$OUT"
 
-echo "--- account id from the environment"
-run CF_ACCOUNT_ID="$ACCOUNT" STREAM_ACCOUNT_ID_OP_REF= "$SCRIPT" child
-check "uses CF_ACCOUNT_ID without a 1Password reference" "$(printf '%s' "$OUT" | grep -q 'child: account ok' && echo 0 || echo 1)" "$OUT"
-run STREAM_ACCOUNT_ID_OP_REF= "$SCRIPT" child
-check "no account id anywhere fails" "$([ "$RC" -ne 0 ] && echo 0 || echo 1)"
-check "says how to supply it" "$(printf '%s' "$OUT" | grep -q 'CF_ACCOUNT_ID' && echo 0 || echo 1)" "$OUT"
-no_leak "no account id"
+echo "--- account id sources"
+run CF_ACCOUNT_ID="env-account-id" "$SCRIPT" child
+check "CF_ACCOUNT_ID from the environment wins" "$(printf '%s' "$OUT" | grep -q 'child: account wrong' && echo 0 || echo 1)" "$OUT"
+run EXPECT_ACCOUNT="$OTHER_ACCOUNT" STREAM_ACCOUNT_ID_OP_REF="op://other/item/acct" "$SCRIPT" child
+check "STREAM_ACCOUNT_ID_OP_REF overrides the default reference" "$(printf '%s' "$OUT" | grep -q 'child: account ok' && echo 0 || echo 1)" "$OUT"
+run STREAM_ACCOUNT_ID_OP_REF="op://home-ops/cloudflare/missing-field" "$SCRIPT" child
+check "missing account-id field fails" "$([ "$RC" -ne 0 ] && echo 0 || echo 1)"
+check "missing field error names the account id" "$(printf '%s' "$OUT" | grep -q 'CF_ACCOUNT_ID' && echo 0 || echo 1)" "$OUT"
+check "child did not run" "$(printf '%s' "$OUT" | grep -q 'child:' && echo 1 || echo 0)"
+no_leak "missing account id field"
 
 echo "--- exit code passes through"
 run CHILD_EXIT=7 "$SCRIPT" child
@@ -125,11 +130,11 @@ run "$SCRIPT"
 check "no command prints usage and fails" "$([ "$RC" -eq 2 ] && echo 0 || echo 1)" "rc=$RC"
 
 echo "--- xtrace is refused"
-OUT="$(env PATH="$FAKE_BIN:$PATH" STREAM_ACCOUNT_ID_OP_REF="op://home-ops/cloudflare/account-id" bash -x "$SCRIPT" child 2>&1)"
+OUT="$(env PATH="$FAKE_BIN:$PATH" bash -x "$SCRIPT" child 2>&1)"
 RC=$?
 check "bash -x refuses" "$([ "$RC" -ne 0 ] && printf '%s' "$OUT" | grep -q 'xtrace' && echo 0 || echo 1)" "$OUT"
 no_leak "bash -x"
-OUT="$(env PATH="$FAKE_BIN:$PATH" SHELLOPTS=xtrace STREAM_ACCOUNT_ID_OP_REF="op://home-ops/cloudflare/account-id" bash "$SCRIPT" child 2>&1)"
+OUT="$(env PATH="$FAKE_BIN:$PATH" SHELLOPTS=xtrace bash "$SCRIPT" child 2>&1)"
 RC=$?
 check "SHELLOPTS=xtrace refuses" "$([ "$RC" -ne 0 ] && echo 0 || echo 1)" "$OUT"
 no_leak "SHELLOPTS=xtrace"
