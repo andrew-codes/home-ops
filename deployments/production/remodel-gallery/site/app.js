@@ -1,19 +1,22 @@
 // Gallery browser. Plain JS, no build step.
 // Albums come from /gallery/api/albums/<path>/ (Caddy browse JSON), previews from
 // /gallery/img/<preset>/<base64url path>.<webp|jpg>, originals from /gallery/originals/<path>.
-// A video is <name>.mp4 (H.264/AAC, faststart) with an optional <name>.poster.jpg beside it;
-// the poster is resized like any image, and the video itself streams from the originals route.
+// A video is not a file here: it lives in Cloudflare Stream, and the album folder holds a small
+// <name>.stream.json beside the images (written by the publish script) with its player URL and
+// thumbnail URL. The browser loads the thumbnail and plays the video straight from Stream, so no
+// video byte passes through this site.
 (function () {
   "use strict";
 
   var BASE = "/gallery";
   var IMAGE_RE = /\.(png|jpe?g|webp|gif|avif|tiff?)$/i;
-  var VIDEO_RE = /\.(mp4|m4v|webm)$/i;
-  var POSTER_SUFFIX = ".poster.jpg";
+  var SIDECAR_RE = /\.stream\.json$/i;
+  // The sidecar sits on a writable-by-hand volume; only ever frame or load from Stream itself.
+  var STREAM_HOST_RE = /\.(cloudflarestream\.com|videodelivery\.net)$/i;
 
   var $ = function (id) { return document.getElementById(id); };
   var treeEl = $("tree"), gridEl = $("grid"), foldersEl = $("folders"), crumbsEl = $("crumbs"), statusEl = $("status");
-  var lb = $("lightbox"), lbImg = $("lb-img"), lbVideo = $("lb-video"), lbPlay = $("lb-play");
+  var lb = $("lightbox"), lbImg = $("lb-img"), lbFrame = $("lb-frame");
 
   // Browsers without webp get explicit .jpg URLs.
   var FORMAT = (function () {
@@ -26,8 +29,8 @@
     }
   })();
 
-  var cache = {};       // album path ("a/b/") -> Promise<{dirs, images}>
-  var current = null;   // {path, images, posters}: images holds every image and video path in order; posters maps a video path to its poster path
+  var cache = {};       // album path ("a/b/") -> Promise<{dirs, files, videos}>
+  var current = null;   // {path, images, videos}: images holds every image and video (sidecar) path in order; videos maps a sidecar path to {title, iframe, thumbnail, thumbAt}
   var lbIndex = -1;
   var navSeq = 0;       // bumped per showAlbum; older async work checks it and bails
   var rootList = null; // <ul> holding the top-level album nodes
@@ -46,7 +49,28 @@
   function originalUrl(path) { return BASE + "/originals/" + encodePath(path); }
   function hashFor(path) { return "#/" + encodePath(path); }
   function leaf(path) { return path.replace(/\/$/, "").split("/").pop(); }
-  function stem(name) { return name.replace(/\.[^.]+$/, ""); }
+  function stem(name) { return name.replace(/\.[^.]+$/, "").replace(/\.stream$/i, ""); }
+
+  // A sidecar's URLs must be https on Stream's own hosts; anything else is dropped.
+  function streamUrl(u) {
+    try {
+      var url = new URL(u);
+      return url.protocol === "https:" && STREAM_HOST_RE.test(url.hostname) ? url : null;
+    } catch (e) { return null; }
+  }
+  // Stream renders thumbnails on demand: ?time picks the frame, ?height the size.
+  function thumbUrl(v, height) {
+    var u = new URL(v.thumbnail.href);
+    u.searchParams.set("time", v.thumbAt || "1s");
+    u.searchParams.set("height", String(height));
+    return u.href;
+  }
+  function playerUrl(v) {
+    var u = new URL(v.iframe.href);
+    u.searchParams.set("poster", thumbUrl(v, 1080));
+    u.searchParams.set("preload", "metadata");
+    return u.href;
+  }
 
   function loadAlbum(path) {
     if (!cache[path]) {
@@ -56,25 +80,34 @@
           return r.json();
         })
         .then(function (items) {
-          var dirs = [], images = [], videos = [], posters = {};
+          var dirs = [], images = [], sidecars = [];
           items.forEach(function (it) {
             // imgproxy parses the source as a URL and drops everything after '?', so such names cannot be previewed.
             if (it.name.charAt(0) === "." || it.name.indexOf("?") >= 0) return;
             if (it.is_dir) dirs.push(it.name.replace(/\/$/, ""));
-            else if (VIDEO_RE.test(it.name)) videos.push(it.name);
+            else if (SIDECAR_RE.test(it.name)) sidecars.push(it.name);
             else if (IMAGE_RE.test(it.name)) images.push(it.name);
           });
-          // clip.poster.jpg is the thumbnail for clip.mp4, not a capture of its own.
-          videos.forEach(function (v) {
-            var want = (stem(v) + POSTER_SUFFIX).toLowerCase();
-            images = images.filter(function (n) {
-              if (n.toLowerCase() !== want) return true;
-              posters[v] = n;
-              return false;
+          // One small JSON per video; a missing or malformed one just leaves that video out.
+          return Promise.all(sidecars.map(function (n) {
+            return fetch(originalUrl(path + n)).then(function (r) {
+              if (!r.ok) throw new Error("HTTP " + r.status);
+              return r.json();
+            }).then(function (j) {
+              var iframe = streamUrl(j.iframe), thumbnail = streamUrl(j.thumbnail);
+              if (!iframe || !thumbnail) return null;
+              return { name: n, video: { title: typeof j.title === "string" && j.title ? j.title : stem(n), iframe: iframe, thumbnail: thumbnail, thumbAt: typeof j.thumbAt === "string" ? j.thumbAt : "" } };
+            }).catch(function () { return null; });
+          })).then(function (found) {
+            var videos = {};
+            found.forEach(function (f) {
+              if (!f) return;
+              images.push(f.name);
+              videos[path + f.name] = f.video;
             });
+            var cmp = function (a, b) { return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }); };
+            return { dirs: dirs.sort(cmp), files: images.sort(cmp), videos: videos };
           });
-          var cmp = function (a, b) { return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }); };
-          return { dirs: dirs.sort(cmp), files: images.concat(videos).sort(cmp), posters: posters };
         });
       cache[path].catch(function () { delete cache[path]; });
     }
@@ -206,8 +239,7 @@
     current = null;
     return loadAlbum(path).then(function (a) {
       if (seq !== navSeq) return null;
-      current = { path: path, images: a.files.map(function (n) { return path + n; }), posters: {} };
-      Object.keys(a.posters).forEach(function (v) { current.posters[path + v] = path + a.posters[v]; });
+      current = { path: path, images: a.files.map(function (n) { return path + n; }), videos: a.videos };
       gridEl.textContent = "";
       foldersEl.textContent = "";
       a.dirs.forEach(function (d) {
@@ -219,28 +251,25 @@
       });
       var videoCount = 0;
       a.files.forEach(function (n) {
-        var isVideo = VIDEO_RE.test(n);
+        var vid = a.videos[path + n];
+        var isVideo = !!vid;
+        var label = isVideo ? vid.title : n;
         var b = el("button", isVideo ? "tile video" : "tile");
         b.type = "button";
-        b.setAttribute("aria-label", (isVideo ? "Play " : "Open ") + n);
-        var thumb = isVideo ? current.posters[path + n] : path + n;
-        if (thumb) {
-          var img = el("img");
-          img.loading = "lazy";
-          img.decoding = "async";
-          img.alt = "";
-          img.src = previewUrl("thumb", thumb);
-          // A poster that fails to load falls back to the plain video tile.
-          if (isVideo) img.addEventListener("error", function () { img.remove(); b.classList.add("noposter"); });
-          b.appendChild(img);
-        } else if (isVideo) {
-          b.classList.add("noposter");
-        }
+        b.setAttribute("aria-label", (isVideo ? "Play " : "Open ") + label);
+        var img = el("img");
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.alt = "";
+        img.src = isVideo ? thumbUrl(vid, 480) : previewUrl("thumb", path + n);
+        // A thumbnail that fails to load (a video Stream is still encoding) falls back to the plain video tile.
+        if (isVideo) img.addEventListener("error", function () { img.remove(); b.classList.add("noposter"); });
+        b.appendChild(img);
         if (isVideo) {
           videoCount++;
           b.insertAdjacentHTML("beforeend", PLAY_BADGE_SVG);
         }
-        b.appendChild(el("span", "cap", n));
+        b.appendChild(el("span", "cap", label));
         b.addEventListener("click", function () { location.hash = hashFor(path + n); });
         gridEl.appendChild(b);
       });
@@ -261,54 +290,49 @@
   }
 
   // ---- Lightbox ----
-  // Stop the video and drop its source so the browser abandons the download.
+  // Unload the player so Stream stops playing and the connection is dropped.
   function resetVideo() {
-    lbVideo.pause();
-    lbVideo.removeAttribute("controls");
-    lbVideo.removeAttribute("poster");
-    lbVideo.removeAttribute("src");
-    lbVideo.load();
-    lbPlay.hidden = true;
+    if (lbFrame.getAttribute("src")) lbFrame.src = "about:blank";
+    lbFrame.removeAttribute("src");
   }
 
   function openImage(path) {
     var i = current ? current.images.indexOf(path) : -1;
     if (i < 0) { closeLightbox(true); return; }
-    var isVideo = VIDEO_RE.test(path);
+    var vid = current.videos[path];
+    var isVideo = !!vid;
     lbIndex = i;
     lb.hidden = false;
     document.body.style.overflow = "hidden";
     lb.classList.toggle("is-video", isVideo);
     resetVideo();
+    var dl = $("lb-download");
     if (isVideo) {
       lbImg.removeAttribute("src");
       lb.classList.remove("loading");
-      // preload=metadata fetches only the header (moov atom) up front; the rest
-      // streams by range request once the viewer presses play. Controls appear
-      // with the first play.
-      var poster = current.posters[path];
-      if (poster) lbVideo.poster = previewUrl("preview", poster);
-      lbVideo.src = originalUrl(path);
-      lbPlay.hidden = false;
+      // Stream's own player: adaptive streaming, seeking, quality and fullscreen controls.
+      lbFrame.src = playerUrl(vid);
+      $("lb-name").textContent = vid.title;
+      // Stream keeps no original to hand back, so videos have no download link here.
+      dl.hidden = true;
     } else {
       lb.classList.add("loading");
       lbImg.onload = lbImg.onerror = function () { lb.classList.remove("loading"); };
       lbImg.src = previewUrl("preview", path);
       lbImg.alt = leaf(path);
+      $("lb-name").textContent = leaf(path);
+      dl.hidden = false;
+      dl.href = originalUrl(path) + "?download=1";
+      dl.setAttribute("download", leaf(path));
     }
-    $("lb-name").textContent = leaf(path);
-    var dl = $("lb-download");
-    dl.href = originalUrl(path) + "?download=1";
-    dl.setAttribute("download", leaf(path));
     $("lb-count").textContent = (i + 1) + " / " + current.images.length;
     $("lb-prev").style.visibility = i > 0 ? "visible" : "hidden";
     $("lb-next").style.visibility = i < current.images.length - 1 ? "visible" : "hidden";
     $("lb-close").focus();
-    // Warm the neighbours (a video's poster, never the video).
+    // Warm the neighbours (images only; a video's player loads when opened).
     [i - 1, i + 1].forEach(function (j) {
       var n = current.images[j];
-      if (n && VIDEO_RE.test(n)) n = current.posters[n];
-      if (n) new Image().src = previewUrl("preview", n);
+      if (n && !current.videos[n]) new Image().src = previewUrl("preview", n);
     });
   }
 
@@ -319,17 +343,6 @@
     document.body.style.overflow = "";
     if (!skipHash && current) location.hash = hashFor(current.path);
   }
-
-  function playVideo() {
-    var p = lbVideo.play();
-    if (p && p.catch) p.catch(function () { lbVideo.setAttribute("controls", ""); lbPlay.hidden = true; });
-  }
-  lbPlay.addEventListener("click", playVideo);
-  lbVideo.addEventListener("click", function () { if (!lbVideo.hasAttribute("controls")) playVideo(); });
-  lbVideo.addEventListener("play", function () {
-    lbVideo.setAttribute("controls", "");
-    lbPlay.hidden = true;
-  });
 
   function step(d) {
     var j = lbIndex + d;
@@ -345,14 +358,12 @@
   document.addEventListener("keydown", function (e) {
     if (lb.hidden) return;
     if (e.key === "Escape") closeLightbox();
-    // With the video focused, the arrows belong to its seek bar.
-    else if (e.target === lbVideo) return;
     else if (e.key === "ArrowLeft") step(-1);
     else if (e.key === "ArrowRight") step(1);
   });
   var touchX = null;
-  // Swipes that start on the video are scrubbing, not navigation.
-  lb.addEventListener("touchstart", function (e) { touchX = e.target === lbVideo ? null : e.touches[0].clientX; }, { passive: true });
+  // Touches inside the player iframe never reach this page, so swipes there scrub the video, not navigate.
+  lb.addEventListener("touchstart", function (e) { touchX = e.touches[0].clientX; }, { passive: true });
   lb.addEventListener("touchend", function (e) {
     if (touchX == null) return;
     var dx = e.changedTouches[0].clientX - touchX;

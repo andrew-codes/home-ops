@@ -36,13 +36,13 @@
 		reverse_proxy 127.0.0.1:8081
 	}
 
-	# Originals are streamed byte-for-byte from the volume with range support, so
-	# a browser can seek in and play a video before it has downloaded it (the
-	# file must be an MP4 with its moov atom up front; see the publish steps in
-	# the docs). Only image and video files are served, dotfiles are hidden, and
-	# there is no `browse` here. ?download=1 forces a save dialog instead of
-	# inline display.
-	@original path_regexp origfile (?i)^/gallery/originals/.+\.(png|jpe?g|webp|gif|avif|tiff?|mp4|m4v|webm)$
+	# Originals are streamed byte-for-byte from the volume: image files, plus the
+	# small <name>.stream.json file that stands in for a video (see the publish
+	# steps in the docs). Video bytes are never served from here: they live in
+	# Cloudflare Stream, which the browser plays directly, so none of it crosses
+	# the Cloudflare tunnel. Dotfiles are hidden and there is no `browse` here.
+	# ?download=1 forces a save dialog instead of inline display.
+	@original path_regexp origfile (?i)^/gallery/originals/.+\.(png|jpe?g|webp|gif|avif|tiff?|stream\.json)$
 	handle @original {
 		@download query download=1
 		header @download Content-Disposition attachment
