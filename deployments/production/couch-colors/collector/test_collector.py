@@ -254,11 +254,22 @@ class CollectorTest(unittest.TestCase):
         self.assertIn("elmosoft_93129", body)
         csp = headers["Content-Security-Policy"]
         self.assertIn("default-src 'none'", csp)
-        self.assertNotIn("script-src", csp.replace("default-src", ""))
         self.assertNotIn("unsafe-inline", csp)
         self.assertEqual(headers["Cache-Control"], "no-store")
         self.assertEqual(headers["Referrer-Policy"], "no-referrer")
         self.assertTrue(headers["Content-Type"].startswith("text/html"))
+
+    def test_results_page_loads_the_shared_nav_and_csp_allows_it(self):
+        _, headers, body = self.request("GET", "/results?token=" + TOKEN)
+        self.assertIn('<script src="/_site/nav.js" defer></script>', body)
+        directives = dict(
+            part.strip().split(" ", 1)
+            for part in headers["Content-Security-Policy"].split(";")
+            if part.strip()
+        )
+        # Same-origin script only; no other script source and no inline scripts.
+        self.assertEqual(directives["script-src"], "'self'")
+        self.assertNotIn("<script>", body)
 
     def test_results_page_ranks_by_votes(self):
         self.vote(ballotId=BALLOT, picks=["low", "high"])

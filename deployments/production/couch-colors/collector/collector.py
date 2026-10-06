@@ -218,17 +218,20 @@ def render_results_page(results, nonce):
         '<meta name="robots" content="noindex">'
         "<title>Couch color votes</title>"
         '<style nonce="%s">'
-        "body{font:16px/1.5 system-ui,sans-serif;max-width:56rem;margin:2rem auto;padding:0 1rem}"
+        "body{font:16px/1.5 system-ui,sans-serif;margin:0}"
+        "main{max-width:56rem;margin:2rem auto;padding:0 1rem}"
         "table{border-collapse:collapse;width:100%%}"
         "th,td{text-align:left;padding:.3rem .6rem;border-bottom:1px solid #8884}"
         "meter{width:12rem}ul{padding:0;list-style:none}"
         "li{border:1px solid #8886;border-radius:.5rem;padding:.2rem 1rem;margin:.6rem 0}"
         ".c{white-space:pre-wrap;overflow-wrap:anywhere}"
-        "</style></head><body><h1>Couch color votes</h1>"
+        "</style>"
+        '<script src="/_site/nav.js" defer></script>'
+        "</head><body><main><h1>Couch color votes</h1>"
         "<p>%d ballot(s). Latest submission per browser counted.</p>"
         "<h2>Ranking</h2><table><thead><tr><th>#</th><th>Couch</th><th>Votes</th>"
         "<th></th></tr></thead><tbody>%s</tbody></table>"
-        "<h2>Comments</h2><ul>%s</ul></body></html>"
+        "<h2>Comments</h2><ul>%s</ul></main></body></html>"
     ) % (nonce, total, rows, comments or "<li>No comments yet.</li>")
 
 
@@ -287,7 +290,7 @@ def make_handler(store, token, post_limiter, global_limiter, auth_limiter):
                 return self.send_json(200, results)
             nonce = secrets.token_urlsafe(16)
             csp = (
-                "default-src 'none'; style-src 'nonce-%s'; base-uri 'none'; "
+                "default-src 'none'; script-src 'self'; style-src 'nonce-%s'; base-uri 'none'; "
                 "form-action 'none'; frame-ancestors 'none'" % nonce
             )
             self.send(
