@@ -40,7 +40,8 @@
 	# small <name>.stream.json file that stands in for a video (see the publish
 	# steps in the docs). Video bytes are never served from here: they live in
 	# Cloudflare Stream, which the browser plays directly, so none of it crosses
-	# the Cloudflare tunnel. Dotfiles are hidden and there is no `browse` here.
+	# the Cloudflare tunnel. Dotfiles and the Synology @eaDir
+	# metadata folders are hidden (neither listed nor served), and there is no `browse` here.
 	# ?download=1 forces a save dialog instead of inline display.
 	@original path_regexp origfile (?i)^/gallery/originals/.+\.(png|jpe?g|webp|gif|avif|tiff?|stream\.json)$
 	handle @original {
@@ -50,7 +51,7 @@
 		uri strip_prefix /gallery/originals
 		file_server {
 			root /captures
-			hide .*
+			hide .* @eaDir
 		}
 	}
 
@@ -64,7 +65,7 @@
 		header Cache-Control "no-cache"
 		file_server browse {
 			root /captures
-			hide .*
+			hide .* @eaDir
 		}
 	}
 
