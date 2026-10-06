@@ -1,15 +1,19 @@
 // Gallery browser. Plain JS, no build step.
 // Albums come from /gallery/api/albums/<path>/ (Caddy browse JSON), previews from
 // /gallery/img/<preset>/<base64url path>.<webp|jpg>, originals from /gallery/originals/<path>.
+// A video is <name>.mp4 (H.264/AAC, faststart) with an optional <name>.poster.jpg beside it;
+// the poster is resized like any image, and the video itself streams from the originals route.
 (function () {
   "use strict";
 
   var BASE = "/gallery";
   var IMAGE_RE = /\.(png|jpe?g|webp|gif|avif|tiff?)$/i;
+  var VIDEO_RE = /\.(mp4|m4v|webm)$/i;
+  var POSTER_SUFFIX = ".poster.jpg";
 
   var $ = function (id) { return document.getElementById(id); };
   var treeEl = $("tree"), gridEl = $("grid"), foldersEl = $("folders"), crumbsEl = $("crumbs"), statusEl = $("status");
-  var lb = $("lightbox"), lbImg = $("lb-img");
+  var lb = $("lightbox"), lbImg = $("lb-img"), lbVideo = $("lb-video"), lbPlay = $("lb-play");
 
   // Browsers without webp get explicit .jpg URLs.
   var FORMAT = (function () {
@@ -23,7 +27,7 @@
   })();
 
   var cache = {};       // album path ("a/b/") -> Promise<{dirs, images}>
-  var current = null;   // {path, images}
+  var current = null;   // {path, images, posters}: images holds every image and video path in order; posters maps a video path to its poster path
   var lbIndex = -1;
   var navSeq = 0;       // bumped per showAlbum; older async work checks it and bails
   var rootList = null; // <ul> holding the top-level album nodes
@@ -42,6 +46,7 @@
   function originalUrl(path) { return BASE + "/originals/" + encodePath(path); }
   function hashFor(path) { return "#/" + encodePath(path); }
   function leaf(path) { return path.replace(/\/$/, "").split("/").pop(); }
+  function stem(name) { return name.replace(/\.[^.]+$/, ""); }
 
   function loadAlbum(path) {
     if (!cache[path]) {
@@ -51,15 +56,25 @@
           return r.json();
         })
         .then(function (items) {
-          var dirs = [], images = [];
+          var dirs = [], images = [], videos = [], posters = {};
           items.forEach(function (it) {
             // imgproxy parses the source as a URL and drops everything after '?', so such names cannot be previewed.
             if (it.name.charAt(0) === "." || it.name.indexOf("?") >= 0) return;
             if (it.is_dir) dirs.push(it.name.replace(/\/$/, ""));
+            else if (VIDEO_RE.test(it.name)) videos.push(it.name);
             else if (IMAGE_RE.test(it.name)) images.push(it.name);
           });
+          // clip.poster.jpg is the thumbnail for clip.mp4, not a capture of its own.
+          videos.forEach(function (v) {
+            var want = (stem(v) + POSTER_SUFFIX).toLowerCase();
+            images = images.filter(function (n) {
+              if (n.toLowerCase() !== want) return true;
+              posters[v] = n;
+              return false;
+            });
+          });
           var cmp = function (a, b) { return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }); };
-          return { dirs: dirs.sort(cmp), images: images.sort(cmp) };
+          return { dirs: dirs.sort(cmp), files: images.concat(videos).sort(cmp), posters: posters };
         });
       cache[path].catch(function () { delete cache[path]; });
     }
@@ -74,6 +89,8 @@
   }
 
   var FOLDER_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" fill="currentColor"/></svg>';
+
+  var PLAY_BADGE_SVG = '<svg class="play" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><circle cx="24" cy="24" r="23" fill="rgba(0,0,0,.6)" stroke="#fff" stroke-width="2"/><path d="M19 15l16 9-16 9z" fill="#fff"/></svg>';
 
   // ---- Album tree (sidebar) ----
   function buildTreeNode(parentPath, name) {
@@ -189,7 +206,8 @@
     current = null;
     return loadAlbum(path).then(function (a) {
       if (seq !== navSeq) return null;
-      current = { path: path, images: a.images.map(function (n) { return path + n; }) };
+      current = { path: path, images: a.files.map(function (n) { return path + n; }), posters: {} };
+      Object.keys(a.posters).forEach(function (v) { current.posters[path + v] = path + a.posters[v]; });
       gridEl.textContent = "";
       foldersEl.textContent = "";
       a.dirs.forEach(function (d) {
@@ -199,23 +217,39 @@
         link.appendChild(el("span", null, d));
         foldersEl.appendChild(link);
       });
-      a.images.forEach(function (n, i) {
-        var b = el("button", "tile");
+      var videoCount = 0;
+      a.files.forEach(function (n) {
+        var isVideo = VIDEO_RE.test(n);
+        var b = el("button", isVideo ? "tile video" : "tile");
         b.type = "button";
-        b.setAttribute("aria-label", "Open " + n);
-        var img = el("img");
-        img.loading = "lazy";
-        img.decoding = "async";
-        img.alt = "";
-        img.src = previewUrl("thumb", path + n);
-        b.appendChild(img);
+        b.setAttribute("aria-label", (isVideo ? "Play " : "Open ") + n);
+        var thumb = isVideo ? current.posters[path + n] : path + n;
+        if (thumb) {
+          var img = el("img");
+          img.loading = "lazy";
+          img.decoding = "async";
+          img.alt = "";
+          img.src = previewUrl("thumb", thumb);
+          // A poster that fails to load falls back to the plain video tile.
+          if (isVideo) img.addEventListener("error", function () { img.remove(); b.classList.add("noposter"); });
+          b.appendChild(img);
+        } else if (isVideo) {
+          b.classList.add("noposter");
+        }
+        if (isVideo) {
+          videoCount++;
+          b.insertAdjacentHTML("beforeend", PLAY_BADGE_SVG);
+        }
         b.appendChild(el("span", "cap", n));
         b.addEventListener("click", function () { location.hash = hashFor(path + n); });
         gridEl.appendChild(b);
       });
-      var count = a.images.length;
-      statusEl.textContent = !a.dirs.length && !count ? "This album is empty."
-        : count + (count === 1 ? " image" : " images") + (a.dirs.length ? ", " + a.dirs.length + (a.dirs.length === 1 ? " folder" : " folders") : "");
+      var imageCount = a.files.length - videoCount;
+      var counts = [];
+      if (imageCount || !videoCount) counts.push(imageCount + (imageCount === 1 ? " image" : " images"));
+      if (videoCount) counts.push(videoCount + (videoCount === 1 ? " video" : " videos"));
+      if (a.dirs.length) counts.push(a.dirs.length + (a.dirs.length === 1 ? " folder" : " folders"));
+      statusEl.textContent = !a.dirs.length && !a.files.length ? "This album is empty." : counts.join(", ");
       return current;
     }).catch(function () {
       if (seq !== navSeq) return null;
@@ -227,16 +261,41 @@
   }
 
   // ---- Lightbox ----
+  // Stop the video and drop its source so the browser abandons the download.
+  function resetVideo() {
+    lbVideo.pause();
+    lbVideo.removeAttribute("controls");
+    lbVideo.removeAttribute("poster");
+    lbVideo.removeAttribute("src");
+    lbVideo.load();
+    lbPlay.hidden = true;
+  }
+
   function openImage(path) {
     var i = current ? current.images.indexOf(path) : -1;
     if (i < 0) { closeLightbox(true); return; }
+    var isVideo = VIDEO_RE.test(path);
     lbIndex = i;
     lb.hidden = false;
     document.body.style.overflow = "hidden";
-    lb.classList.add("loading");
-    lbImg.onload = lbImg.onerror = function () { lb.classList.remove("loading"); };
-    lbImg.src = previewUrl("preview", path);
-    lbImg.alt = leaf(path);
+    lb.classList.toggle("is-video", isVideo);
+    resetVideo();
+    if (isVideo) {
+      lbImg.removeAttribute("src");
+      lb.classList.remove("loading");
+      // preload=metadata fetches only the header (moov atom) up front; the rest
+      // streams by range request once the viewer presses play. Controls appear
+      // with the first play.
+      var poster = current.posters[path];
+      if (poster) lbVideo.poster = previewUrl("preview", poster);
+      lbVideo.src = originalUrl(path);
+      lbPlay.hidden = false;
+    } else {
+      lb.classList.add("loading");
+      lbImg.onload = lbImg.onerror = function () { lb.classList.remove("loading"); };
+      lbImg.src = previewUrl("preview", path);
+      lbImg.alt = leaf(path);
+    }
     $("lb-name").textContent = leaf(path);
     var dl = $("lb-download");
     dl.href = originalUrl(path) + "?download=1";
@@ -245,18 +304,32 @@
     $("lb-prev").style.visibility = i > 0 ? "visible" : "hidden";
     $("lb-next").style.visibility = i < current.images.length - 1 ? "visible" : "hidden";
     $("lb-close").focus();
-    // Warm the neighbours.
+    // Warm the neighbours (a video's poster, never the video).
     [i - 1, i + 1].forEach(function (j) {
-      if (current.images[j]) new Image().src = previewUrl("preview", current.images[j]);
+      var n = current.images[j];
+      if (n && VIDEO_RE.test(n)) n = current.posters[n];
+      if (n) new Image().src = previewUrl("preview", n);
     });
   }
 
   function closeLightbox(skipHash) {
     lb.hidden = true;
     lbImg.removeAttribute("src");
+    resetVideo();
     document.body.style.overflow = "";
     if (!skipHash && current) location.hash = hashFor(current.path);
   }
+
+  function playVideo() {
+    var p = lbVideo.play();
+    if (p && p.catch) p.catch(function () { lbVideo.setAttribute("controls", ""); lbPlay.hidden = true; });
+  }
+  lbPlay.addEventListener("click", playVideo);
+  lbVideo.addEventListener("click", function () { if (!lbVideo.hasAttribute("controls")) playVideo(); });
+  lbVideo.addEventListener("play", function () {
+    lbVideo.setAttribute("controls", "");
+    lbPlay.hidden = true;
+  });
 
   function step(d) {
     var j = lbIndex + d;
@@ -272,11 +345,14 @@
   document.addEventListener("keydown", function (e) {
     if (lb.hidden) return;
     if (e.key === "Escape") closeLightbox();
+    // With the video focused, the arrows belong to its seek bar.
+    else if (e.target === lbVideo) return;
     else if (e.key === "ArrowLeft") step(-1);
     else if (e.key === "ArrowRight") step(1);
   });
   var touchX = null;
-  lb.addEventListener("touchstart", function (e) { touchX = e.touches[0].clientX; }, { passive: true });
+  // Swipes that start on the video are scrubbing, not navigation.
+  lb.addEventListener("touchstart", function (e) { touchX = e.target === lbVideo ? null : e.touches[0].clientX; }, { passive: true });
   lb.addEventListener("touchend", function (e) {
     if (touchX == null) return;
     var dx = e.changedTouches[0].clientX - touchX;
@@ -284,17 +360,17 @@
     if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
   }, { passive: true });
 
-  // ---- Routing: #/album/path/ for an album, #/album/path/file.png for an image ----
+  // ---- Routing: #/album/path/ for an album, #/album/path/file.png for an image or video ----
   function route() {
     var raw = location.hash.replace(/^#\/?/, "");
     var path;
     try { path = raw.split("/").map(decodeURIComponent).join("/"); } catch (e) { path = ""; }
-    var isImage = path && path.slice(-1) !== "/";
-    var album = isImage ? path.slice(0, path.lastIndexOf("/") + 1) : path;
+    var isFile = path && path.slice(-1) !== "/";
+    var album = isFile ? path.slice(0, path.lastIndexOf("/") + 1) : path;
     var seq = navSeq + 1;
     showAlbum(album).then(function () {
       if (seq !== navSeq) return;
-      if (isImage) openImage(path);
+      if (isFile) openImage(path);
       else if (!lb.hidden) closeLightbox(true);
     });
     document.body.classList.remove("menu-open");
