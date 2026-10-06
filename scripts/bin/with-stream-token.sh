@@ -25,8 +25,9 @@
 #   CF_STREAM_API_TOKEN   op://home-ops/cloudflare/stream-api-token
 #                         (override the reference with STREAM_TOKEN_OP_REF)
 #   CF_ACCOUNT_ID         the CF_ACCOUNT_ID already in your environment if set (the
-#                         account id is not a secret), otherwise the 1Password
-#                         reference in STREAM_ACCOUNT_ID_OP_REF
+#                         account id is not a secret), otherwise
+#                         op://home-ops/cloudflare/account-id
+#                         (override the reference with STREAM_ACCOUNT_ID_OP_REF)
 #
 # Other settings:
 #   STREAM_TOKEN_OP_TIMEOUT   seconds to wait for each read (default 60). The
@@ -44,7 +45,7 @@ case "$-" in *x*) echo "error: refusing to run with xtrace on (set +x, or drop b
 case ":${SHELLOPTS:-}:" in *:xtrace:*) echo "error: refusing to run with xtrace on (unset SHELLOPTS); it would print the credentials" >&2; exit 1 ;; esac
 
 TOKEN_REF="${STREAM_TOKEN_OP_REF:-op://home-ops/cloudflare/stream-api-token}"
-ACCOUNT_REF="${STREAM_ACCOUNT_ID_OP_REF:-}"
+ACCOUNT_REF="${STREAM_ACCOUNT_ID_OP_REF:-op://home-ops/cloudflare/account-id}"
 TIMEOUT="${STREAM_TOKEN_OP_TIMEOUT:-60}"
 
 usage() { sed -n '2,/^set -euo/{/^set -euo/d;s/^# \{0,1\}//;p;}' "${BASH_SOURCE[0]}"; }
@@ -83,7 +84,6 @@ main() {
   local CF_STREAM_API_TOKEN=""
   read_ref "$TOKEN_REF" CF_STREAM_API_TOKEN
   if [ -z "${CF_ACCOUNT_ID:-}" ]; then
-    [ -n "$ACCOUNT_REF" ] || die "no account id: set CF_ACCOUNT_ID (it is not a secret) or STREAM_ACCOUNT_ID_OP_REF to its 1Password reference"
     local CF_ACCOUNT_ID=""
     read_ref "$ACCOUNT_REF" CF_ACCOUNT_ID
   fi
