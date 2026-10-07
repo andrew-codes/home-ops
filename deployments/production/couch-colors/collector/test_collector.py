@@ -277,6 +277,33 @@ class CollectorTest(unittest.TestCase):
         body = self.request("GET", "/results?token=" + TOKEN)[2]
         self.assertLess(body.index("<td>high</td>"), body.index("<td>low</td>"))
 
+    def test_results_page_lists_voter_names_per_couch(self):
+        third = "5c4d3e2f-1a0b-4c9d-8e7f-6a5b4c3d2e1f"
+        self.vote(ballotId=BALLOT, name="Sam", picks=["high", "low"])
+        self.vote(ballotId=OTHER_BALLOT, picks=["high"])
+        self.vote(ballotId=third, name="Alex", picks=["high"])
+        # A ballot stored before names existed carries no name key at all.
+        with open(self.votes_file, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps({"ballotId": "legacy", "picks": ["low"]}) + "\n")
+        body = self.request("GET", "/results?token=" + TOKEN)[2]
+        self.assertIn('<td class="v">Alex, Anonymous, Sam</td>', body)
+        self.assertIn('<td class="v">Anonymous, Sam</td>', body)
+
+    def test_results_page_shows_only_the_latest_picks_of_a_revised_ballot(self):
+        self.vote(ballotId=BALLOT, name="Sam", picks=["old"])
+        self.vote(ballotId=BALLOT, name="Samantha", picks=["new"])
+        body = self.request("GET", "/results?token=" + TOKEN)[2]
+        self.assertNotIn("<td>old</td>", body)
+        self.assertIn('<td class="v">Samantha</td>', body)
+        self.assertNotIn(">Sam<", body)
+
+    def test_results_page_escapes_hostile_voter_names(self):
+        xss = '<img src=x onerror=alert(1)>'
+        self.vote(name=xss, picks=["elmosoft_93129"])
+        body = self.request("GET", "/results?token=" + TOKEN)[2]
+        self.assertNotIn("<img", body)
+        self.assertIn('<td class="v">&lt;img src=x onerror=alert(1)&gt;</td>', body)
+
     def test_nothing_about_requests_is_logged(self):
         import contextlib
         import io

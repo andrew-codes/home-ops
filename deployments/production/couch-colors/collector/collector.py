@@ -194,10 +194,22 @@ def render_results_page(results, nonce):
     esc = lambda value: html.escape(str(value), quote=True)
     total = results["ballots"]
     ranked = sorted(results["perCouch"].items(), key=lambda kv: (-kv[1], kv[0]))
+    voters = {}
+    for b in results["ballotsDetail"]:
+        for pick in b["picks"]:
+            voters.setdefault(pick, []).append((b["name"] or "").strip() or "Anonymous")
     rows = "".join(
         "<tr><td>%d</td><td>%s</td><td>%d</td>"
-        '<td><meter min="0" max="%d" value="%d"></meter></td></tr>'
-        % (rank, esc(couch), votes, max(total, 1), votes)
+        '<td><meter min="0" max="%d" value="%d"></meter></td>'
+        '<td class="v">%s</td></tr>'
+        % (
+            rank,
+            esc(couch),
+            votes,
+            max(total, 1),
+            votes,
+            esc(", ".join(sorted(voters.get(couch, []), key=str.casefold))),
+        )
         for rank, (couch, votes) in enumerate(ranked, 1)
     )
     comments = "".join(
@@ -224,13 +236,15 @@ def render_results_page(results, nonce):
         "th,td{text-align:left;padding:.3rem .6rem;border-bottom:1px solid #8884}"
         "meter{width:12rem}ul{padding:0;list-style:none}"
         "li{border:1px solid #8886;border-radius:.5rem;padding:.2rem 1rem;margin:.6rem 0}"
+        ".v{overflow-wrap:anywhere}"
+        "@media(max-width:40rem){th:nth-child(4),td:nth-child(4){display:none}}"
         ".c{white-space:pre-wrap;overflow-wrap:anywhere}"
         "</style>"
         '<script src="/_site/nav.js" defer></script>'
         "</head><body><main><h1>Couch color votes</h1>"
         "<p>%d ballot(s). Latest submission per browser counted.</p>"
         "<h2>Ranking</h2><table><thead><tr><th>#</th><th>Couch</th><th>Votes</th>"
-        "<th></th></tr></thead><tbody>%s</tbody></table>"
+        "<th></th><th>Voters</th></tr></thead><tbody>%s</tbody></table>"
         "<h2>Comments</h2><ul>%s</ul></main></body></html>"
     ) % (nonce, total, rows, comments or "<li>No comments yet.</li>")
 
