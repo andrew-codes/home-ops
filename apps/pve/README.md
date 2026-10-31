@@ -1,7 +1,7 @@
 # pve
 
 Provisions `pve`, the physical Proxmox VE hypervisor host - the machine that
-underpins the whole home lab. Pinned to Proxmox VE 8.3.4 (see
+underpins the whole home lab. Pinned to Proxmox VE 9.2.2 (see
 [Proxmox version pin](#0-proxmox-version-pin-tasksversionyml)).
 
 **This automation has never been run against the real host.** It was implemented,
@@ -39,13 +39,13 @@ Runs first, before anything else, and fails the whole playbook closed if the hos
 isn't on exactly the pinned version.
 
 - Reads `pveversion` and extracts the `pve-manager` version.
-- **Fails loudly** if it isn't exactly `8.3.4` - this automation never upgrades or
+- **Fails loudly** if it isn't exactly `9.2.2` - this automation never upgrades or
   downgrades Proxmox itself; that's the separate, manually run
   [Upgrading Proxmox](#upgrading-proxmox) runbook.
 - Enumerates the installed `pve-kernel-*` packages and holds them, along with
   `pve-manager`, via `apt-mark hold` - checking `apt-mark showhold` first and only
   holding whatever isn't already held. This means a stray `apt full-upgrade` run
-  outside this playbook can't silently move the host off `8.3.4`; moving to a new
+  outside this playbook can't silently move the host off `9.2.2`; moving to a new
   pinned version requires deliberately running `apt-mark unhold` first (the
   [Upgrading Proxmox](#upgrading-proxmox) runbook covers this).
 
@@ -259,7 +259,7 @@ These need a human at the machine (or its console), not this playbook:
   are installed, and applying the ACS-override workaround if not - see
   [Verifying IOMMU grouping](#verifying-iommu-grouping-after-reboot). Board-specific,
   cannot be resolved in software beyond that documented workaround.
-- **The bare-metal Proxmox 8.3.4 ISO install itself**, if starting from nothing - see
+- **The bare-metal Proxmox 9.2.2 ISO install itself**, if starting from nothing - see
   [Proxmox's installer docs](https://pve.proxmox.com/pve-docs/pve-admin-guide.html#chapter_installation).
 - **Creating the PBS and NAS-share service accounts** and putting their real
   credentials into the 1Password items this automation reads - see
