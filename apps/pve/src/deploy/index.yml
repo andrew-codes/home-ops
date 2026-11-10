@@ -8,7 +8,7 @@
   connection: ssh
   remote_user: root
   vars:
-    pinned_pve_version: "8.3.4"
+    pinned_pve_version: "9.2.2"
   handlers:
     - import_tasks: handlers/main.yml
 
