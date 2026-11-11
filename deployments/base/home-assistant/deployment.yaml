@@ -18,7 +18,7 @@ spec:
       imagePullSecrets:
         - name: regcred
       volumes:
-        - name: ha-backups
+        - name: home-assistant-config-backup
           nfs:
             server: 10.5.90.74
             path: /mnt/tank/backups/home-assistant
