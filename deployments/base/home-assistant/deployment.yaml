@@ -18,6 +18,10 @@ spec:
       imagePullSecrets:
         - name: regcred
       volumes:
+        - name: ha-backups
+          nfs:
+            server: 10.5.90.74
+            path: /mnt/tank/backups/home-assistant
         - name: home-assistant-config
           persistentVolumeClaim:
             claimName: home-assistant-config
@@ -43,6 +47,8 @@ spec:
           volumeMounts:
             - name: home-assistant-config
               mountPath: /config
+            - name: home-assistant-config-backup
+              mountPath: /config/backups
             - name: home-assistant-ssh-key
               mountPath: /root/.ssh/private
               subPath: private
