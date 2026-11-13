@@ -2,35 +2,26 @@
 apiVersion: v1
 kind: Endpoints
 metadata:
-  name: nas
+  name: nas-http
   namespace: default
 subsets:
   - addresses:
-      - ip: 10.5.113.53
+      - ip: 10.5.90.74
     ports:
-      - name: nas
+      - name: http
         port: 5000
         protocol: TCP
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: nas
+  name: nas-http
   namespace: default
 spec:
   ports:
-    - name: nas
+    - name: http
       protocol: TCP
       port: 5000
       targetPort: 5000
-  clusterIP: 10.107.185.31
-  clusterIPs:
-    - 10.107.185.31
   type: ClusterIP
   sessionAffinity: None
-  ipFamilies:
-    - IPv4
-  ipFamilyPolicy: SingleStack
-  internalTrafficPolicy: Cluster
----
-
