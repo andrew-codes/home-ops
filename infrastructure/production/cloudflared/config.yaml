@@ -13,6 +13,8 @@ ingress:
     service: "http://ps5:8080"
   - hostname: "nas.smith-simms.family"
     service: "http://nas-http:80"
+  - hostname: "synology.smith-simms.family"
+    service: "http://nas:5000"
   - hostname: "docs.smith-simms.family"
     service: "http://docs:80"
   - hostname: "adr.smith-simms.family"
