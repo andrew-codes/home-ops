@@ -282,6 +282,25 @@
         # re-enable it; this is the policy that stops toasts outright.
         - { path: 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications', name: NoToastApplicationNotification, data: 1 }
 
+    # Dia declares a push COM server in its package manifest. When its backend
+    # sends a WNS raw notification while Dia is closed, Windows launches
+    # `Dia.exe ----WindowsAppRuntimePushServer: -Embedding` and the whole
+    # browser opens over the desktop. Toasts being off does not stop that, since
+    # a raw notification has no UI. This machine-wide policy turns off the
+    # connection between Windows and WNS, so no push is delivered and nothing is
+    # launched. Dia is the only app on this machine that receives WNS pushes.
+    - name: Turn off WNS push so a closed app cannot be relaunched by a raw notification
+      win_regedit:
+        path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications
+        name: NoCloudApplicationNotification
+        data: 1
+        type: dword
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
     - name: Disable Xbox Game Bar
       win_regedit:
         path: "{{ item.path }}"

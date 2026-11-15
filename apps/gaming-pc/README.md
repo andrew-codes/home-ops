@@ -335,6 +335,7 @@ playbook prints. If they warn, install that app from the Store by hand once;
 | Automatic sign-in, including after wake    | `AutoAdminLogon`, plus no password required on wake                                                                       |
 | Wake-on-LAN                                | Magic packet only, armed with `powercfg /deviceenablewake`; the device power-down checkbox is left at the Windows default |
 | OS notifications off                       | `ToastEnabled`, notification centre and toast policies                                                                    |
+| Closed apps cannot be relaunched by push   | `NoCloudApplicationNotification` machine policy, see [Dia stays closed](#dia-stays-closed)                                |
 | Dark mode                                  | `AppsUseLightTheme` / `SystemUsesLightTheme`                                                                              |
 | All desktop icons hidden                   | `HideIcons`                                                                                                               |
 | Taskbar widgets off                        | `Dsh\AllowNewsAndInterests` policy                                                                                        |
@@ -367,6 +368,28 @@ the moment the deploy finishes:
   itself is [`src/default-associations.xml`](src/default-associations.xml),
   generated from the associations Zed's own installer registers, so the list
   tracks what Zed actually claims to handle rather than a hand-picked guess.
+
+### Dia stays closed
+
+Dia is not part of this deploy. Its package manifest declares a push COM server.
+When Dia's backend sends a Windows Push Notification Service (WNS) raw
+notification while Dia is closed, Windows starts
+`Dia.exe ----WindowsAppRuntimePushServer: -Embedding` through the DCOM launcher.
+The full browser then opens over the desktop, on top of the animated background
+this couch PC shows when no game is running.
+
+Turning toasts off does not stop this, because a raw notification has no UI. The
+deploy sets the `NoCloudApplicationNotification` machine policy instead. It turns
+off the connection between Windows and WNS, so no push arrives and nothing
+launches. Microsoft documents it as taking effect without a restart.
+
+Dia was the only app on this machine receiving WNS pushes when this was
+diagnosed. If another app needs them later, remove the
+`Turn off WNS push so a closed app cannot be relaunched by a raw notification`
+task in [`scripts/deploy.yml`](scripts/deploy.yml). Event 2033 ("A raw
+notification has activated a background task") in the
+`Microsoft-Windows-PushNotification-Platform/Operational` log is the signature of
+the old behaviour.
 
 ### The auto-login password
 
