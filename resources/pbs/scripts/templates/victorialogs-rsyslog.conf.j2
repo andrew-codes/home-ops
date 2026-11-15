@@ -1,0 +1,7 @@
+# Managed by Ansible (resources/pbs). Do not edit by hand.
+# Forwards all logs to VictoriaLogs over TCP in RFC 5424 format. The disk
+# queue keeps messages while the cluster is down.
+*.* action(type="omfwd" target="{{ observability_host }}" port="{{ observability_syslog_port }}" protocol="tcp"
+  template="RSYSLOG_SyslogProtocol23Format"
+  action.resumeRetryCount="-1"
+  queue.type="LinkedList" queue.filename="victorialogs" queue.maxDiskSpace="100m" queue.saveOnShutdown="on")

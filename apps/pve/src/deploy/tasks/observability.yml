@@ -1,0 +1,105 @@
+---
+# Pushes this host's logs and metrics to the cluster's VictoriaLogs syslog
+# listener and VictoriaMetrics InfluxDB endpoint. The node address comes from
+# observability_host; the ports and the metric server settings are play
+# variables (see index.yml). Nothing here touches the network, GRUB or the
+# hypervisor's guests, so it is safe to re-run on its own with --tags
+# observability or through observability.yml.
+- name: Check that the observability node address is set
+  ansible.builtin.assert:
+    that:
+      - observability_host is defined
+      - observability_host | string | length > 0
+    fail_msg: observability_host must be the address of the Kubernetes node.
+    quiet: true
+
+- name: Install rsyslog (Proxmox VE logs to journald only by default)
+  ansible.builtin.apt:
+    name: rsyslog
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Forward logs to VictoriaLogs
+  ansible.builtin.template:
+    src: victorialogs-rsyslog.conf.j2
+    dest: /etc/rsyslog.d/90-victorialogs.conf
+    owner: root
+    group: root
+    mode: "0644"
+    # Refuse to install a config that rsyslog cannot load.
+    validate: rsyslogd -N1 -f %s
+  notify: restart rsyslog
+
+- name: Ensure rsyslog is enabled and running
+  ansible.builtin.systemd:
+    name: rsyslog
+    enabled: yes
+    state: started
+
+- name: List the configured metric servers
+  ansible.builtin.command: pvesh get /cluster/metrics/server --output-format json
+  register: pve_metric_servers
+  changed_when: false
+
+- name: Check whether the VictoriaMetrics metric server exists
+  ansible.builtin.set_fact:
+    pve_metric_server_exists: >-
+      {{ observability_metric_server_id in (pve_metric_servers.stdout | from_json | map(attribute='id') | list) }}
+
+- name: Read the current VictoriaMetrics metric server
+  ansible.builtin.command: pvesh get /cluster/metrics/server/{{ observability_metric_server_id }} --output-format json
+  register: pve_metric_server_current
+  changed_when: false
+  when: pve_metric_server_exists | bool
+
+- name: Add the VictoriaMetrics metric server (InfluxDB over HTTP)
+  ansible.builtin.command:
+    argv:
+      - pvesh
+      - create
+      - /cluster/metrics/server/{{ observability_metric_server_id }}
+      - --type
+      - influxdb
+      - --server
+      - "{{ observability_host }}"
+      - --port
+      - "{{ observability_influx_port }}"
+      - --influxdbproto
+      - http
+      - --organization
+      - "{{ observability_influx_organization }}"
+      - --bucket
+      - "{{ observability_influx_bucket }}"
+  when: not (pve_metric_server_exists | bool)
+
+# Compares only what this task sets. VictoriaMetrics ignores the organization,
+# bucket and token, and the token is optional for the http protocol, so none is
+# set.
+- name: Reconcile the VictoriaMetrics metric server if it drifted
+  ansible.builtin.command:
+    argv:
+      - pvesh
+      - set
+      - /cluster/metrics/server/{{ observability_metric_server_id }}
+      - --server
+      - "{{ observability_host }}"
+      - --port
+      - "{{ observability_influx_port }}"
+      - --influxdbproto
+      - http
+      - --organization
+      - "{{ observability_influx_organization }}"
+      - --bucket
+      - "{{ observability_influx_bucket }}"
+      - --disable
+      - "0"
+  when:
+    - pve_metric_server_exists | bool
+    - >-
+      (pve_metric_server_current.stdout | from_json).server | default('') != observability_host
+      or ((pve_metric_server_current.stdout | from_json).port | default(0) | int) != (observability_influx_port | int)
+      or (pve_metric_server_current.stdout | from_json).influxdbproto | default('udp') != 'http'
+      or (pve_metric_server_current.stdout | from_json).organization | default('') != observability_influx_organization
+      or (pve_metric_server_current.stdout | from_json).bucket | default('') != observability_influx_bucket
+      or ((pve_metric_server_current.stdout | from_json).disable | default(0) | bool)

@@ -19,6 +19,7 @@ const run = async (
   const pbsPassword = await configurationApi.get("pve-pbs/password")
   const nutMonitorUsername = await configurationApi.get("nut/monitor-username")
   const nutMonitorPassword = await configurationApi.get("nut/monitor-password")
+  const observabilityHost = await configurationApi.get("k8s/ip")
 
   // Not yet in 1Password - see README "Proxmox Backup Server integration".
   const pbsFingerprint = env["PBS_FINGERPRINT"] ?? ""
@@ -43,6 +44,7 @@ const run = async (
     nut_ups_name: "ups",
     nut_monitor_username: nutMonitorUsername,
     nut_monitor_password: nutMonitorPassword,
+    observability_host: observabilityHost,
   })
 }
 

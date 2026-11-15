@@ -37,6 +37,7 @@ const run = async (
   const backupPassword = await configurationApi.get("pbs/backup-password")
   const nutMonitorUsername = await configurationApi.get("nut/monitor-username")
   const nutMonitorPassword = await configurationApi.get("nut/monitor-password")
+  const observabilityHost = await configurationApi.get("k8s/ip")
   const andrewSshPublicKey = await getAndrewSshPublicKey()
 
   await fs.mkdir(path.join(__dirname, "..", ".secrets"), { recursive: true })
@@ -61,6 +62,7 @@ pbs_backup_password: ${backupPassword}
 nut_monitor_username: ${JSON.stringify(nutMonitorUsername)}
 nut_monitor_password: ${JSON.stringify(nutMonitorPassword)}
 andrew_ssh_public_key: "${andrewSshPublicKey}"
+observability_host: ${JSON.stringify(observabilityHost)}
 `,
     "utf8",
   )

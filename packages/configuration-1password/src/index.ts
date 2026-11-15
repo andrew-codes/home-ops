@@ -93,6 +93,7 @@ const secretNames = [
   "proxmox/gpu/pci",
   "proxmox/host/pve",
   "proxmox/ip",
+  "proxmox2/ip",
   "proxmox/nameserver",
   "proxmox/password",
   "proxmox/ssh-key/public",

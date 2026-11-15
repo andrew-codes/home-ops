@@ -7,7 +7,11 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "ansible-playbook --syntax-check src/deploy/index.yml",
+        "commands": [
+          "ansible-playbook --syntax-check src/deploy/index.yml",
+          "ansible-playbook --syntax-check src/deploy/observability.yml"
+        ],
+        "parallel": false,
         "cwd": "{projectRoot}"
       }
     },
@@ -15,6 +19,13 @@
       "executor": "@ha/nx-executors:invoke",
       "options": {
         "module": "scripts/deploy.ts",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "deploy-observability": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "module": "scripts/deploy-observability.ts",
         "cwd": "{projectRoot}"
       }
     }
