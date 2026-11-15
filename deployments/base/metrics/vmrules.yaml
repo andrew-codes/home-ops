@@ -1,0 +1,180 @@
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: watchdog
+spec:
+  groups:
+    - name: watchdog
+      rules:
+        # Always fires. Alertmanager forwards it to Healthchecks.io as a
+        # heartbeat; when the pings stop, something between vmalert, VMSingle,
+        # Alertmanager, the cluster or the network is down. Never pushed to
+        # Home Assistant.
+        - alert: Watchdog
+          expr: vector(1)
+          labels:
+            severity: none
+          annotations:
+            summary: Alerting pipeline heartbeat
+            description: Always firing. If Healthchecks.io stops receiving it, the monitoring stack or its network path is down.
+---
+# Every rule below must carry a summary (what is wrong, naming the target) and a
+# description (the affected instance, job or service and the measured value).
+# The Home Assistant push is built from these, plus an optional dashboard_url.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: scrape-targets
+spec:
+  groups:
+    - name: scrape-targets
+      rules:
+        - alert: TargetDown
+          expr: up{job!~"kubernetes-nodes|kubernetes-apiservers"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.job }} is down"
+            description: "Scrape target {{ $labels.instance }} (job {{ $labels.job }}) has reported up={{ $value }} for 5 minutes. Its metrics are not being collected and the service may be down."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=VictoriaMetrics
+        - alert: KubeletDown
+          expr: up{job="kubernetes-nodes"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Kubernetes node {{ $labels.kubernetes_io_hostname }} is unreachable"
+            description: "The kubelet on node {{ $labels.kubernetes_io_hostname }} (job {{ $labels.job }}) has reported up={{ $value }} for 5 minutes. The node may be down or not ready, and the pods on it may be offline."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+        - alert: KubeletTargetsMissing
+          expr: absent(up{job="kubernetes-nodes"})
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: No Kubernetes nodes are being monitored
+            description: "No kubelet scrape targets (job kubernetes-nodes) have been seen for 10 minutes (up series count: {{ $value }}). Node discovery or vmagent is broken, so node problems would go unnoticed."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=vmagent
+        - alert: KubeAPIServerDown
+          expr: up{job="kubernetes-apiservers"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Kubernetes API server is unreachable
+            description: "The Kubernetes API server ({{ $labels.instance }}, job {{ $labels.job }}) has reported up={{ $value }} for 5 minutes. The cluster cannot be managed and Flux cannot deploy."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: victoriametrics
+spec:
+  groups:
+    - name: victoriametrics
+      rules:
+        - alert: VictoriaMetricsLowDiskSpace
+          expr: vm_free_disk_space_bytes{job="victoria-metrics"} < 10 * 1024 * 1024 * 1024
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: VictoriaMetrics storage is running low on space
+            description: "VictoriaMetrics ({{ $labels.instance }}) has {{ $value | humanize1024 }}B free on its data volume, below the 10 GiB threshold. At the built-in minimum it stops accepting writes."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=VictoriaMetrics
+        - alert: ProcessRestartingTooOften
+          expr: changes(process_start_time_seconds{job=~"victoria-metrics|vmagent|vmalert|alertmanager"}[30m]) > 2
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.job }} keeps restarting"
+            description: "{{ $labels.job }} ({{ $labels.instance }}) restarted {{ $value }} times in the last 30 minutes. It is crash-looping or being killed."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=VictoriaMetrics
+    - name: vmagent
+      rules:
+        - alert: VMAgentDroppingData
+          expr: >-
+            sum(increase(vmagent_remotewrite_packets_dropped_total[5m])) without (url) > 0
+            or
+            sum(increase(vm_persistentqueue_bytes_dropped_total[5m])) without (path) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: vmagent is losing metrics
+            description: "vmagent ({{ $labels.instance }}) dropped {{ $value }} blocks of data in the last 5 minutes before it reached VictoriaMetrics. Metrics are being lost and VictoriaMetrics is rejecting or not accepting writes."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=vmagent
+        - alert: VMAgentRemoteWriteRetries
+          expr: sum(rate(vmagent_remotewrite_retries_count_total[5m])) without (url) > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: vmagent cannot write to VictoriaMetrics reliably
+            description: "vmagent ({{ $labels.instance }}) has been retrying remote writes to VictoriaMetrics for 15 minutes ({{ $value | humanize }} retries/s)."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=vmagent
+        - alert: VMAgentScrapeErrorsHigh
+          expr: >-
+            sum(increase(vm_promscrape_scrapes_failed_total[10m])) without (job, instance)
+            / sum(increase(vm_promscrape_scrapes_total[10m])) without (job, instance) > 0.25
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Many scrapes are failing
+            description: "{{ $value | humanizePercentage }} of vmagent scrapes failed over the last 10 minutes. Several targets may be down; see which ones in the TargetDown alerts or the vmagent dashboard."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=vmagent
+    - name: alerting-pipeline
+      rules:
+        - alert: VMAlertRuleErrors
+          expr: increase(vmalert_execution_errors_total[5m]) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Alert rules are failing to evaluate
+            description: "vmalert ({{ $labels.instance }}) hit {{ $value }} rule evaluation errors in the last 5 minutes, for 10 minutes running. Alerts may not fire."
+        - alert: VMAlertSendErrors
+          expr: increase(vmalert_alerts_send_errors_total[5m]) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: vmalert cannot send alerts to Alertmanager
+            description: "vmalert ({{ $labels.instance }}) failed to deliver {{ $value }} alerts to Alertmanager ({{ $labels.addr }}) in the last 5 minutes, for 10 minutes running."
+        - alert: AlertmanagerNotificationsFailing
+          expr: sum(rate(alertmanager_notifications_failed_total[10m])) by (integration) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Alertmanager cannot deliver notifications
+            description: "Alertmanager has been failing to deliver {{ $labels.integration }} notifications for 10 minutes ({{ $value | humanize }} failures/s). Check the receiver URLs in the alertmanager-receivers secret and that Home Assistant is reachable."
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: kubernetes-storage
+spec:
+  groups:
+    - name: kubernetes-storage
+      rules:
+        - alert: PersistentVolumeFillingUp
+          expr: (kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes) < 0.10
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Volume {{ $labels.persistentvolumeclaim }} is almost full"
+            description: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has only {{ $value | humanizePercentage }} of its space left (node {{ $labels.instance }})."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+        - alert: PersistentVolumeAlmostFull
+          expr: (kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes) < 0.03
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Volume {{ $labels.persistentvolumeclaim }} is nearly out of space"
+            description: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has only {{ $value | humanizePercentage }} of its space left (node {{ $labels.instance }}). The workload using it will start failing."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes

@@ -7,4 +7,6 @@ resources:
   - vmsingle.yaml
   - helm-source.yaml
   - helm-release.yaml
-
+  - vmalertmanager.yaml
+  - vmalert.yaml
+  - vmrules.yaml
