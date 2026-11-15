@@ -1,7 +1,9 @@
 # Metrics and alerting
 
-VictoriaMetrics (VMSingle) stores metrics, vmagent scrapes, and vmalert plus Alertmanager
-(`VMAlert`, `VMAlertmanager`, managed by the VictoriaMetrics operator) turn rules into notifications.
+VictoriaMetrics (VMSingle, in `deployments/base/metrics`) stores metrics and vmagent scrapes. vmalert plus
+Alertmanager (`VMAlert`, `VMAlertmanager`, managed by the VictoriaMetrics operator) turn rules into
+notifications. They live in their own Flux Kustomization, `alerting`, so a missing receiver secret never
+blocks `metrics` or `grafana`.
 
 ```text
 vmagent -> VMSingle <- vmalert -> Alertmanager -+-> Home Assistant webhook -> companion app push (everyone)
@@ -26,8 +28,9 @@ vmagent -> VMSingle <- vmalert -> Alertmanager -+-> Home Assistant webhook -> co
 ### 1. Put the two receiver URLs in 1Password and seal them
 
 No receiver values are committed. Alertmanager mounts the `alertmanager-receivers` secret, which does not
-exist until you seal it, so its pod waits (`ContainerCreating`) until you do. Do this on the PR branch
-before merging. It uses the same path as the other app secrets (for example `grafana-admin`): the names are
+exist until you seal and commit it, so its pod waits (`ContainerCreating`) until you do. Until then only
+`alerting` is not Ready; `metrics` and `grafana` are unaffected. `alerting` turns Ready once the sealed
+`alertmanager-receivers` file is committed. This uses the same path as the other app secrets (for example `grafana-admin`): the names are
 registered in `packages/configuration-1password`, the values live in 1Password, and the `seal` generator
 writes the SealedSecrets.
 
@@ -138,7 +141,7 @@ Create one check named `home-ops monitoring stack`:
 - Period: 5 minutes. Grace time: 5 minutes. (The Watchdog is resent about every 5 minutes, see
   `repeat_interval` in `vmalertmanager.yaml`. Change them together.)
 - Integrations: email, plus any free SMS integration Healthchecks.io offers on your plan.
-- Copy the ping URL into `HC_PING_URL` in step 1.
+- Copy the ping URL into `healthchecks-ping-url` in step 1.
 
 At most a few more checks (for example backup jobs that ping on success) are expected.
 
@@ -161,7 +164,7 @@ At most a few more checks (for example backup jobs that ping on success) are exp
    After the 30 second group wait, every recipient gets a critical push. It resolves by itself about
    5 minutes later and sends a resolved push. Use `severity: warning` to see the non-critical push.
 
-4. Failure path: stop the pings (for example seal a wrong `HC_PING_URL`); Healthchecks.io notifies you after the grace time.
+4. Failure path: stop the pings (for example seal a wrong `healthchecks-ping-url`); Healthchecks.io notifies you after the grace time.
 
 ## Known limits
 
