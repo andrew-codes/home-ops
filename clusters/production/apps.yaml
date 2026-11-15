@@ -110,6 +110,21 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
+  name: nas
+  namespace: default
+spec:
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/nas
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
   name: remodel
   namespace: default
 spec:

@@ -1,0 +1,31 @@
+---
+# Temporary debug probe for the nas.smith-simms.family 502. Remove this file (and its
+# kustomization entry) once the cause is understood.
+# Read:   kubectl logs job/nas-http-probe
+# Remove: delete this file from git; Flux prunes it. The Job also deletes itself after an hour.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nas-http-probe
+  namespace: default
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: probe
+          image: curlimages/curl:8.11.1
+          command:
+            - sh
+            - -c
+            - |
+              fmt='code=%{http_code} redirect=%{redirect_url} remote=%{remote_ip}:%{remote_port} connect=%{time_connect}s total=%{time_total}s\n'
+              for target in http://nas-http:80/ http://10.5.90.74:80/; do
+                echo "== $target"
+                curl -sS -o /dev/null --connect-timeout 5 --max-time 15 -w "$fmt" "$target" || echo "curl exit=$?"
+              done
+              echo "== resolve nas-http"
+              getent hosts nas-http || echo "nas-http does not resolve"
+              exit 0
