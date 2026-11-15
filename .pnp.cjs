@@ -71,6 +71,10 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/tailscale"\
     },\
     {\
+      "name": "@ha/truenas",\
+      "reference": "workspace:apps/truenas"\
+    },\
+    {\
       "name": "@ha/uptime-kuma",\
       "reference": "workspace:apps/uptime-kuma"\
     },\
@@ -277,6 +281,7 @@ const RAW_RUNTIME_STATE =
     ["@ha/terraform", ["workspace:packages/terraform"]],\
     ["@ha/themes-definition", ["workspace:packages/themes/definition"]],\
     ["@ha/themes-slate", ["workspace:packages/themes/slate"]],\
+    ["@ha/truenas", ["workspace:apps/truenas"]],\
     ["@ha/unifi-client", ["workspace:packages/unifi-client"]],\
     ["@ha/uptime-kuma", ["workspace:apps/uptime-kuma"]],\
     ["@ha/voice-agent", ["workspace:apps/voice-agent"]]\
@@ -5187,6 +5192,21 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@ha/themes-definition", "workspace:packages/themes/definition"],\
           ["@ha/themes-slate", "workspace:packages/themes/slate"],\
+          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
+    ["@ha/truenas", [\
+      ["workspace:apps/truenas", {\
+        "packageLocation": "./apps/truenas/",\
+        "packageDependencies": [\
+          ["@ha/ansible", "workspace:packages/ansible"],\
+          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
+          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
+          ["@ha/logger", "workspace:packages/logger"],\
+          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
+          ["@ha/truenas", "workspace:apps/truenas"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:20.7.0"]\
         ],\
         "linkType": "SOFT"\

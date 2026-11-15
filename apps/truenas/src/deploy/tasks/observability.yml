@@ -1,0 +1,110 @@
+---
+# Configures the Graphite reporting exporter and the remote syslog server
+# through TrueNAS's own middleware (midclt), never by editing its files. Every
+# step reads the current state first and writes only on drift, so a second run
+# changes nothing. Only the settings below are managed; other exporters and
+# other syslog servers are left alone.
+- name: Check that the observability node address is set
+  ansible.builtin.assert:
+    that:
+      - observability_host is defined
+      - observability_host | string | length > 0
+    fail_msg: observability_host must be the address of the Kubernetes node.
+    quiet: true
+
+- name: Define the desired settings
+  ansible.builtin.set_fact:
+    truenas_exporter_attributes:
+      exporter_type: GRAPHITE
+      destination_ip: "{{ observability_host }}"
+      destination_port: "{{ observability_graphite_port | int }}"
+      prefix: "{{ observability_graphite_prefix }}"
+      namespace: "{{ observability_graphite_namespace }}"
+    truenas_syslog_host: "{{ observability_host }}:{{ observability_syslog_port }}"
+
+# Metrics: reporting.exporters
+- name: List the reporting exporters
+  ansible.builtin.command: midclt call reporting.exporters.query
+  register: truenas_exporters
+  changed_when: false
+
+- name: Find the VictoriaMetrics exporter
+  ansible.builtin.set_fact:
+    truenas_exporter_current: >-
+      {{ truenas_exporters.stdout | from_json
+         | selectattr('name', 'equalto', observability_exporter_name)
+         | list | first | default({}) }}
+
+- name: Add the VictoriaMetrics Graphite exporter
+  ansible.builtin.command:
+    argv:
+      - midclt
+      - call
+      - reporting.exporters.create
+      - "{{ {'name': observability_exporter_name, 'enabled': true, 'attributes': truenas_exporter_attributes} | to_json }}"
+  when: truenas_exporter_current | length == 0
+
+# Compares only the settings this play sets; the exporter's other attributes
+# (update_every, buffer_on_failures and so on) keep whatever they are.
+- name: Check whether the VictoriaMetrics Graphite exporter drifted
+  ansible.builtin.set_fact:
+    truenas_exporter_merged: "{{ truenas_exporter_current.attributes | combine(truenas_exporter_attributes) }}"
+  when: truenas_exporter_current | length > 0
+
+- name: Reconcile the VictoriaMetrics Graphite exporter if it drifted
+  ansible.builtin.command:
+    argv:
+      - midclt
+      - call
+      - reporting.exporters.update
+      - "{{ truenas_exporter_current.id }}"
+      - "{{ {'enabled': true, 'attributes': truenas_exporter_merged} | to_json }}"
+  when:
+    - truenas_exporter_current | length > 0
+    - >-
+      not (truenas_exporter_current.enabled | default(false) | bool)
+      or truenas_exporter_merged != truenas_exporter_current.attributes
+
+# Logs: system.advanced syslogservers
+- name: Read the TrueNAS advanced configuration
+  ansible.builtin.command: midclt call system.advanced.config
+  register: truenas_advanced
+  changed_when: false
+
+- name: Work out the desired syslog servers
+  ansible.builtin.set_fact:
+    truenas_syslog_current: "{{ (truenas_advanced.stdout | from_json).syslogservers | default([]) }}"
+
+# system.advanced.update replaces the whole list (at most two servers), so
+# keep every other entry, replace an entry for this node on another port or
+# transport, and append when there is none.
+- name: Compute the new syslog server list
+  ansible.builtin.set_fact:
+    truenas_syslog_other: >-
+      {{ truenas_syslog_current
+         | rejectattr('host', 'match', '^' ~ (observability_host | regex_escape) ~ '(:[0-9]+)?$')
+         | list }}
+    truenas_syslog_ours: >-
+      {{ truenas_syslog_current
+         | selectattr('host', 'match', '^' ~ (observability_host | regex_escape) ~ '(:[0-9]+)?$')
+         | list }}
+
+- name: Check that a syslog server slot is free
+  ansible.builtin.assert:
+    that: (truenas_syslog_other | length) < 2
+    fail_msg: >-
+      TrueNAS supports two remote syslog servers and both are used by other
+      hosts. Remove one in System > Advanced > Syslog and run this again.
+    quiet: true
+
+- name: Set the syslog server list
+  ansible.builtin.command:
+    argv:
+      - midclt
+      - call
+      - system.advanced.update
+      - "{{ {'syslogservers': truenas_syslog_other + [{'host': truenas_syslog_host, 'transport': 'TCP'}]} | to_json }}"
+  when: >-
+    truenas_syslog_ours | length != 1
+    or truenas_syslog_ours[0].host != truenas_syslog_host
+    or truenas_syslog_ours[0].transport != 'TCP'

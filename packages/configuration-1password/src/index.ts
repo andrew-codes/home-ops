@@ -102,6 +102,8 @@ const secretNames = [
   "tailscale/auth-key",
   "tailscale/ip",
   "tailscale/subnet-routes",
+  "truenas/ip",
+  "truenas/username",
   "unifi/ip",
   "gaming-pc/ip",
   "gaming-pc/user",
