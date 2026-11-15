@@ -21,3 +21,28 @@ spec:
       port: 8428
       targetPort: 8428
       nodePort: 30080
+---
+# Graphite push door for the TrueNAS Reporting Exporter. VictoriaMetrics serves
+# Graphite plaintext on the same port over TCP and UDP.
+apiVersion: v1
+kind: Service
+metadata:
+  name: vmsingle-graphite-node-port
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: vmsingle
+    app.kubernetes.io/instance: vmsingle
+    app.kubernetes.io/component: monitoring
+    managed-by: vm-operator
+  ports:
+    - name: graphite-tcp
+      protocol: TCP
+      port: 2003
+      targetPort: 2003
+      nodePort: 30003
+    - name: graphite-udp
+      protocol: UDP
+      port: 2003
+      targetPort: 2003
+      nodePort: 30003

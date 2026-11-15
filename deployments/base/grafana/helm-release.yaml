@@ -30,6 +30,15 @@ spec:
             isDefault: true
             updateIntervalSeconds: 10
             editable: true
+          - name: victorialogs
+            type: victoriametrics-logs-datasource
+            orgId: 1
+            url: http://vlsingle-vlsingle.default.svc.cluster.local:9428
+            access: proxy
+            editable: true
+
+    plugins:
+      - victoriametrics-logs-datasource 0.34.0
 
     dashboardProviders:
       dashboardproviders.yaml:

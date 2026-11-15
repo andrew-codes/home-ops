@@ -1,0 +1,41 @@
+---
+apiVersion: operator.victoriametrics.com/v1
+kind: VLSingle
+metadata:
+  name: vlsingle
+spec:
+  retentionPeriod: "14d"
+  # Safety limit. When the data reaches this size VictoriaLogs stops accepting
+  # new logs (it goes read-only) instead of filling the NFS volume. The size is
+  # in bytes, not a percentage, because a percentage would be measured against
+  # the whole NFS pool rather than this volume.
+  retentionMaxDiskSpaceUsageBytes: "40GiB"
+  image:
+    repository: victoriametrics/victoria-logs
+    tag: v1.54.0
+  # The "data" volume is mounted at storageDataPath. Naming the volume "data"
+  # makes the operator use it instead of creating its own.
+  storageDataPath: /victoria-logs-data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: victoria-logs-data
+  disableSelfServiceScrape: true
+  extraArgs:
+    # RFC 3164 syslog timestamps carry no timezone, so appliances not running in
+    # UTC would land hours off. Stamp messages with the time they are received.
+    syslog.useLocalTimestamp.tcp: "true"
+    syslog.useLocalTimestamp.udp: "true"
+  # Syslog listeners for Proxmox, Proxmox Backup Server and TrueNAS. They use an
+  # unprivileged container port; the logs-syslog NodePort Service publishes them.
+  syslogSpec:
+    tcpListeners:
+      - listenPort: 5140
+    udpListeners:
+      - listenPort: 5140
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 1Gi

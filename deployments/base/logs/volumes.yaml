@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: victoria-logs-data
+spec:
+  resources:
+    requests:
+      # The nfs provisioner does not enforce this size. The enforced cap is
+      # retentionMaxDiskSpaceUsageBytes on the VLSingle.
+      storage: 50Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs
