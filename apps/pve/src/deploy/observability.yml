@@ -1,0 +1,25 @@
+---
+# Observability only: the same tasks index.yml runs, without the host-specific
+# network, storage, GPU and NUT steps. Use it for a Proxmox host that the full
+# playbook does not manage (yet). See scripts/deploy-observability.ts.
+- name: Send Proxmox VE logs and metrics to the cluster
+  hosts: all
+  become: yes
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: yes
+  connection: ssh
+  remote_user: root
+  vars:
+    observability_influx_port: 30080
+    observability_syslog_port: 30514
+    observability_metric_server_id: victoriametrics
+    observability_influx_organization: proxmox
+    observability_influx_bucket: proxmox
+  handlers:
+    - import_tasks: handlers/main.yml
+
+  tasks:
+    - name: Observability (logs to VictoriaLogs, metrics to VictoriaMetrics)
+      ansible.builtin.import_tasks: tasks/observability.yml
+      tags: [observability]

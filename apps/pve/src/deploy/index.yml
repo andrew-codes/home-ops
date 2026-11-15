@@ -9,6 +9,14 @@
   remote_user: root
   vars:
     pinned_pve_version: "8.3.4"
+    # Where VictoriaMetrics (InfluxDB write) and VictoriaLogs (syslog) are
+    # published on the Kubernetes node. observability_host is passed in by
+    # scripts/deploy.ts.
+    observability_influx_port: 30080
+    observability_syslog_port: 30514
+    observability_metric_server_id: victoriametrics
+    observability_influx_organization: proxmox
+    observability_influx_bucket: proxmox
   handlers:
     - import_tasks: handlers/main.yml
 
@@ -42,6 +50,10 @@
     - name: NUT client (UPS monitoring via the Synology NAS, auto-shutdown on FSD/low battery)
       ansible.builtin.import_tasks: tasks/nut-client.yml
       tags: [nut]
+
+    - name: Observability (logs to VictoriaLogs, metrics to VictoriaMetrics)
+      ansible.builtin.import_tasks: tasks/observability.yml
+      tags: [observability]
 
     # Network is deliberately last: it can cut the SSH connection running the
     # rest of this play, and every other step is safe to have already applied

@@ -1,0 +1,20 @@
+---
+- name: Configure TrueNAS to report to the cluster
+  hosts: all
+  become: no
+  gather_facts: no
+  connection: ssh
+  vars:
+    # Where VictoriaMetrics (Graphite) and VictoriaLogs (syslog) are published
+    # on the Kubernetes node. observability_host is passed in by
+    # scripts/deploy.ts.
+    observability_graphite_port: 30003
+    observability_syslog_port: 30514
+    observability_exporter_name: victoriametrics
+    observability_graphite_prefix: truenas
+    observability_graphite_namespace: nas
+
+  tasks:
+    - name: Observability (metrics exporter and remote syslog)
+      ansible.builtin.import_tasks: tasks/observability.yml
+      tags: [observability]

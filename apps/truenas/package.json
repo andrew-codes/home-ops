@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "name": "@ha/truenas",
+  "description": "Configures the TrueNAS host's metrics exporter and remote syslog so it reports to the cluster.",
+  "version": "0.0.1",
+  "devDependencies": {
+    "@ha/ansible": "workspace:^0.0.1",
+    "@ha/configuration-api": "workspace:^0.0.1",
+    "@ha/configuration-workspace": "workspace:^0.0.1",
+    "@ha/logger": "workspace:^0.0.1",
+    "@ha/nx-executors": "workspace:^0.1.0",
+    "nx": "^20.7.0"
+  }
+}

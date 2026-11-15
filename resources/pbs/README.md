@@ -22,6 +22,7 @@ Ansible-driven configuration for the [Proxmox Backup Server](https://www.proxmox
 | NFS-backed `nas` datastore, backup user, prune/verify jobs, firewall                    | [`scripts/deploy.yml`](scripts/deploy.yml) |
 | NAS mount resilience (systemd automount + service dependency)                           | [`scripts/deploy.yml`](scripts/deploy.yml) |
 | NUT UPS monitoring, auto-shutdown on FSD/low battery (see [below](#nut-ups-monitoring)) | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| Logs and metrics sent to the cluster (see [below](#observability))                      | [`scripts/deploy.yml`](scripts/deploy.yml) |
 
 Everything is applied by one playbook, [`scripts/deploy.yml`](scripts/deploy.yml), run against the single host in [`scripts/deploy.ts`](scripts/deploy.ts)'s generated inventory.
 
@@ -49,6 +50,7 @@ OP_VAULT=<vault-name> nx run pbs:deploy
 | `pbs/backup-password`                | infra vault (`OP_VAULT`)    | **must be confirmed/populated** |
 | `nut/monitor-username`               | infra vault (`OP_VAULT`)    | **must be confirmed/populated** |
 | `nut/monitor-password`               | infra vault (`OP_VAULT`)    | **must be confirmed/populated** |
+| `k8s/ip`                             | infra vault (`OP_VAULT`)    | yes (read by the k8s deploy)    |
 | `op://Private/andrew-mbp/public key` | `Private` vault, fixed item | yes (Andrew's existing SSH key) |
 
 `pbs/backup-username` and `pbs/backup-password` are the credentials the PBS-side backup user is created with and the ones any client (`pve`, or a manual `proxmox-backup-client`) authenticates as against the `nas` datastore. Confirm their values are real before relying on a deploy that creates that user.
@@ -87,6 +89,28 @@ server at `10.5.113.53:3493`, `secondary` mode, and to run `shutdown -h +0` on `
   Status configuration. Confirm it, the monitor account, and allow-list this host as
   a permitted client (Control Panel > Hardware & Power > UPS > Network UPS Server)
   before the first real run.
+
+## Observability
+
+Sends this host's logs and metrics to the Kubernetes node (`k8s/ip`, written to
+`.secrets/ansible-secrets.yml` as `observability_host`), on the NodePorts the `logs` and
+`metrics` deployments publish. Every task is tagged `observability`.
+
+- Installs `rsyslog` (PBS logs to journald only) and templates
+  `/etc/rsyslog.d/90-victorialogs.conf` from
+  [`scripts/templates/victorialogs-rsyslog.conf.j2`](scripts/templates/victorialogs-rsyslog.conf.j2).
+  It forwards everything to VictoriaLogs over TCP in RFC 5424 format (port `30514`) with a
+  100MB disk queue. The template is checked with `rsyslogd -N1` before it is installed, and
+  the `restart rsyslog` handler runs only when it changes.
+- Adds a `victoriametrics` InfluxDB (HTTP) metric server pointed at port `30080` with
+  `proxmox-backup-debug api create /config/metrics/influxdb-http`, and reconciles it with
+  `api set` when the URL, organization, bucket or enabled flag drifted. PBS has no
+  `proxmox-backup-manager` subcommand for metric servers, so this calls the API locally.
+  VictoriaMetrics ignores the token, organization and bucket, and the token is optional.
+
+The `proxmox-backup-debug api` calls were checked against the PBS API schema and against a
+stand-in binary, not against a real PBS host. Confirm them on the first run with
+`proxmox-backup-debug api get /config/metrics/influxdb-http`.
 
 ## NAS-slower-than-host boot race
 

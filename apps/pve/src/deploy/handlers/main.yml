@@ -6,3 +6,9 @@
 - name: update initramfs
   ansible.builtin.command: update-initramfs -u -k all
   listen: update initramfs
+
+- name: restart rsyslog
+  ansible.builtin.systemd:
+    name: rsyslog
+    state: restarted
+  listen: restart rsyslog

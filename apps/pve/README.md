@@ -248,6 +248,34 @@ settings before the first run, and populate `nut/monitor-username` /
 have this host's IP allow-listed as a permitted client, the same as
 [gaming-pc's equivalent step](../gaming-pc/README.md#nut-ups-monitoring).
 
+### 8. Observability ([`tasks/observability.yml`](src/deploy/tasks/observability.yml))
+
+Sends this host's logs and metrics to the cluster, so nothing is typed into the Proxmox UI.
+The destination is the Kubernetes node (`k8s/ip`) on the NodePorts the `logs` and `metrics`
+deployments publish.
+
+- Installs `rsyslog` (Proxmox VE logs to journald only) and templates
+  `/etc/rsyslog.d/90-victorialogs.conf`, which forwards everything to VictoriaLogs over TCP in
+  RFC 5424 format (port `30514`) with a 100MB disk queue. The template is checked with
+  `rsyslogd -N1` before it is installed, and the `restart rsyslog` handler runs only when it changes.
+- Adds a `victoriametrics` InfluxDB metric server (HTTP, port `30080`) with `pvesh create`.
+  If it already exists, it compares server, port, protocol, organization, bucket and the disabled
+  flag, and runs `pvesh set` only on drift. No token is set: VictoriaMetrics ignores the token,
+  organization and bucket, and the token is optional over HTTP.
+- Does not touch the network, GRUB or any guest, so it is safe to run on its own:
+  `--tags observability`, or the `deploy-observability` target below.
+
+[`src/deploy/observability.yml`](src/deploy/observability.yml) runs only these tasks. Use
+`nx run pve:deploy-observability` for a Proxmox host the full playbook does not manage (for
+example a second host). It configures `proxmox/ip` and, when set, `proxmox2/ip`.
+
+Metric servers are cluster-wide (`/cluster/metrics/server`), so the playbook detects cluster
+membership on every host: a host is clustered when `/etc/pve/corosync.conf` exists, and its
+cluster name is the `cluster_name:` line in that file. Hosts that share a cluster name share one
+metric server entry, and only the first of them in play order lists, creates and reconciles it.
+A standalone host (no `corosync.conf`) manages its own entry. rsyslog is configured on every host
+either way.
+
 ## Manual steps that cannot be automated
 
 These need a human at the machine (or its console), not this playbook:
@@ -284,17 +312,19 @@ These need a human at the machine (or its console), not this playbook:
 Read through [`packages/configuration-1password`](../../packages/configuration-1password),
 the same as every other host app in this repo.
 
-| Secret                  | Used for                                                                   |
-| ----------------------- | -------------------------------------------------------------------------- |
-| `proxmox/ip`            | The host to run the playbook against (the Ansible inventory target)        |
-| `andrew-mbp/public-key` | The operator's SSH public key, installed into `root`'s `authorized_keys`   |
-| `nas/ip`                | The NAS host backing the `nas-iso` SMB share                               |
-| `pve-nas-iso/username`  | NAS `ISO` share username (see [below](#secrets-that-do-not-exist-yet))     |
-| `pve-nas-iso/password`  | NAS `ISO` share password (see [below](#secrets-that-do-not-exist-yet))     |
-| `pve-pbs/username`      | PBS datastore username (see [below](#secrets-that-do-not-exist-yet))       |
-| `pve-pbs/password`      | PBS datastore password (see [below](#secrets-that-do-not-exist-yet))       |
-| `nut/monitor-username`  | NUT monitor account username (see [below](#secrets-that-do-not-exist-yet)) |
-| `nut/monitor-password`  | NUT monitor account password (see [below](#secrets-that-do-not-exist-yet)) |
+| Secret                  | Used for                                                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `proxmox/ip`            | The host to run the playbook against (the Ansible inventory target)                                              |
+| `andrew-mbp/public-key` | The operator's SSH public key, installed into `root`'s `authorized_keys`                                         |
+| `nas/ip`                | The NAS host backing the `nas-iso` SMB share                                                                     |
+| `pve-nas-iso/username`  | NAS `ISO` share username (see [below](#secrets-that-do-not-exist-yet))                                           |
+| `pve-nas-iso/password`  | NAS `ISO` share password (see [below](#secrets-that-do-not-exist-yet))                                           |
+| `pve-pbs/username`      | PBS datastore username (see [below](#secrets-that-do-not-exist-yet))                                             |
+| `pve-pbs/password`      | PBS datastore password (see [below](#secrets-that-do-not-exist-yet))                                             |
+| `nut/monitor-username`  | NUT monitor account username (see [below](#secrets-that-do-not-exist-yet))                                       |
+| `nut/monitor-password`  | NUT monitor account password (see [below](#secrets-that-do-not-exist-yet))                                       |
+| `k8s/ip`                | The Kubernetes node that receives logs and metrics (see [Observability](#8-observability-tasksobservabilityyml)) |
+| `proxmox2/ip`           | Optional second Proxmox host, used only by `deploy-observability`                                                |
 
 `PBS_FINGERPRINT` is an optional **environment variable**, not a 1Password secret -
 see [PBS TLS fingerprint](#pbs-tls-fingerprint).
@@ -339,6 +369,10 @@ and [`apps/dorri-mbp/README.md`](../dorri-mbp/README.md), only `nas/ip` exists i
 `nx run pve:deploy` fails fast with `op`'s own "item not found" error if these are
 missing - it does not silently skip storage configuration.
 
+`proxmox2/ip` (the second Proxmox host) is optional: `nx run pve:deploy-observability`
+logs a warning and configures only `proxmox/ip` when the item is missing. `k8s/ip`
+already exists, since the Kubernetes provisioning reads it.
+
 ## Deploying
 
 ```bash
@@ -368,10 +402,11 @@ with console access available as a fallback per
 
 ## Nx targets
 
-| Target   | What it does                                                                                           |
-| -------- | ------------------------------------------------------------------------------------------------------ |
-| `lint`   | `ansible-playbook --syntax-check` against the playbook - no host contact, safe to run anytime.         |
-| `deploy` | Runs the full playbook against `pve` over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md). |
+| Target                 | What it does                                                                                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lint`                 | `ansible-playbook --syntax-check` against both playbooks - no host contact, safe to run anytime.                                                          |
+| `deploy`               | Runs the full playbook against `pve` over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md).                                                    |
+| `deploy-observability` | Runs only the [observability](#8-observability-tasksobservabilityyml) tasks against `proxmox/ip` and, when set, `proxmox2/ip`. Not from an agent session. |
 
 `deploy` is deliberately excluded from `yarn deploy/all` in the root `package.json`,
 alongside `andrew-mbp`, `dorri-mbp` and `gaming-pc` - see

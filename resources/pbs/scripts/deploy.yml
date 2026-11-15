@@ -14,8 +14,22 @@
     nut_server_host: "10.5.113.53"
     nut_server_port: 3493
     nut_ups_name: ups
+    # Where VictoriaMetrics (InfluxDB write) and VictoriaLogs (syslog) are
+    # published on the Kubernetes node. observability_host comes from
+    # ansible-secrets.yml (written by deploy.ts).
+    observability_influx_port: 30080
+    observability_syslog_port: 30514
+    observability_metric_server_name: victoriametrics
+    observability_influx_organization: proxmox
+    observability_influx_bucket: proxmox
   vars_files:
     - ../.secrets/ansible-secrets.yml
+
+  handlers:
+    - name: restart rsyslog
+      ansible.builtin.systemd:
+        name: rsyslog
+        state: restarted
 
   tasks:
     - name: Set timezone to Eastern
@@ -324,6 +338,103 @@
         name: nut-monitor
         enabled: yes
         state: "{{ 'restarted' if pbs_upsmon_config.changed else 'started' }}"
+
+    - name: Check that the observability node address is set
+      ansible.builtin.assert:
+        that:
+          - observability_host is defined
+          - observability_host | string | length > 0
+        fail_msg: observability_host must be the address of the Kubernetes node.
+        quiet: true
+      tags: [observability]
+
+    - name: Install rsyslog (Proxmox Backup Server logs to journald only by default)
+      ansible.builtin.apt:
+        name: rsyslog
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+      tags: [observability]
+
+    - name: Forward logs to VictoriaLogs
+      ansible.builtin.template:
+        src: victorialogs-rsyslog.conf.j2
+        dest: /etc/rsyslog.d/90-victorialogs.conf
+        owner: root
+        group: root
+        mode: "0644"
+        # Refuse to install a config that rsyslog cannot load.
+        validate: rsyslogd -N1 -f %s
+      notify: restart rsyslog
+      tags: [observability]
+
+    - name: Ensure rsyslog is enabled and running
+      ansible.builtin.systemd:
+        name: rsyslog
+        enabled: yes
+        state: started
+      tags: [observability]
+
+    # The PBS metric server API has no dedicated proxmox-backup-manager
+    # subcommand, so these tasks call it locally through
+    # proxmox-backup-debug. VictoriaMetrics ignores the organization, bucket
+    # and token, and the token is optional, so none is set.
+    - name: List the InfluxDB HTTP metric servers
+      ansible.builtin.command: proxmox-backup-debug api get /config/metrics/influxdb-http --output-format json
+      register: pbs_metric_servers
+      changed_when: false
+      tags: [observability]
+
+    - name: Find the VictoriaMetrics metric server
+      ansible.builtin.set_fact:
+        pbs_metric_server_current: >-
+          {{ (pbs_metric_servers.stdout | from_json
+              | selectattr('name', 'equalto', observability_metric_server_name)
+              | list | first) | default({}) }}
+        pbs_metric_server_url: "http://{{ observability_host }}:{{ observability_influx_port }}"
+      tags: [observability]
+
+    - name: Add the VictoriaMetrics metric server (InfluxDB over HTTP)
+      ansible.builtin.command:
+        argv:
+          - proxmox-backup-debug
+          - api
+          - create
+          - /config/metrics/influxdb-http
+          - --name
+          - "{{ observability_metric_server_name }}"
+          - --url
+          - "{{ pbs_metric_server_url }}"
+          - --organization
+          - "{{ observability_influx_organization }}"
+          - --bucket
+          - "{{ observability_influx_bucket }}"
+      when: pbs_metric_server_current | length == 0
+      tags: [observability]
+
+    - name: Reconcile the VictoriaMetrics metric server if it drifted
+      ansible.builtin.command:
+        argv:
+          - proxmox-backup-debug
+          - api
+          - set
+          - /config/metrics/influxdb-http/{{ observability_metric_server_name }}
+          - --url
+          - "{{ pbs_metric_server_url }}"
+          - --organization
+          - "{{ observability_influx_organization }}"
+          - --bucket
+          - "{{ observability_influx_bucket }}"
+          - --enable
+          - "true"
+      when:
+        - pbs_metric_server_current | length > 0
+        - >-
+          pbs_metric_server_current.url | default('') != pbs_metric_server_url
+          or pbs_metric_server_current.organization | default('proxmox') != observability_influx_organization
+          or pbs_metric_server_current.bucket | default('proxmox') != observability_influx_bucket
+          or not (pbs_metric_server_current.enable | default(true) | bool)
+      tags: [observability]
 
     - name: Allow SSH in UFW
       ufw:
