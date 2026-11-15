@@ -1,18 +1,23 @@
 ---
+# Push ingestion door for external producers (for example Proxmox and TrueNAS).
+# This keeps the name and node port (30080) that vminsert used so Flux updates
+# the Service in place: creating a second Service that claims node port 30080
+# before the old one is pruned would fail the apply and block the prune.
+# The target port is now the single-node HTTP port, which serves every
+# ingestion and query endpoint.
 apiVersion: v1
 kind: Service
 metadata:
   name: vmcluster-victoria-metrics-cluster-vminsert-node-port
-  labels:
-    app: vminsert
-    app.kubernetes.io/instance: vmcluster
-    app.kubernetes.io/name: victoria-metrics-cluster
 spec:
   type: NodePort
+  selector:
+    app.kubernetes.io/name: vmsingle
+    app.kubernetes.io/instance: vmsingle
+    app.kubernetes.io/component: monitoring
+    managed-by: vm-operator
   ports:
-    - name: vmcluster-victoria-metrics-cluster-vminsert-http
-      port: 8480
-      targetPort: 8480
+    - name: vmsingle-http
+      port: 8428
+      targetPort: 8428
       nodePort: 30080
----
-

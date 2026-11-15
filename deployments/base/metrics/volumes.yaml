@@ -2,15 +2,11 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: victoria-metrics
-  annotations:
-    volume.beta.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
-    volume.kubernetes.io/storage-provisioner: "cluster.local/nfs-subdir-external-provisioner"
+  name: victoria-metrics-data
 spec:
   resources:
     requests:
       storage: 200Gi
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   storageClassName: nfs
----

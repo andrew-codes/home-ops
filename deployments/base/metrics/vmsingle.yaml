@@ -1,0 +1,30 @@
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMSingle
+metadata:
+  name: vmsingle
+spec:
+  retentionPeriod: "2y"
+  image:
+    repository: victoriametrics/victoria-metrics
+    tag: v1.156.0
+  # The "data" volume is mounted at storageDataPath. Naming the volume "data"
+  # makes the operator use it instead of creating its own.
+  storageDataPath: /victoria-metrics-data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: victoria-metrics-data
+  # vmagent is the only scraper; the operator-managed scrape config is not used.
+  ingestOnlyMode: true
+  disableSelfServiceScrape: true
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+  podMetadata:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8428"
