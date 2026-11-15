@@ -27,7 +27,7 @@ spec:
     syslog.useLocalTimestamp.tcp: "true"
     syslog.useLocalTimestamp.udp: "true"
   # Syslog listeners for Proxmox, Proxmox Backup Server and TrueNAS. They use an
-  # unprivileged container port; the logs-syslog NodePort Service publishes them.
+  # unprivileged container port; the victoria-logs-syslog-node-port Service publishes them.
   syslogSpec:
     tcpListeners:
       - listenPort: 5140

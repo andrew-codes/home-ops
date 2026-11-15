@@ -20,7 +20,7 @@ spec:
   disableSelfServiceScrape: true
   extraArgs:
     # Graphite plaintext listener (TCP and UDP) for the TrueNAS Reporting
-    # Exporter. The graphite-node-port Service publishes it.
+    # Exporter. The vmsingle-graphite-node-port Service publishes it.
     graphiteListenAddr: ":2003"
   resources:
     requests:
