@@ -75,6 +75,8 @@ const sealedSecretNames = [
   "voice-agent/home-assistant-token",
   "voice-agent/anthropic-api-key",
   "voice-agent/langsmith-api-key",
+  "alertmanager-receivers/home-assistant-webhook-url",
+  "alertmanager-receivers/healthchecks-ping-url",
 ] as const
 
 const secretNames = [
@@ -150,6 +152,8 @@ const secretNames = [
   "voice-agent/home-assistant-token",
   "voice-agent/anthropic-api-key",
   "voice-agent/langsmith-api-key",
+  "alertmanager-receivers/home-assistant-webhook-url",
+  "alertmanager-receivers/healthchecks-ping-url",
 ] as const
 
 const onePasswordConfiguration = createOnePasswordConfigurationApi(secretNames)

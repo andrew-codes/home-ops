@@ -36,8 +36,8 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "{{ $labels.job }} is down"
-            description: "Scrape target {{ $labels.instance }} (job {{ $labels.job }}) has reported up={{ $value }} for 5 minutes. Its metrics are not being collected and the service may be down."
+            summary: "{{ $labels.job }} is down{{ if $labels.kubernetes_io_hostname }} on node {{ $labels.kubernetes_io_hostname }}{{ end }}"
+            description: "Scrape target {{ $labels.instance }} (job {{ $labels.job }}{{ if $labels.kubernetes_io_hostname }}, node {{ $labels.kubernetes_io_hostname }}{{ end }}) has reported up={{ $value }} for 5 minutes. Its metrics are not being collected and the service may be down."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=VictoriaMetrics
         - alert: KubeletDown
           expr: up{job="kubernetes-nodes"} == 0
@@ -54,8 +54,17 @@ spec:
           labels:
             severity: critical
           annotations:
-            summary: No Kubernetes nodes are being monitored
-            description: "No kubelet scrape targets (job kubernetes-nodes) have been seen for 10 minutes (up series count: {{ $value }}). Node discovery or vmagent is broken, so node problems would go unnoticed."
+            summary: "No kubelets are being scraped (job {{ $labels.job }})"
+            description: "vmagent has no scrape target at all for job {{ $labels.job }} (the kubelet metrics of each Kubernetes node, read through the API server) for 10 minutes. One target per node is expected. Node discovery, the API server proxy or vmagent is broken, so a node going down would go unnoticed."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=vmagent
+        - alert: CAdvisorTargetsMissing
+          expr: absent(up{job="kubernetes-nodes-cadvisor"})
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "No cAdvisor targets are being scraped (job {{ $labels.job }})"
+            description: "vmagent has no scrape target at all for job {{ $labels.job }} (the per-container CPU and memory metrics of each Kubernetes node) for 10 minutes. One target per node is expected. Container metrics are not being collected."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=vmagent
         - alert: KubeAPIServerDown
           expr: up{job="kubernetes-apiservers"} == 0
@@ -95,15 +104,20 @@ spec:
     - name: vmagent
       rules:
         - alert: VMAgentDroppingData
-          expr: >-
-            sum(increase(vmagent_remotewrite_packets_dropped_total[5m])) without (url) > 0
-            or
-            sum(increase(vm_persistentqueue_bytes_dropped_total[5m])) without (path) > 0
+          expr: sum(increase(vmagent_remotewrite_packets_dropped_total[5m])) without (url) > 0
           labels:
             severity: critical
           annotations:
             summary: vmagent is losing metrics
-            description: "vmagent ({{ $labels.instance }}) dropped {{ $value }} blocks of data in the last 5 minutes before it reached VictoriaMetrics. Metrics are being lost and VictoriaMetrics is rejecting or not accepting writes."
+            description: "vmagent ({{ $labels.instance }}) dropped {{ $value }} blocks of samples in the last 5 minutes before they reached VictoriaMetrics. Those metrics are lost; VictoriaMetrics is rejecting or not accepting writes."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=vmagent
+        - alert: VMAgentQueueDroppingData
+          expr: sum(increase(vm_persistentqueue_bytes_dropped_total[5m])) without (path) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: vmagent is losing queued metrics
+            description: "vmagent ({{ $labels.instance }}) dropped {{ $value | humanize1024 }}B of queued samples in the last 5 minutes because its disk queue is full. Those metrics are lost; VictoriaMetrics has been unreachable or too slow for a long time."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=vmagent
         - alert: VMAgentRemoteWriteRetries
           expr: sum(rate(vmagent_remotewrite_retries_count_total[5m])) without (url) > 0
@@ -167,7 +181,7 @@ spec:
             severity: warning
           annotations:
             summary: "Volume {{ $labels.persistentvolumeclaim }} is almost full"
-            description: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has only {{ $value | humanizePercentage }} of its space left (node {{ $labels.instance }})."
+            description: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has only {{ $value | humanizePercentage }} of its space left (node {{ $labels.kubernetes_io_hostname }})."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
         - alert: PersistentVolumeAlmostFull
           expr: (kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes) < 0.03
@@ -176,5 +190,5 @@ spec:
             severity: critical
           annotations:
             summary: "Volume {{ $labels.persistentvolumeclaim }} is nearly out of space"
-            description: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has only {{ $value | humanizePercentage }} of its space left (node {{ $labels.instance }}). The workload using it will start failing."
+            description: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has only {{ $value | humanizePercentage }} of its space left (node {{ $labels.kubernetes_io_hostname }}). The workload using it will start failing."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes

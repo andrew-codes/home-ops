@@ -23,27 +23,38 @@ vmagent -> VMSingle <- vmalert -> Alertmanager -+-> Home Assistant webhook -> co
 
 ## One-time setup
 
-### 1. Seal the two receiver URLs
+### 1. Put the two receiver URLs in 1Password and seal them
 
-The committed `alertmanager-receivers` SealedSecrets hold `placeholder.invalid` URLs, so Alertmanager
-runs but nothing is delivered until you replace them. Pick a long random webhook id (for example
-`openssl rand -hex 24`) and take the ping URL from the Healthchecks.io check (step 3).
+No receiver values are committed. Alertmanager mounts the `alertmanager-receivers` secret, which does not
+exist until you seal it, so its pod waits (`ContainerCreating`) until you do. Do this on the PR branch
+before merging. It uses the same path as the other app secrets (for example `grafana-admin`): the names are
+registered in `packages/configuration-1password`, the values live in 1Password, and the `seal` generator
+writes the SealedSecrets.
 
-```sh
-export HA_WEBHOOK_URL='http://home-assistant.default.svc.cluster.local:8123/api/webhook/<webhook id>'
-export HC_PING_URL='https://hc-ping.com/<check uuid>'
+1. Pick a long random webhook id (for example `openssl rand -hex 24`) and take the ping URL from the
+   Healthchecks.io check (step 3).
+2. Scaffold the 1Password item (safe to re-run, existing values are never overwritten):
 
-for env in production staging; do
-  kubectl create secret generic alertmanager-receivers --namespace default --dry-run=client -o yaml \
-    --from-literal=home-assistant-webhook-url="$HA_WEBHOOK_URL" \
-    --from-literal=healthchecks-ping-url="$HC_PING_URL" |
-    kubeseal --cert resources/sealed-secrets/keys/$env.pub --format yaml --scope strict \
-      > infrastructure/$env/secrets/alertmanager-receivers-sealed.yaml
-done
-```
+   ```sh
+   export OP_VAULT=home-ops
+   yarn nx g @ha/secrets:1password
+   ```
 
-Commit the two files. Staging can use the same values or keep the committed placeholders (then
-re-seal only `production`).
+3. Fill in the two fields of the item `alertmanager-receivers`:
+
+   ```sh
+   op item edit alertmanager-receivers --vault "$OP_VAULT" \
+     'home-assistant-webhook-url=http://home-assistant.default.svc.cluster.local:8123/api/webhook/<webhook id>' \
+     'healthchecks-ping-url=https://hc-ping.com/<check uuid>'
+   ```
+
+4. Seal for each environment and commit the result. The generator rewrites every sealed secret and the
+   `kustomization.yaml` in `infrastructure/<env>/secrets`, so expect all of those files to change:
+
+   ```sh
+   yarn nx g @ha/secrets:seal production
+   yarn nx g @ha/secrets:seal staging
+   ```
 
 ### 2. Home Assistant
 
