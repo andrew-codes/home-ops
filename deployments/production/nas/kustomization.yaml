@@ -1,3 +1,2 @@
 resources:
   - services.yaml
-  - probe-job.yaml
