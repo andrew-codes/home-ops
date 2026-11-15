@@ -267,9 +267,14 @@ deployments publish.
 
 [`src/deploy/observability.yml`](src/deploy/observability.yml) runs only these tasks. Use
 `nx run pve:deploy-observability` for a Proxmox host the full playbook does not manage (for
-example a second host). It configures `proxmox/ip` and, when set, `proxmox2/ip`. Metric servers
-are stored per cluster in `/etc/pve/status.cfg`, so on a clustered pair the second run changes
-nothing.
+example a second host). It configures `proxmox/ip` and, when set, `proxmox2/ip`.
+
+Metric servers are cluster-wide (`/cluster/metrics/server`), so the playbook detects cluster
+membership on every host: a host is clustered when `/etc/pve/corosync.conf` exists, and its
+cluster name is the `cluster_name:` line in that file. Hosts that share a cluster name share one
+metric server entry, and only the first of them in play order lists, creates and reconciles it.
+A standalone host (no `corosync.conf`) manages its own entry. rsyslog is configured on every host
+either way.
 
 ## Manual steps that cannot be automated
 

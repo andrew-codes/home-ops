@@ -37,21 +37,52 @@
     enabled: yes
     state: started
 
+# Metric servers are cluster-wide (/cluster/metrics/server). Hosts in one
+# cluster share a single entry, so only the first host of each cluster manages
+# it; a standalone host manages its own.
+- name: Detect Proxmox cluster membership
+  ansible.builtin.stat:
+    path: "{{ pve_corosync_conf | default('/etc/pve/corosync.conf') }}"
+  register: pve_corosync_stat
+
+- name: Read the corosync configuration
+  ansible.builtin.slurp:
+    src: "{{ pve_corosync_conf | default('/etc/pve/corosync.conf') }}"
+  register: pve_corosync_content
+  when: pve_corosync_stat.stat.exists
+
+- name: Record this host's cluster name (empty when standalone)
+  ansible.builtin.set_fact:
+    pve_cluster_name: >-
+      {{ (pve_corosync_content.content | b64decode | regex_findall('(?m)^\s*cluster_name:\s*(\S+)') | first | default(''))
+         if pve_corosync_stat.stat.exists else '' }}
+
+- name: Decide whether this host manages its cluster's metric server
+  ansible.builtin.set_fact:
+    pve_metric_server_owner: >-
+      {{ pve_cluster_name == ''
+         or (ansible_play_hosts_all | map('extract', hostvars, 'pve_cluster_name') | list).index(pve_cluster_name)
+            == ansible_play_hosts_all.index(inventory_hostname) }}
+
 - name: List the configured metric servers
   ansible.builtin.command: pvesh get /cluster/metrics/server --output-format json
   register: pve_metric_servers
   changed_when: false
+  when: pve_metric_server_owner | bool
 
 - name: Check whether the VictoriaMetrics metric server exists
   ansible.builtin.set_fact:
     pve_metric_server_exists: >-
       {{ observability_metric_server_id in (pve_metric_servers.stdout | from_json | map(attribute='id') | list) }}
+  when: pve_metric_server_owner | bool
 
 - name: Read the current VictoriaMetrics metric server
   ansible.builtin.command: pvesh get /cluster/metrics/server/{{ observability_metric_server_id }} --output-format json
   register: pve_metric_server_current
   changed_when: false
-  when: pve_metric_server_exists | bool
+  when:
+    - pve_metric_server_owner | bool
+    - pve_metric_server_exists | bool
 
 - name: Add the VictoriaMetrics metric server (InfluxDB over HTTP)
   ansible.builtin.command:
@@ -71,7 +102,9 @@
       - "{{ observability_influx_organization }}"
       - --bucket
       - "{{ observability_influx_bucket }}"
-  when: not (pve_metric_server_exists | bool)
+  when:
+    - pve_metric_server_owner | bool
+    - not (pve_metric_server_exists | bool)
 
 # Compares only what this task sets. VictoriaMetrics ignores the organization,
 # bucket and token, and the token is optional for the http protocol, so none is
@@ -95,6 +128,7 @@
       - --disable
       - "0"
   when:
+    - pve_metric_server_owner | bool
     - pve_metric_server_exists | bool
     - >-
       (pve_metric_server_current.stdout | from_json).server | default('') != observability_host
