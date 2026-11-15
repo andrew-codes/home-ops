@@ -4,6 +4,7 @@ namespace: default
 resources:
   - services.yaml
   - volumes.yaml
+  - vmsingle.yaml
   - helm-source.yaml
   - helm-release.yaml
 
