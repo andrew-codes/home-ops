@@ -243,6 +243,10 @@ Four of those rows are not plain winget, and each for its own reason:
     SYSTEM-run task cannot reach. [`src/start-dxl.ps1`](src/start-dxl.ps1) is
     also installed for starting DXL by hand; it no-ops if DXL is already running
     and minimizes the window after launch.
+  - The deploy empties `developer\tools` before copying `src/` in, but skips
+    `dxl/`: DXL runs from there, so its exe is locked and deleting it fails the
+    deploy. `dxl.ps1` owns that folder, so DXL keeps running untouched through a
+    deploy and still updates through `Update-DXL` when a release is newer.
 
 Chocolatey's own bootstrap script trips a Windows Defender false positive -
 see [Turn off Windows Defender Tamper Protection](#turn-off-windows-defender-tamper-protection-once-in-windows-security)
@@ -357,7 +361,8 @@ and `C:\ProgramData\gaming-pc\monitoring` (PresentMon, the two FPS scripts, the
 textfile directory and `fps-exporter.log`). The monitoring directory is locked to
 administrators, because a SYSTEM task runs the scripts in it and windows_exporter
 reads its textfile directory. The scripts are copied there out of
-`developer\tools` because the deploy empties and refills that directory.
+`developer\tools` because the deploy empties and refills that directory (every entry
+except `dxl`, see below).
 
 ### Why these, and what each is not
 
