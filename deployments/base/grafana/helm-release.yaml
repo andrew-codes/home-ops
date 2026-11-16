@@ -93,8 +93,8 @@ spec:
     dashboards:
       default:
         victoriametrics:
-          gnetId: 11176
-          revision: 18
+          gnetId: 10229
+          revision: 61
           datasource: victoriametrics
         vmagent:
           gnetId: 12683
