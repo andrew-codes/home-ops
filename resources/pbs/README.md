@@ -68,7 +68,8 @@ Changing the interface to a static `10.0.209.71/24` can drop the current SSH con
 
 ## NUT UPS monitoring
 
-> [!WARNING] > **A misconfigured client here can shut this host down unexpectedly.** Verify the
+> [!WARNING]
+> **A misconfigured client here can shut this host down unexpectedly.** Verify the
 > NUT server address, UPS name and monitor credentials below against the real
 > Synology NAS before relying on this, or before merging a change to it.
 
