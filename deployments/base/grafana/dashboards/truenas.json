@@ -467,7 +467,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "count(truenas_pool_state{state!=\"ONLINE\"}) or vector(0)",
+          "expr": "count(last_over_time(truenas_pool_state{state!=\"ONLINE\"}[5m])) or vector(0)",
           "legendFormat": "",
           "refId": "A",
           "range": true
@@ -532,7 +532,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "count(truenas_pool_vdev_state{state!~\"ONLINE|AVAIL|INUSE\"}) or vector(0)",
+          "expr": "count(last_over_time(truenas_pool_vdev_state{state!~\"ONLINE|AVAIL|INUSE\"}[5m])) or vector(0)",
           "legendFormat": "",
           "refId": "A",
           "range": true
@@ -597,7 +597,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum(truenas_pool_vdev_errors) or vector(0)",
+          "expr": "sum(last_over_time(truenas_pool_vdev_errors[5m])) or vector(0)",
           "legendFormat": "",
           "refId": "A",
           "range": true
@@ -662,7 +662,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "count(truenas_smart_healthy == 0) or vector(0)",
+          "expr": "count(last_over_time(truenas_smart_healthy[5m]) == 0) or vector(0)",
           "legendFormat": "",
           "refId": "A",
           "range": true
@@ -727,7 +727,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "(time() - min(max by (pool) (truenas_pool_last_scan_end_timestamp_seconds))) / 86400",
+          "expr": "(time() - min(max by (pool) (last_over_time(truenas_pool_last_scan_end_timestamp_seconds[1d])))) / 86400",
           "legendFormat": "",
           "refId": "A",
           "range": true
@@ -796,7 +796,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "time() - max(truenas_health_push_timestamp_seconds)",
+          "expr": "time() - max(last_over_time(truenas_health_push_timestamp_seconds[1d]))",
           "legendFormat": "",
           "refId": "A",
           "range": true
@@ -865,7 +865,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "(last_over_time(truenas_pool_vdev_state{state!~\"ONLINE|AVAIL|INUSE\"}[90s]) * 0 + 1) or (last_over_time(truenas_pool_vdev_state{state=~\"ONLINE|AVAIL|INUSE\"}[90s]) * 0)",
+          "expr": "(last_over_time(truenas_pool_vdev_state{state!~\"ONLINE|AVAIL|INUSE\"}[5m]) * 0 + 1) or (last_over_time(truenas_pool_vdev_state{state=~\"ONLINE|AVAIL|INUSE\"}[5m]) * 0)",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -1023,7 +1023,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "last_over_time(truenas_smart_healthy[90s])",
+          "expr": "last_over_time(truenas_smart_healthy[5m])",
           "legendFormat": "",
           "refId": "A",
           "instant": true,
@@ -1036,7 +1036,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "last_over_time(truenas_smart_reallocated_sectors[90s])",
+          "expr": "last_over_time(truenas_smart_reallocated_sectors[5m])",
           "legendFormat": "",
           "refId": "B",
           "instant": true,
@@ -1049,7 +1049,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "last_over_time(truenas_smart_pending_sectors[90s])",
+          "expr": "last_over_time(truenas_smart_pending_sectors[5m])",
           "legendFormat": "",
           "refId": "C",
           "instant": true,
@@ -1062,7 +1062,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "last_over_time(truenas_smart_offline_uncorrectable_sectors[90s])",
+          "expr": "last_over_time(truenas_smart_offline_uncorrectable_sectors[5m])",
           "legendFormat": "",
           "refId": "D",
           "instant": true,
@@ -1075,7 +1075,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "last_over_time(truenas_smart_selftest_failed[90s])",
+          "expr": "last_over_time(truenas_smart_selftest_failed[5m])",
           "legendFormat": "",
           "refId": "E",
           "instant": true,
@@ -1220,7 +1220,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (pool, serial, kind) (truenas_pool_vdev_errors{serial!=\"\"}) > 0",
+          "expr": "sum by (pool, serial, kind) (last_over_time(truenas_pool_vdev_errors{serial!=\"\"}[5m])) > 0",
           "legendFormat": "{{pool}} {{serial}} {{kind}}",
           "refId": "A",
           "range": true
@@ -1298,7 +1298,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "truenas_smart_reallocated_sectors > 0 or truenas_smart_pending_sectors > 0",
+          "expr": "last_over_time(truenas_smart_reallocated_sectors[5m]) > 0 or last_over_time(truenas_smart_pending_sectors[5m]) > 0",
           "legendFormat": "{{serial}} {{disk}}",
           "refId": "A",
           "range": true

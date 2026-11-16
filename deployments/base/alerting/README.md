@@ -110,8 +110,8 @@ A cron job on the NAS (`apps/truenas`, see its [README](../../../apps/truenas/RE
 
 - **Sources.** Pool and disk state come from the TrueNAS middleware, SMART from `smartctl`. TrueNAS 25.10 has no SMART API, so no exporter that reads the API can offer these.
 - **Counters versus gauges.** The sector counters are gauges, so "increasing" uses `delta` over 7 days. A count that was already there when the job first ran is not alerted on, and a count that stops growing resolves after the window.
-- **Resolving.** A pool or vdev that recovers is a new series (the `state` label changes), so its alert resolves within about 5 minutes, when the old state series goes stale.
-- **Unit tests.** `apps/truenas/src/health/rules/truenas-health.test.yaml` runs the rules through `vmalert-tool` (`sh apps/truenas/src/health/rules/test-rules.sh`, needs Docker and `yq`). It covers a healthy NAS that fires nothing, each failure, recovery, the exact push text, and the fake-pool test below.
+- **Gaps and resolving.** A cron run can be missed, and the Graphite exporter pushes with gaps, so no rule reads a bare selector for a current value or for presence. Current values go through `last_over_time` over 5 minutes, and the heartbeat and uptime checks through `absent_over_time` over 10 minutes, so a gap cannot fire or mute an alert. The price is that an alert resolves up to 5 minutes after the state changes: a recovered pool is a new series (the `state` label changes), and the old state series stays in the window.
+- **Unit tests.** `apps/truenas/src/health/rules/truenas-health.test.yaml` runs the rules through `vmalert-tool` (`sh apps/truenas/src/health/rules/test-rules.sh`, needs Docker and `yq`). It covers a healthy NAS that fires nothing, each failure, recovery, gaps between pushes, the exact push text, and the fake-pool test below.
 
 ## Alert history
 

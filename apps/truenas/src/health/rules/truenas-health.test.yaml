@@ -472,3 +472,72 @@ tests:
               description: "Pool alert-test reports DEGRADED. ZFS keeps serving data while it can, but redundancy is reduced or gone, and another failure could lose data. The vdev and disk alerts say which one is affected; `zpool status alert-test` on the NAS shows the detail."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
       - { eval_time: 15m, alertname: TrueNASPoolNotOnline, exp_alerts: [] }
+
+  # The job runs on a schedule and a run can be missed or late. A gap between
+  # pushes must neither mute an alert that is firing nor start one.
+  - name: gaps between pushes do not mute a firing alert
+    interval: 1m
+    input_series:
+      # One push every 4 minutes: three empty minutes between samples.
+      - series: 'truenas_pool_state{pool="tank",state="DEGRADED"}'
+        values: "1 _x3 1 _x3 1 _x3 1 _x3 1 _x3 1 _x3 1 _x3 1 _x3 1 _x3 1 _x3 1 _x3 1 _x3"
+      - series: 'truenas_smart_healthy{disk="sdb",serial="SERIAL-SDB"}'
+        values: "0 _x3 0 _x3 0 _x3 0 _x3 0 _x3 0 _x3 0 _x3 0 _x3 0 _x3 0 _x3 0 _x3 0 _x3"
+    alert_rule_test:
+      # Evaluated in the middle of a gap, after the wait has passed.
+      - eval_time: 30m
+        alertname: TrueNASPoolNotOnline
+        exp_alerts:
+          - exp_labels: { severity: critical, pool: tank, state: DEGRADED }
+            exp_annotations:
+              summary: "TrueNAS pool tank is DEGRADED"
+              description: "Pool tank reports DEGRADED. ZFS keeps serving data while it can, but redundancy is reduced or gone, and another failure could lose data. The vdev and disk alerts say which one is affected; `zpool status tank` on the NAS shows the detail."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+      - eval_time: 30m
+        alertname: TrueNASSmartHealthFailed
+        exp_alerts:
+          - exp_labels: { severity: critical, disk: sdb, serial: SERIAL-SDB }
+            exp_annotations:
+              summary: "TrueNAS disk SERIAL-SDB (sdb) failed its SMART health check"
+              description: "Disk SERIAL-SDB (sdb) has reported a failed SMART overall health assessment for 5 minutes. It is predicting its own failure. Replace it, and check the pool in the TrueNAS UI."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  - name: a missed run does not fire the heartbeat alert
+    interval: 1m
+    input_series:
+      # Pushes every minute, then 4 minutes with none, then every minute again.
+      - series: "truenas_health_push_timestamp_seconds"
+        values: "1x10 _x4 1x40"
+      - series: '{__name__="truenas.nas.system.uptime.uptime"}'
+        values: "1x60"
+    alert_rule_test:
+      - {
+          eval_time: 14m,
+          alertname: TrueNASHealthMetricsMissing,
+          exp_alerts: [],
+        }
+      - {
+          eval_time: 30m,
+          alertname: TrueNASHealthMetricsMissing,
+          exp_alerts: [],
+        }
+
+  # The Graphite exporter pushes with multi-minute gaps. A gap in the uptime
+  # series must not read as "the host is down" and mute the heartbeat alert.
+  - name: gaps in the host uptime do not mute the heartbeat alert
+    interval: 1m
+    input_series:
+      - series: "truenas_health_push_timestamp_seconds"
+        values: "1x10 _x110"
+      # One sample every 6 minutes.
+      - series: '{__name__="truenas.nas.system.uptime.uptime"}'
+        values: "1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5 1 _x5"
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: TrueNASHealthMetricsMissing
+        exp_alerts:
+          - exp_labels: { severity: warning }
+            exp_annotations:
+              summary: "TrueNAS pool and disk health is not being reported"
+              description: "TrueNAS is reporting performance metrics, but its health cron job has not pushed for 15 minutes. A degraded pool or a failing disk would go unnoticed. Check that the 'Report ZFS pool and SMART health' cron job exists and is enabled in the TrueNAS UI (System, Advanced Settings, Cron Jobs), run it by hand, and run `nx run truenas:deploy` to put it back."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS

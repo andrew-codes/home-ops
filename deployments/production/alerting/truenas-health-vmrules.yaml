@@ -10,6 +10,14 @@
 # name), so the push says what to pull. A removed disk keeps the serial the
 # TrueNAS middleware remembers for it.
 #
+# The job runs on a schedule and the Graphite exporter pushes with gaps, so no
+# rule reads a bare selector for "the current value" or for presence: a missed
+# run or a gap must not fire or mute an alert. Every current value goes through
+# last_over_time over 5 minutes (5 runs), the heartbeat and the uptime check
+# through absent_over_time over 10 minutes, and the 7 day sector rules use
+# delta over a range. The price is that an alert resolves up to 5 minutes after
+# the state it reports has changed.
+#
 # In the production overlay only: staging receives no TrueNAS metrics, so the
 # missing-data rules would fire there forever.
 apiVersion: operator.victoriametrics.com/v1beta1
@@ -27,7 +35,7 @@ spec:
         - alert: TrueNASHealthMetricsMissing
           expr: >-
             absent_over_time(truenas_health_push_timestamp_seconds[10m])
-            unless absent({__name__="truenas.nas.system.uptime.uptime"})
+            unless absent_over_time({__name__="truenas.nas.system.uptime.uptime"}[10m])
           for: 5m
           labels:
             severity: warning
@@ -39,7 +47,7 @@ spec:
         # (boot.get_state). A change in the middleware after an upgrade shows
         # up here.
         - alert: TrueNASHealthSourceFailing
-          expr: truenas_health_collect_ok == 0
+          expr: last_over_time(truenas_health_collect_ok[5m]) == 0
           for: 10m
           labels:
             severity: warning
@@ -48,7 +56,7 @@ spec:
             description: "The health cron job could not read '{{ $labels.source }}' from the TrueNAS middleware for 10 minutes, so the pool or disk alerts that depend on it cannot fire. This usually follows a TrueNAS upgrade that changed the middleware's output. Run the script by hand to see the error (see the apps/truenas README)."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
         - alert: TrueNASSmartReadFailing
-          expr: truenas_smart_collect_ok == 0
+          expr: last_over_time(truenas_smart_collect_ok[5m]) == 0
           for: 10m
           labels:
             severity: warning
@@ -59,7 +67,7 @@ spec:
     - name: truenas-pool-health
       rules:
         - alert: TrueNASPoolNotOnline
-          expr: truenas_pool_state{state!="ONLINE"} == 1
+          expr: last_over_time(truenas_pool_state{state!="ONLINE"}[5m]) == 1
           for: 2m
           labels:
             severity: critical
@@ -70,7 +78,7 @@ spec:
         # Every node of the pool: mirror and RAIDZ vdevs and the disks under
         # them. Spares (AVAIL, INUSE) are expected not to be ONLINE.
         - alert: TrueNASVdevNotOnline
-          expr: truenas_pool_vdev_state{state!~"ONLINE|AVAIL|INUSE"} == 1
+          expr: last_over_time(truenas_pool_vdev_state{state!~"ONLINE|AVAIL|INUSE"}[5m]) == 1
           for: 2m
           labels:
             severity: critical
@@ -85,7 +93,7 @@ spec:
         # Cumulative since the pool was imported or the counters were cleared
         # (`zpool clear`), so this stays on until someone looks at the disk.
         - alert: TrueNASVdevErrors
-          expr: truenas_pool_vdev_errors > 0
+          expr: last_over_time(truenas_pool_vdev_errors[5m]) > 0
           for: 5m
           labels:
             severity: warning
@@ -101,7 +109,7 @@ spec:
         # ZFS keeps only the latest scan, so this is the last scrub or
         # resilver that finished. It stays on until the next one finishes.
         - alert: TrueNASPoolScanErrors
-          expr: truenas_pool_last_scan_errors > 0
+          expr: last_over_time(truenas_pool_last_scan_errors[5m]) > 0
           for: 5m
           labels:
             severity: warning
@@ -119,7 +127,7 @@ spec:
               time() - max by (pool) (last_over_time(truenas_pool_last_scan_end_timestamp_seconds[1d]))
               > 45 * 24 * 3600
             )
-            unless on(pool) (truenas_pool_scan_in_progress == 1)
+            unless on(pool) (last_over_time(truenas_pool_scan_in_progress[5m]) == 1)
           for: 1h
           labels:
             severity: warning
@@ -132,7 +140,7 @@ spec:
         # The drive's own overall health self-assessment. A drive that reports
         # FAILED is predicting its own failure.
         - alert: TrueNASSmartHealthFailed
-          expr: truenas_smart_healthy == 0
+          expr: last_over_time(truenas_smart_healthy[5m]) == 0
           for: 5m
           labels:
             severity: critical
@@ -143,7 +151,7 @@ spec:
         # The newest short or long self-test (the weekly and monthly SMART
         # cron jobs). TrueNAS raises the same condition in its own alerts.
         - alert: TrueNASSmartSelfTestFailed
-          expr: truenas_smart_selftest_failed == 1
+          expr: last_over_time(truenas_smart_selftest_failed[5m]) == 1
           for: 5m
           labels:
             severity: warning
@@ -165,7 +173,7 @@ spec:
         # next write. They clear by themselves when rewritten, so give it an
         # hour before alerting.
         - alert: TrueNASSmartPendingSectors
-          expr: truenas_smart_pending_sectors > 0
+          expr: last_over_time(truenas_smart_pending_sectors[5m]) > 0
           for: 1h
           labels:
             severity: warning
@@ -177,9 +185,9 @@ spec:
         # errors (SMART 187). TrueNAS alerts on the latter.
         - alert: TrueNASSmartUncorrectableErrors
           expr: >-
-            label_replace(truenas_smart_offline_uncorrectable_sectors > 0, "kind", "offline uncorrectable sectors", "", "")
+            label_replace(last_over_time(truenas_smart_offline_uncorrectable_sectors[5m]) > 0, "kind", "offline uncorrectable sectors", "", "")
             or
-            label_replace(truenas_smart_reported_uncorrectable_errors > 0, "kind", "reported uncorrectable errors", "", "")
+            label_replace(last_over_time(truenas_smart_reported_uncorrectable_errors[5m]) > 0, "kind", "reported uncorrectable errors", "", "")
           for: 1h
           labels:
             severity: warning
@@ -191,7 +199,7 @@ spec:
         # threshold, temperature, reliability degraded, read-only, or the
         # volatile memory backup failed. Any bit set is a problem.
         - alert: TrueNASNvmeCriticalWarning
-          expr: truenas_smart_nvme_critical_warning > 0
+          expr: last_over_time(truenas_smart_nvme_critical_warning[5m]) > 0
           for: 5m
           labels:
             severity: critical
