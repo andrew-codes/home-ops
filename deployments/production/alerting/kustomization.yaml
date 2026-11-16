@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: default
 resources:
   - ../../base/alerting
+  - truenas-vmrules.yaml

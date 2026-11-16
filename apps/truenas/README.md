@@ -30,6 +30,21 @@ Run it as the captain, not from an agent session - see [AGENTS.md](AGENTS.md). [
 
 `truenas/ip` and `truenas/username` do not exist in 1Password yet. They are optional: when either is missing, `deploy` logs a warning and does nothing, like `proxmox2/ip` for [`pve`](../pve/README.md). Create a `truenas` item in the infra vault with `ip` and `username` fields to enable it. The older `nas/ip` is not used here, because it can still point at the previous NAS.
 
+## Dashboard and alerts
+
+The metrics this play turns on feed a Grafana dashboard and a set of alert rules in the cluster:
+
+- **Dashboard.** `TrueNAS`, authored in [`deployments/base/grafana/dashboards/truenas.json`](../../deployments/base/grafana/dashboards/truenas.json) and mounted through the Grafana HelmRelease. It covers CPU usage and temperature, memory, ZFS ARC size and hit ratio, pool usage, per-disk temperature, busy %, IOPS and throughput, network per interface, the NFS server, the backup server VM and the host services.
+- **Alerts.** The `truenas` VMRule in [`deployments/production/alerting/truenas-vmrules.yaml`](../../deployments/production/alerting/truenas-vmrules.yaml). The thresholds and what each rule does are in the [alerting README](../../deployments/base/alerting/README.md#truenas).
+
+VictoriaMetrics stores the exporter's metrics as dotted Graphite names with no labels, for example `truenas.nas.truenas_disk_temp.<disk>.temp`. Queries select them with `{__name__=~"..."}` and pull the disk or interface name out of `__name__` with `label_replace`. If you change the exporter's `prefix` or `namespace` (the play variables), update the `truenas.nas.` part of every query in the dashboard and the rules.
+
+### What the metrics cannot tell you
+
+The exporter has no pool health, vdev state or SMART result. A degraded pool, a failed disk that is still listed, a scrub error or a failing SMART attribute does not show up in the dashboard or in any alert here. The disk rules only catch the symptoms that do reach the metrics: a disk that stops reporting, runs hot, or a pool that fills up.
+
+Covering it is a separate piece of work. The most maintainable route is TrueNAS's own alert service: it already raises pool, vdev, SMART, scrub and replication alerts, needs no code in this repo, and stays correct across TrueNAS upgrades. Point one of its alert services at somewhere you read. If you later want those states in Grafana and Alertmanager too, run a maintained exporter in the cluster that reads the TrueNAS API with a read-only API key, rather than writing one here.
+
 ## What was verified, and what was not
 
 The middleware method names, field names and the TrueNAS version (25.10.8) were read from the live host with query calls only (`system.version`, `reporting.exporters.query`, `system.advanced.config`, `core.get_methods`, `reporting.exporters.exporter_schemas`). Nothing was created, updated or deleted there.

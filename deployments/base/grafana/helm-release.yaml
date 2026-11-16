@@ -52,6 +52,19 @@ spec:
             editable: true
             options:
               path: /var/lib/grafana/dashboards/default
+          # Dashboards authored in this repo (dashboards/*.json), mounted from
+          # the ConfigMap that kustomization.yaml generates.
+          - name: custom
+            orgId: 1
+            folder: ""
+            type: file
+            disableDeletion: true
+            editable: true
+            options:
+              path: /var/lib/grafana/dashboards/custom
+
+    dashboardsConfigMaps:
+      custom: grafana-dashboards-custom
 
     dashboards:
       default:

@@ -59,6 +59,31 @@ The disk rules skip `tmpfs`, `overlay`, `squashfs`, read-only and network file s
 (PVCs) are covered by the `PersistentVolume*` rules from the kubelet volume stats. A scrape target that
 is present but down is already caught by `TargetDown`.
 
+## TrueNAS
+
+The NAS pushes its metrics through the Graphite reporting exporter that `apps/truenas` configures. They arrive as dotted names with no labels (`truenas.nas.<family>.<...>`), and the rules read the disk or interface name out of `__name__` with `label_replace`. The `TrueNAS` dashboard in Grafana shows the same series.
+
+The rules are the `truenas` VMRule in `deployments/production/alerting/truenas-vmrules.yaml`. They are in the production overlay, not base, because staging receives no TrueNAS metrics and the missing-data rules would fire there forever. Disks in the text are shown by serial number.
+
+| Rule                                   | Severity | Fires when                                                                                                        |
+| -------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
+| `TrueNASMetricsMissing`                | critical | the uptime series is gone for 10 minutes: host down or unreachable, exporter off, or Graphite not ingested        |
+| `TrueNASPoolUsageHigh`                 | warning  | the pool is over 80% full for 30 minutes                                                                          |
+| `TrueNASPoolAlmostFull`                | critical | the pool is over 90% full for 15 minutes                                                                          |
+| `TrueNASPoolFillingUp`                 | warning  | the pool is over 70% full and the 24 hour trend of free space reaches zero within 7 days (for 1 hour)             |
+| `TrueNASDiskTemperatureHigh`           | warning  | a disk is at 50 °C or more for 15 minutes                                                                         |
+| `TrueNASDiskTemperatureCritical`       | critical | a disk is at 60 °C or more for 5 minutes                                                                          |
+| `TrueNASDiskMissing`                   | warning  | a disk that reported in the last day has not for 10 minutes (resolves by itself a day after it was last seen)     |
+| `TrueNASDiskTemperatureMetricsMissing` | warning  | no disk temperature series for 15 minutes while the host still reports                                            |
+| `TrueNASDiskStatsMetricsMissing`       | warning  | no disk busy, IOPS or throughput series for 15 minutes while the host still reports                               |
+| `TrueNASNetworkLinkDown`               | warning  | a physical interface (name starting `en` or `eth`) has no carrier for 5 minutes after being up in the last 7 days |
+
+- **Thresholds.** The disk temperatures are typical NAS hard disk limits: drives are rated to 60 to 65 °C, and sustained 50 °C or more shortens their life. NVMe and SSD drives run hotter, so if one lives in the NAS and trips the warning, raise the numbers or split the rule. The pool numbers follow the ZFS rule of thumb that performance drops past 80% full.
+- **The pool is one series.** The exporter reports pool usage without a pool name, so the pool rules describe "the pool". Check them again if a second pool is added.
+- **Unused ports.** `TrueNASNetworkLinkDown` ignores a port that was never up in the last 7 days, so a free port does not alert. A port that is unplugged for more than 7 days stops alerting.
+
+**Health gap.** The exporter has no pool health, vdev state or SMART result, so none of these rules can see a degraded pool or a failing disk. The most maintainable cover is TrueNAS's own alert service, which already raises those alerts. See the `apps/truenas` README for the recommendation and why an in-cluster exporter would be the second step.
+
 ## One-time setup
 
 ### 1. Put the two receiver URLs in 1Password and seal them
@@ -205,7 +230,8 @@ At most a few more checks (for example backup jobs that ping on success) are exp
    `kube-state-metrics` jobs should be up in the vmagent targets page, and each dashboard in the
    Kubernetes / Views set and Node Exporter Full should show data.
 
-5. Failure path: stop the pings (for example seal a wrong `healthchecks-ping-url`); Healthchecks.io notifies you after the grace time.
+5. TrueNAS: `kubectl get vmrule truenas -n default` should exist and the `truenas-*` groups should list on the vmalert rules page with no errors. The `TrueNAS` dashboard in Grafana should show data in every panel. A series that never arrives (a family the host does not report) leaves its panel empty.
+6. Failure path: stop the pings (for example seal a wrong `healthchecks-ping-url`); Healthchecks.io notifies you after the grace time.
 
 ## Known limits
 
