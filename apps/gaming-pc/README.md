@@ -335,7 +335,7 @@ playbook prints. If they warn, install that app from the Store by hand once;
 | Automatic sign-in, including after wake    | `AutoAdminLogon`, plus no password required on wake                                                                       |
 | Wake-on-LAN                                | Magic packet only, armed with `powercfg /deviceenablewake`; the device power-down checkbox is left at the Windows default |
 | OS notifications off                       | `ToastEnabled`, notification centre and toast policies                                                                    |
-| Closed apps cannot be relaunched by push   | `NoCloudApplicationNotification` machine policy, see [Dia stays closed](#dia-stays-closed)                                |
+| Dia cannot be relaunched by a push         | `LetAppsRunInBackground_ForceDenyTheseApps` machine policy, see [Dia stays closed](#dia-stays-closed)                     |
 | Dark mode                                  | `AppsUseLightTheme` / `SystemUsesLightTheme`                                                                              |
 | All desktop icons hidden                   | `HideIcons`                                                                                                               |
 | Taskbar widgets off                        | `Dsh\AllowNewsAndInterests` policy                                                                                        |
@@ -379,17 +379,51 @@ The full browser then opens over the desktop, on top of the animated background
 this couch PC shows when no game is running.
 
 Turning toasts off does not stop this, because a raw notification has no UI. The
-deploy sets the `NoCloudApplicationNotification` machine policy instead. It turns
-off the connection between Windows and WNS, so no push arrives and nothing
-launches. Microsoft documents it as taking effect without a restart.
+deploy denies background activity for Dia's package family name instead, with the
+`LetAppsRunInBackground_ForceDenyTheseApps` machine policy. Other apps keep their
+pushes, including the Xbox app. The policy is machine scope and keyed by package
+family name, so it writes no per-user hive.
 
-Dia was the only app on this machine receiving WNS pushes when this was
-diagnosed. If another app needs them later, remove the
-`Turn off WNS push so a closed app cannot be relaunched by a raw notification`
-task in [`scripts/deploy.yml`](scripts/deploy.yml). Event 2033 ("A raw
-notification has activated a background task") in the
-`Microsoft-Windows-PushNotification-Platform/Operational` log is the signature of
-the old behaviour.
+**This is unverified, and the confidence is medium-low.** Microsoft documents
+background access as the control for
+[raw notification background tasks](https://learn.microsoft.com/en-us/windows/apps/develop/notifications/push-notifications/raw-notification-overview)
+and
+[enterprise background activity](https://learn.microsoft.com/en-us/windows/application-management/enterprise-background-activity-controls).
+The Windows App SDK push design says it runs on the same background
+infrastructure and follows enterprise policies. Nothing documents the control for
+a full-trust app like Dia, though. One
+[Microsoft Q&A thread](https://learn.microsoft.com/en-us/answers/questions/5955952/can-a-packaged-with-external-location-winui-2-c-wi)
+reports a packaged desktop app whose push COM server still started while
+background access was denied.
+
+To test it, close Dia and wait for a push. Event 1010 for Dia in the
+`Microsoft-Windows-PushNotification-Platform/Operational` log shows the push
+arrived. Event 2033 ("A raw notification has activated a background task") and a
+new `Dia.exe ----WindowsAppRuntimePushServer: -Embedding` process after it mean
+the block did not work.
+
+**Fallback, not applied:** the `NoCloudApplicationNotification` machine policy
+turns off the connection between Windows and WNS, so no app receives a push.
+[Microsoft documents it](https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-notifications)
+as device scope, covering raw notifications, with no restart needed. It could also
+stop the Xbox app's invites, party and message alerts, Armoury Crate, and pushes
+sent from another device such as a remote install. Replace the Dia task in
+[`scripts/deploy.yml`](scripts/deploy.yml) with this one only if the Dia-only
+block fails:
+
+```yaml
+- name: Turn off WNS push so a closed app cannot be relaunched by a raw notification
+  win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications
+    name: NoCloudApplicationNotification
+    data: 1
+    type: dword
+  become: yes
+  become_method: runas
+  vars:
+    ansible_become_user: "{{ ansible_user }}"
+    ansible_become_password: "{{ windows_password }}"
+```
 
 ### The auto-login password
 
