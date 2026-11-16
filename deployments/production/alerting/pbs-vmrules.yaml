@@ -1,0 +1,250 @@
+---
+# Proxmox Backup Server rules. They read two sources:
+#
+#   - The host and datastore metrics PBS pushes every 10 seconds through its
+#     InfluxDB (HTTP) metric server (resources/pbs). VictoriaMetrics names them
+#     {measurement}_{field}, with the tags as labels: memory_memtotal and
+#     blockstat_used{datastore="nas"} (a blockstat series without a datastore
+#     label is the root file system of the host).
+#   - The pbs_* series that the systemd timer from resources/pbs
+#     (scripts/files/pbs-health.py) pushes every 5 minutes: task results, the age of
+#     the last good backup of each guest, datastore availability and the heartbeat.
+#     PBS does not push task results, so no metric server can offer them.
+#
+# Both arrive in bursts with gaps (the timer runs every 5 minutes, and a push
+# can be missed), so no rule reads a bare selector for "the current value" or
+# for presence. Every current value goes through last_over_time, and presence
+# through absent_over_time, so a missed run or a gap neither fires nor mutes an
+# alert.
+#
+# In the production overlay only: staging receives no PBS metrics, so the
+# missing-data rules would fire there forever.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: pbs
+spec:
+  groups:
+    # If the host or the health timer stops, a failing backup would go
+    # unnoticed, so their own heartbeats are alerts too.
+    - name: pbs-source
+      rules:
+        # memory_memtotal is sent with every push, so ten minutes without it
+        # means PBS is down or cannot reach VictoriaMetrics. PBS pushes from
+        # inside proxmox-backup-proxy, and a datastore on a dead NFS mount can
+        # block it, so this is also what a hung NAS mount looks like.
+        - alert: PBSMetricsMissing
+          expr: absent_over_time(memory_memtotal[10m])
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Proxmox Backup Server stopped reporting metrics"
+            description: "No host metrics have arrived from Proxmox Backup Server for 15 minutes. The host may be down or unreachable, the proxmox-backup-proxy service may be stopped or hung (a datastore on a NAS mount that does not answer blocks it), or the InfluxDB metric server may be disabled. Backups to it are failing. Check the host and `systemctl status proxmox-backup-proxy`, and see the NAS-slower-than-host boot race section of the resources/pbs README."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        # Silent when the whole host stopped reporting: PBSMetricsMissing
+        # already covers that. The timer does not depend on the PBS services, so
+        # this is also the alert for the timer itself.
+        - alert: PBSHealthMetricsMissing
+          expr: >-
+            absent_over_time(pbs_health_push_timestamp_seconds[20m])
+            unless on() absent_over_time(memory_memtotal[10m])
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox Backup Server backup and task health is not being reported"
+            description: "Proxmox Backup Server is reporting host metrics, but its health timer has not pushed for 25 minutes. A failed backup or a guest that stopped being backed up would go unnoticed. On the host run `systemctl status pbs-health.timer pbs-health.service` and `journalctl -u pbs-health`, and run `OP_VAULT=home-ops yarn nx run pbs:deploy` to put it back."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        # source is services, datastores, groups, tasks or jobs_verify,
+        # jobs_prune and jobs_gc. A change in the PBS API after an upgrade shows
+        # up here.
+        - alert: PBSHealthSourceFailing
+          expr: last_over_time(pbs_health_collect_ok[15m]) == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PBS health timer cannot read {{ $labels.source }}"
+            description: "The health timer on the Proxmox Backup Server host could not read '{{ $labels.source }}' from the PBS API for 10 minutes, so the backup and task alerts that depend on it cannot fire. This usually follows a PBS upgrade that changed the API output. Run `python3 /usr/local/lib/pbs-health/pbs-health.py print` on the host to see the error (see the resources/pbs README)."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        # unit is proxmox-backup (the API) or proxmox-backup-proxy (the web UI
+        # and the backup listener). proxmox-backup.service has a drop-in that
+        # makes it wait for /mnt/pbs, so this is also what a NAS that never came
+        # up looks like.
+        - alert: PBSServiceDown
+          expr: last_over_time(pbs_service_up[15m]) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Proxmox Backup Server service {{ $labels.unit }} is not running"
+            description: "The systemd unit {{ $labels.unit }} has been inactive for 5 minutes, so backups cannot reach the datastore. proxmox-backup waits for the NAS mount (RequiresMountsFor=/mnt/pbs), so check that the NAS is up and `/mnt/pbs` is mounted first, then `systemctl status {{ $labels.unit }}`."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+    - name: pbs-datastore
+      rules:
+        # The health timer asks PBS to open each datastore and read its file
+        # system. A NAS that was not up when this host booted fails that with
+        # "unable to open chunk store" (see the boot race section of the
+        # resources/pbs README), and a mount that stops answering times out.
+        - alert: PBSDatastoreUnavailable
+          expr: last_over_time(pbs_datastore_available[15m]) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Proxmox Backup Server datastore {{ $labels.datastore }} is unavailable"
+            description: "PBS cannot open datastore {{ $labels.datastore }} (checked every 5 minutes, for 5 minutes now), so backups to it fail. For the NFS-backed nas datastore the usual cause is the NAS not answering or /mnt/pbs not mounted: check the NAS, then `systemctl status mnt-pbs.automount mnt-pbs.mount` and `ls /mnt/pbs` on the PBS host, and `journalctl -u proxmox-backup -n 50` for the error."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        # PBS drops a datastore from its own metrics while it is in maintenance
+        # mode or a removable one is unmounted. A pause of the whole push
+        # stream is not this, so it needs the host to have a recent sample;
+        # PBSMetricsMissing covers that. It resolves by itself a day after the
+        # datastore was last seen, so a datastore removed on purpose stops
+        # alerting.
+        - alert: PBSDatastoreMetricsMissing
+          expr: >-
+            (
+              count by (datastore) (last_over_time(blockstat_total{datastore!=""}[1d]))
+              unless on(datastore)
+              count by (datastore) (last_over_time(blockstat_total{datastore!=""}[15m]))
+            )
+            and on()
+            (count(last_over_time(memory_memtotal[15m])) > 0)
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox Backup Server stopped reporting usage of datastore {{ $labels.datastore }}"
+            description: "Datastore {{ $labels.datastore }} reported its usage in the last day but has had no sample for 15 minutes, while the host still reports. PBS leaves a datastore out of its metrics while it is in maintenance mode or unmounted. Check the datastore in the PBS UI (Datastore, Options)."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        # Warning from 80% up to 90% and critical above, so one datastore does
+        # not push twice.
+        - alert: PBSDatastoreUsageHigh
+          expr: >-
+            (
+              100 * last_over_time(blockstat_used{datastore!=""}[5m])
+              / last_over_time(blockstat_total{datastore!=""}[5m])
+            ) > 80 <= 90
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox Backup Server datastore {{ $labels.datastore }} is {{ $value | humanize }}% full"
+            description: "Datastore {{ $labels.datastore }} has been over 80% full for 30 minutes (now {{ $value | humanize }}%). Backups fail when it fills up. Prune and garbage collection only free space after the weekly garbage collection run; check the retention in the prune job, or add space on the NAS."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        - alert: PBSDatastoreAlmostFull
+          expr: >-
+            (
+              100 * last_over_time(blockstat_used{datastore!=""}[5m])
+              / last_over_time(blockstat_total{datastore!=""}[5m])
+            ) > 90
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Proxmox Backup Server datastore {{ $labels.datastore }} is {{ $value | humanize }}% full"
+            description: "Datastore {{ $labels.datastore }} has been over 90% full for 15 minutes (now {{ $value | humanize }}%). New backups start failing when it is full. Run garbage collection after pruning, or add space on the NAS."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        # The 7 day trend smooths the weekly garbage collection, which frees
+        # space in one step after a week of growth. A datastore under 70% full
+        # is left alone however steep the trend, so a young datastore that is
+        # still being filled does not alert.
+        - alert: PBSDatastoreFillingUp
+          expr: >-
+            predict_linear(blockstat_avail{datastore!=""}[7d], 14 * 24 * 3600) < 0
+            and on(datastore)
+            (
+              100 * last_over_time(blockstat_used{datastore!=""}[5m])
+              / last_over_time(blockstat_total{datastore!=""}[5m]) > 70
+            )
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox Backup Server datastore {{ $labels.datastore }} will fill up within 14 days"
+            description: "Datastore {{ $labels.datastore }} is over 70% full and the 7 day trend of its free space reaches zero within 14 days. Check what grew (a new guest, a longer retention) and the prune job, or add space on the NAS."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+    - name: pbs-backups
+      rules:
+        # The newest finished backup task of each guest, so this clears by
+        # itself when the next backup succeeds. A failure that is older than 14
+        # days drops out of the health timer's window; PBSBackupStale covers a
+        # guest that is not backed up any more.
+        - alert: PBSBackupFailed
+          expr: last_over_time(pbs_backup_last_task_ok[15m]) == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox Backup Server backup of {{ $labels.backup_type }}/{{ $labels.backup_id }} failed"
+            description: "The last backup task of {{ $labels.backup_type }}/{{ $labels.backup_id }} to datastore {{ $labels.datastore }} ended with an error. It stays on until the next backup of that guest succeeds. Open the task in the PBS UI (Administration, Tasks, filter on Backup) or the backup job log in Proxmox VE for the error."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        # PBS does not know the backup schedule (the job lives in Proxmox VE),
+        # so the health timer reads each guest's usual interval from the spacing
+        # of its newest snapshots (the median gap) and this allows one and a
+        # half intervals: a daily guest alerts after 36 hours, a weekly one
+        # after 10 days. Warning up to three intervals, critical above.
+        - alert: PBSBackupStale
+          expr: >-
+            (
+              (
+                time() - last_over_time(pbs_backup_last_success_timestamp_seconds[15m])
+                > 1.5 * last_over_time(pbs_backup_interval_seconds[15m])
+              )
+              unless
+              (
+                time() - last_over_time(pbs_backup_last_success_timestamp_seconds[15m])
+                > 3 * last_over_time(pbs_backup_interval_seconds[15m])
+              )
+            )
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "No recent backup of {{ $labels.backup_type }}/{{ $labels.backup_id }} on Proxmox Backup Server"
+            description: "The last successful backup of {{ $labels.backup_type }}/{{ $labels.backup_id }} in datastore {{ $labels.datastore }} is {{ $value | humanizeDuration }} old, more than one and a half times its usual interval. Check the backup job in Proxmox VE and that the guest still exists. If the guest was retired on purpose, forget its backup group in the PBS UI so this stops."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        - alert: PBSBackupVeryStale
+          expr: >-
+            time() - last_over_time(pbs_backup_last_success_timestamp_seconds[15m])
+            > 3 * last_over_time(pbs_backup_interval_seconds[15m])
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ $labels.backup_type }}/{{ $labels.backup_id }} has not been backed up for {{ $value | humanizeDuration }}"
+            description: "The last successful backup of {{ $labels.backup_type }}/{{ $labels.backup_id }} in datastore {{ $labels.datastore }} is {{ $value | humanizeDuration }} old, more than three times its usual interval. Several backups in a row were missed. Check the backup job in Proxmox VE and that the guest still exists. If the guest was retired on purpose, forget its backup group in the PBS UI so this stops."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+    # The state of the last run of each scheduled job. It stays until the job
+    # runs again (verify and garbage collection run weekly), so run the job by
+    # hand from the PBS UI once the cause is fixed.
+    - name: pbs-jobs
+      rules:
+        - alert: PBSVerifyFailed
+          expr: last_over_time(pbs_job_last_run_ok{type="verify"}[15m]) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Proxmox Backup Server verify job {{ $labels.job }} failed on {{ $labels.datastore }}"
+            description: "The last run of verify job {{ $labels.job }} on datastore {{ $labels.datastore }} failed, which usually means it found backups it could not read back (corrupt or missing chunks), or it could not run at all. Open the task log in the PBS UI (Administration, Tasks) to see which snapshots, forget or re-backup them, and run the job again."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        - alert: PBSPruneFailed
+          expr: last_over_time(pbs_job_last_run_ok{type="prune"}[15m]) == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox Backup Server prune job {{ $labels.job }} failed on {{ $labels.datastore }}"
+            description: "The last run of prune job {{ $labels.job }} on datastore {{ $labels.datastore }} failed, so old backups are not being removed and the datastore will keep growing. Open the task log in the PBS UI (Administration, Tasks) for the error and run the job again."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        - alert: PBSGarbageCollectionFailed
+          expr: last_over_time(pbs_job_last_run_ok{type="gc"}[15m]) == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox Backup Server garbage collection failed on {{ $labels.datastore }}"
+            description: "The last garbage collection of datastore {{ $labels.datastore }} failed, so pruned backups are not freeing space and the datastore will keep growing. Open the task log in the PBS UI (Administration, Tasks) for the error and run it again from Datastore, Prune and GC."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server

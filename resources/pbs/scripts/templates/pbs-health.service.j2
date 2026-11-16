@@ -1,0 +1,14 @@
+# Managed by resources/pbs (scripts/deploy.yml). Edits are overwritten.
+[Unit]
+Description=Report Proxmox Backup Server task results and backup freshness to VictoriaMetrics
+Documentation=https://docs.home.smith-simms.family/wiki/spaces/HA/overview
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/pbs-health/pbs-health.py push http://{{ observability_host }}:{{ observability_influx_port }}/api/v1/import/prometheus
+# A datastore on a dead NFS mount can block the API calls. The script times each
+# one out, and this stops a run that hangs anyway before the next one starts.
+TimeoutStartSec=300
+Nice=10

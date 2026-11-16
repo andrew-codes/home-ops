@@ -115,6 +115,34 @@ A cron job on the NAS (`apps/truenas`, see its [README](../../../apps/truenas/RE
 - **Gaps and resolving.** A cron run can be missed, and the Graphite exporter pushes with gaps, so no rule reads a bare selector for a current value or for presence. Current values go through `last_over_time` over 5 minutes, and the heartbeat and uptime checks through `absent_over_time` over 10 minutes, so a gap cannot fire or mute an alert. The price is that an alert resolves up to 5 minutes after the state changes: a recovered pool is a new series (the `state` label changes), and the old state series stays in the window.
 - **Unit tests.** `apps/truenas/src/health/rules/truenas-health.test.yaml` runs the rules through `vmalert-tool` (`sh apps/truenas/src/health/rules/test-rules.sh`, needs Docker and `yq`). It covers a healthy NAS that fires nothing, each failure, recovery, gaps between pushes, the exact push text, and the fake-pool test below.
 
+## Proxmox Backup Server
+
+The backup server pushes its host and datastore usage through its InfluxDB metric server (`resources/pbs`), and a systemd timer on the same host (`resources/pbs/scripts/files/pbs-health.py`, see its [README](../../../resources/pbs/README.md#backup-and-task-health)) pushes what the metric server cannot carry: backup and job results, the age of each guest's last good backup, datastore availability and a heartbeat. The `Proxmox Backup Server` dashboard in Grafana shows both. The rules are the `pbs` VMRule in `deployments/production/alerting/pbs-vmrules.yaml`, in the production overlay only because staging receives no PBS metrics and the missing-data rules would fire there forever. Guests are named as Proxmox does, `vm/100` or `ct/101`.
+
+| Rule                         | Severity | Fires when                                                                                                                                                                                           |
+| ---------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PBSMetricsMissing`          | critical | no host metrics for 10 minutes (for 5): the host is down or unreachable, `proxmox-backup-proxy` is stopped or hung on a dead NAS mount, or the metric server is off                                  |
+| `PBSHealthMetricsMissing`    | warning  | the host still reports but the health timer has not pushed for 20 minutes (for 5). Quiet when the host is down, which `PBSMetricsMissing` covers.                                                    |
+| `PBSHealthSourceFailing`     | warning  | the timer could not read `services`, `datastores`, `groups`, `tasks` or a job list from the PBS API for 10 minutes, for example after an upgrade changed the output                                  |
+| `PBSServiceDown`             | critical | `proxmox-backup` or `proxmox-backup-proxy` has been inactive for 5 minutes. `proxmox-backup` waits for the NAS mount, so this is also a NAS that never came up.                                      |
+| `PBSDatastoreUnavailable`    | critical | PBS cannot open a datastore for 5 minutes. This is the NFS-backed `nas` datastore failing to mount or answer (see the [boot race](../../../resources/pbs/README.md#nas-slower-than-host-boot-race)). |
+| `PBSDatastoreMetricsMissing` | warning  | a datastore that reported in the last day has had no usage sample for 15 minutes (for 10) while the host still reports: maintenance mode, or unmounted                                               |
+| `PBSDatastoreUsageHigh`      | warning  | a datastore is between 80% and 90% full for 30 minutes                                                                                                                                               |
+| `PBSDatastoreAlmostFull`     | critical | a datastore is over 90% full for 15 minutes                                                                                                                                                          |
+| `PBSDatastoreFillingUp`      | warning  | a datastore is over 70% full and the 7 day trend of its free space reaches zero within 14 days (for 1 hour)                                                                                          |
+| `PBSBackupFailed`            | warning  | the newest backup task of a guest ended with an error, for 5 minutes. It clears when the next backup of that guest succeeds.                                                                         |
+| `PBSBackupStale`             | warning  | the last good backup of a guest is more than 1.5 times its usual interval old (a daily guest: 36 hours), for 15 minutes                                                                              |
+| `PBSBackupVeryStale`         | critical | the last good backup of a guest is more than 3 times its usual interval old                                                                                                                          |
+| `PBSVerifyFailed`            | critical | the last run of a verify job failed, which usually means corrupt or missing chunks                                                                                                                   |
+| `PBSPruneFailed`             | warning  | the last run of a prune job failed                                                                                                                                                                   |
+| `PBSGarbageCollectionFailed` | warning  | the last garbage collection of a datastore failed                                                                                                                                                    |
+
+- **The schedule is read from the backups.** The backup job lives in Proxmox VE, so PBS does not know it. The timer takes the median gap between a guest's newest snapshots as its usual interval, so a weekly guest is not treated as a late daily one. A guest with fewer than three snapshots is assumed to be daily. A guest retired on purpose keeps alerting until its backup group is forgotten in the PBS UI.
+- **Job failures stay until the next run.** The verify and garbage collection jobs run weekly, so a failed one alerts until the job is fixed and run again by hand from the PBS UI.
+- **Gaps and resolving.** The timer pushes every 5 minutes and a push can be missed, so no rule reads a bare selector for a current value or for presence. Current values go through `last_over_time` over 5 minutes (PBS's own series) or 15 minutes (the timer's), and presence through `absent_over_time`. The values are the latest sample, so an alert resolves on the next push after the state changes.
+- **The usage rules use the datastore's file system.** The `nas` datastore is an NFS mount, so its total, used and free are those of the NAS volume it sits on.
+- **Unit tests.** `resources/pbs/tests/pbs-rules.test.yaml` runs the rules through `vmalert-tool` (`resources/pbs/scripts/test-rules.sh`, or `yarn nx test pbs`; needs Docker and `yq`). It covers a healthy host that fires nothing, each failure, a gap between pushes, recovery, and the exact push text. The script has its own tests in `resources/pbs/tests/test_pbs_health.py`.
+
 ## Alert history
 
 Two Grafana pages show what fired, both behind the push (Alerting > Alert groups, and the `Alert history`
@@ -325,7 +353,16 @@ At most a few more checks (for example backup jobs that ping on success) are exp
 
    `TrueNASPoolNotOnline` shows as pending on the vmalert page, fires after 2 minutes, and everyone gets a critical push reading `TrueNAS pool alert-test is DEGRADED`. The sample goes stale by itself after about 5 minutes and a resolved push follows. The fake pool name matches no real pool, so nothing real is affected. Also check that the health job is alive: `truenas_health_push_timestamp_seconds` in Grafana Explore should be less than 2 minutes old.
 
-7. Failure path: stop the pings (for example seal a wrong `healthchecks-ping-url`); Healthchecks.io notifies you after the grace time.
+7. Proxmox Backup Server: `kubectl get vmrule pbs -n default` should list it, and the `pbs-*` groups should list on the vmalert rules page with no errors. The `Proxmox Backup Server` dashboard should show data in every panel except the datastore throughput and IOPS panels, which stay empty for an NFS-backed datastore. End to end, without touching a real backup, push one sample of a made-up failed backup into VictoriaMetrics (the `vmsingle` NodePort Service on 30080):
+
+   ```sh
+   curl -X POST "http://<node address>:30080/api/v1/import/prometheus" \
+     -d 'pbs_backup_last_task_ok{datastore="alert-test",backup_type="vm",backup_id="999"} 0'
+   ```
+
+   `PBSBackupFailed` shows as pending, fires after 5 minutes, and everyone gets a push reading `Proxmox Backup Server backup of vm/999 failed`. The sample goes stale by itself after about 15 minutes and a resolved push follows. Also check that the health timer is alive: `pbs_health_push_timestamp_seconds` in Grafana Explore should be less than 10 minutes old.
+
+8. Failure path: stop the pings (for example seal a wrong `healthchecks-ping-url`); Healthchecks.io notifies you after the grace time.
 
 ## Known limits
 

@@ -10,6 +10,17 @@
         "cwd": "{projectRoot}",
         "module": "scripts/deploy.ts"
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "python3 -m unittest discover -s tests",
+          "scripts/test-rules.sh"
+        ],
+        "cwd": "{projectRoot}",
+        "parallel": false
+      }
     }
   },
   "tags": [],
