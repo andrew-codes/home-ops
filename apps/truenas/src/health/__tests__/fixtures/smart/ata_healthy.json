@@ -1,0 +1,248 @@
+{
+  "json_format_version": [1, 0],
+  "smartctl": {
+    "version": [7, 4],
+    "pre_release": false,
+    "svn_revision": "5530",
+    "platform_info": "x86_64-linux-6.12.113-production+truenas",
+    "build_info": "(local build)",
+    "argv": ["smartctl", "-j", "-a", "-n", "standby", "/dev/sda"],
+    "exit_status": 0
+  },
+  "device": {
+    "name": "/dev/sda",
+    "info_name": "/dev/sda [SAT]",
+    "type": "sat",
+    "protocol": "ATA"
+  },
+  "model_name": "ST8000VN004-3CP101",
+  "serial_number": "SERIAL-SDA",
+  "smart_support": {
+    "available": true,
+    "enabled": true
+  },
+  "smart_status": {
+    "passed": true
+  },
+  "ata_smart_attributes": {
+    "revision": 10,
+    "table": [
+      {
+        "id": 1,
+        "name": "Raw_Read_Error_Rate",
+        "value": 83,
+        "worst": 83,
+        "thresh": 10,
+        "when_failed": "",
+        "flags": {
+          "value": 0,
+          "string": "-O--CK",
+          "prefailure": false,
+          "updated_online": true,
+          "performance": false,
+          "error_rate": false,
+          "event_count": true,
+          "auto_keep": true
+        },
+        "raw": {
+          "value": 197000005,
+          "string": "197000005"
+        }
+      },
+      {
+        "id": 5,
+        "name": "Reallocated_Sector_Ct",
+        "value": 100,
+        "worst": 100,
+        "thresh": 10,
+        "when_failed": "",
+        "flags": {
+          "value": 0,
+          "string": "-O--CK",
+          "prefailure": false,
+          "updated_online": true,
+          "performance": false,
+          "error_rate": false,
+          "event_count": true,
+          "auto_keep": true
+        },
+        "raw": {
+          "value": 0,
+          "string": "0"
+        }
+      },
+      {
+        "id": 9,
+        "name": "Power_On_Hours",
+        "value": 50,
+        "worst": 50,
+        "thresh": 10,
+        "when_failed": "",
+        "flags": {
+          "value": 0,
+          "string": "-O--CK",
+          "prefailure": false,
+          "updated_online": true,
+          "performance": false,
+          "error_rate": false,
+          "event_count": true,
+          "auto_keep": true
+        },
+        "raw": {
+          "value": 31000,
+          "string": "31000"
+        }
+      },
+      {
+        "id": 187,
+        "name": "Reported_Uncorrect",
+        "value": 100,
+        "worst": 100,
+        "thresh": 10,
+        "when_failed": "",
+        "flags": {
+          "value": 0,
+          "string": "-O--CK",
+          "prefailure": false,
+          "updated_online": true,
+          "performance": false,
+          "error_rate": false,
+          "event_count": true,
+          "auto_keep": true
+        },
+        "raw": {
+          "value": 0,
+          "string": "0"
+        }
+      },
+      {
+        "id": 194,
+        "name": "Temperature_Celsius",
+        "value": 36,
+        "worst": 36,
+        "thresh": 10,
+        "when_failed": "",
+        "flags": {
+          "value": 0,
+          "string": "-O--CK",
+          "prefailure": false,
+          "updated_online": true,
+          "performance": false,
+          "error_rate": false,
+          "event_count": true,
+          "auto_keep": true
+        },
+        "raw": {
+          "value": 36,
+          "string": "36"
+        }
+      },
+      {
+        "id": 197,
+        "name": "Current_Pending_Sector",
+        "value": 100,
+        "worst": 100,
+        "thresh": 10,
+        "when_failed": "",
+        "flags": {
+          "value": 0,
+          "string": "-O--CK",
+          "prefailure": false,
+          "updated_online": true,
+          "performance": false,
+          "error_rate": false,
+          "event_count": true,
+          "auto_keep": true
+        },
+        "raw": {
+          "value": 0,
+          "string": "0"
+        }
+      },
+      {
+        "id": 198,
+        "name": "Offline_Uncorrectable",
+        "value": 100,
+        "worst": 100,
+        "thresh": 10,
+        "when_failed": "",
+        "flags": {
+          "value": 0,
+          "string": "-O--CK",
+          "prefailure": false,
+          "updated_online": true,
+          "performance": false,
+          "error_rate": false,
+          "event_count": true,
+          "auto_keep": true
+        },
+        "raw": {
+          "value": 0,
+          "string": "0"
+        }
+      },
+      {
+        "id": 199,
+        "name": "UDMA_CRC_Error_Count",
+        "value": 200,
+        "worst": 200,
+        "thresh": 10,
+        "when_failed": "",
+        "flags": {
+          "value": 0,
+          "string": "-O--CK",
+          "prefailure": false,
+          "updated_online": true,
+          "performance": false,
+          "error_rate": false,
+          "event_count": true,
+          "auto_keep": true
+        },
+        "raw": {
+          "value": 0,
+          "string": "0"
+        }
+      }
+    ]
+  },
+  "ata_smart_self_test_log": {
+    "extended": {
+      "revision": 1,
+      "table": [
+        {
+          "type": {
+            "value": 1,
+            "string": "Short offline"
+          },
+          "status": {
+            "value": 0,
+            "string": "Completed without error",
+            "passed": true
+          },
+          "lifetime_hours": 30990
+        },
+        {
+          "type": {
+            "value": 2,
+            "string": "Extended offline"
+          },
+          "status": {
+            "value": 0,
+            "string": "Completed without error",
+            "passed": true
+          },
+          "lifetime_hours": 30800
+        }
+      ],
+      "count": 2,
+      "error_count": 0,
+      "sections": []
+    }
+  },
+  "temperature": {
+    "current": 36
+  },
+  "power_on_time": {
+    "hours": 31000
+  }
+}

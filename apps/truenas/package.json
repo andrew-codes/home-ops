@@ -1,14 +1,20 @@
 {
   "private": true,
   "name": "@ha/truenas",
-  "description": "Configures the TrueNAS host's metrics exporter and remote syslog so it reports to the cluster.",
+  "description": "Configures the TrueNAS host's metrics exporter, remote syslog and health reporting so it reports to the cluster.",
   "version": "0.0.1",
   "devDependencies": {
     "@ha/ansible": "workspace:^0.0.1",
     "@ha/configuration-api": "workspace:^0.0.1",
     "@ha/configuration-workspace": "workspace:^0.0.1",
+    "@ha/configure-jest": "workspace:^0.0.1",
     "@ha/logger": "workspace:^0.0.1",
     "@ha/nx-executors": "workspace:^0.1.0",
-    "nx": "^20.7.0"
+    "@types/jest": "^29.5.14",
+    "@types/node": "^18.19.76",
+    "jest": "^29.7.0",
+    "nx": "^20.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
   }
 }

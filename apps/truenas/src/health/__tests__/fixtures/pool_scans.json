@@ -1,0 +1,290 @@
+[
+  {
+    "name": "fast",
+    "status": "ONLINE",
+    "healthy": true,
+    "warning": false,
+    "status_code": "OK",
+    "status_detail": null,
+    "scan": {
+      "function": "SCRUB",
+      "state": "SCANNING",
+      "start_time": {
+        "$date": 1794800000000
+      },
+      "end_time": null,
+      "percentage": 12.5,
+      "bytes_to_process": 10,
+      "bytes_processed": 1,
+      "bytes_issued": 1,
+      "pause": null,
+      "errors": 0,
+      "total_secs_left": 600
+    },
+    "topology": {
+      "data": [
+        {
+          "name": "mirror-0",
+          "type": "MIRROR",
+          "path": null,
+          "guid": "89363932845242018",
+          "status": "ONLINE",
+          "stats": {
+            "read_errors": 0,
+            "write_errors": 0,
+            "checksum_errors": 0
+          },
+          "children": [
+            {
+              "name": "18423206-6cba-a6bd-d287-d46121e120a1",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/18423206-6cba-a6bd-d287-d46121e120a1",
+              "guid": "409213414005835946",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sdd1",
+              "disk": "sdd",
+              "unavail_disk": null
+            },
+            {
+              "name": "36515632-bc1e-97e1-43d2-3b9a6ae0759f",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/36515632-bc1e-97e1-43d2-3b9a6ae0759f",
+              "guid": "1139896137275423157",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sdi1",
+              "disk": "sdi",
+              "unavail_disk": null
+            }
+          ],
+          "unavail_disk": null
+        }
+      ],
+      "log": [],
+      "cache": [],
+      "spare": [],
+      "special": [],
+      "dedup": []
+    }
+  },
+  {
+    "name": "tank",
+    "status": "ONLINE",
+    "healthy": true,
+    "warning": false,
+    "status_code": "OK",
+    "status_detail": null,
+    "scan": {
+      "function": "SCRUB",
+      "state": "FINISHED",
+      "start_time": {
+        "$date": 1794000000000
+      },
+      "end_time": {
+        "$date": 1794086400000
+      },
+      "percentage": 100.0,
+      "bytes_to_process": 1,
+      "bytes_processed": 1,
+      "bytes_issued": 1,
+      "pause": null,
+      "errors": 3,
+      "total_secs_left": null
+    },
+    "topology": {
+      "data": [
+        {
+          "name": "raidz3-0",
+          "type": "RAIDZ3",
+          "path": null,
+          "guid": "765920842370982191",
+          "status": "ONLINE",
+          "stats": {
+            "read_errors": 0,
+            "write_errors": 0,
+            "checksum_errors": 0
+          },
+          "children": [
+            {
+              "name": "10a1bd7f-bae5-565e-2a7b-3e297a052055",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/10a1bd7f-bae5-565e-2a7b-3e297a052055",
+              "guid": "303286935828186166",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sda1",
+              "disk": "sda",
+              "unavail_disk": null
+            },
+            {
+              "name": "61e31813-6727-5267-d8ab-b05430536b99",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/61e31813-6727-5267-d8ab-b05430536b99",
+              "guid": "7372052863334315",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sdb1",
+              "disk": "sdb",
+              "unavail_disk": null
+            },
+            {
+              "name": "91182470-78c7-21a5-2136-5f9c1e63b890",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/91182470-78c7-21a5-2136-5f9c1e63b890",
+              "guid": "325328046832714782",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sdc1",
+              "disk": "sdc",
+              "unavail_disk": null
+            },
+            {
+              "name": "a1bcba3d-7014-8390-3dd7-7c39aad9786b",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/a1bcba3d-7014-8390-3dd7-7c39aad9786b",
+              "guid": "837613559031692034",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sde1",
+              "disk": "sde",
+              "unavail_disk": null
+            },
+            {
+              "name": "03f838af-7e61-1628-4406-fe65ba8733d6",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/03f838af-7e61-1628-4406-fe65ba8733d6",
+              "guid": "298361056813506670",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sdf1",
+              "disk": "sdf",
+              "unavail_disk": null
+            },
+            {
+              "name": "cccaa0f7-bb8c-e1dd-b6c2-6efdf2d1e810",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/cccaa0f7-bb8c-e1dd-b6c2-6efdf2d1e810",
+              "guid": "788322388868439403",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sdg1",
+              "disk": "sdg",
+              "unavail_disk": null
+            },
+            {
+              "name": "f4ce3e06-8970-4fa1-66ed-05c465c10573",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/f4ce3e06-8970-4fa1-66ed-05c465c10573",
+              "guid": "444233990209695063",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sdh1",
+              "disk": "sdh",
+              "unavail_disk": null
+            },
+            {
+              "name": "1fef02c2-707c-bb0b-3662-1ff343472892",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/1fef02c2-707c-bb0b-3662-1ff343472892",
+              "guid": "579199791503016287",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sdj1",
+              "disk": "sdj",
+              "unavail_disk": null
+            },
+            {
+              "name": "7d56b082-2bcf-a1dc-4606-f3226fd2cef5",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/7d56b082-2bcf-a1dc-4606-f3226fd2cef5",
+              "guid": "747218019089443197",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sdk1",
+              "disk": "sdk",
+              "unavail_disk": null
+            },
+            {
+              "name": "3cefd035-01ff-e34c-c6fa-47e8efb70b87",
+              "type": "DISK",
+              "path": "/dev/disk/by-partuuid/3cefd035-01ff-e34c-c6fa-47e8efb70b87",
+              "guid": "722671336668834523",
+              "status": "ONLINE",
+              "stats": {
+                "read_errors": 0,
+                "write_errors": 0,
+                "checksum_errors": 0
+              },
+              "children": [],
+              "device": "sdl1",
+              "disk": "sdl",
+              "unavail_disk": null
+            }
+          ],
+          "unavail_disk": null
+        }
+      ],
+      "log": [],
+      "cache": [],
+      "spare": [],
+      "special": [],
+      "dedup": []
+    }
+  }
+]

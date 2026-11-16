@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "TrueNAS host metrics pushed through its Graphite reporting exporter. Pool health, vdev state and SMART results are not available in these metrics.",
+  "description": "TrueNAS host metrics pushed through its Graphite reporting exporter, plus pool, vdev and SMART health pushed by the health cron job from apps/truenas.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -435,6 +435,928 @@
     },
     {
       "type": "row",
+      "title": "Pool and disk health",
+      "id": 40,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Pools not ONLINE",
+      "id": 41,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(truenas_pool_state{state!=\"ONLINE\"}) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Pools whose state is not ONLINE, boot pool included. Alert: TrueNASPoolNotOnline."
+    },
+    {
+      "type": "stat",
+      "title": "Vdevs not ONLINE",
+      "id": 42,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(truenas_pool_vdev_state{state!~\"ONLINE|AVAIL|INUSE\"}) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Mirror and RAIDZ vdevs and the disks in them that are DEGRADED, FAULTED, OFFLINE, REMOVED or UNAVAIL. Alert: TrueNASVdevNotOnline."
+    },
+    {
+      "type": "stat",
+      "title": "ZFS device errors",
+      "id": 43,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(truenas_pool_vdev_errors) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Read, write and checksum errors ZFS counted since the pool was imported or the counters were cleared. Alert: TrueNASVdevErrors."
+    },
+    {
+      "type": "stat",
+      "title": "Disks failing SMART",
+      "id": 44,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(truenas_smart_healthy == 0) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Disks whose SMART overall health check failed. Alert: TrueNASSmartHealthFailed."
+    },
+    {
+      "type": "stat",
+      "title": "Days since last scrub",
+      "id": 45,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "(time() - min(max by (pool) (truenas_pool_last_scan_end_timestamp_seconds))) / 86400",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 40
+              },
+              {
+                "color": "red",
+                "value": 45
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "The pool that was scrubbed longest ago, by its last finished scrub or resilver. Scrubs run when the last one is over 35 days old. Alert: TrueNASScrubOverdue at 45 days. A pool that was never scrubbed has no value."
+    },
+    {
+      "type": "stat",
+      "title": "Health data age",
+      "id": 46,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "time() - max(truenas_health_push_timestamp_seconds)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "How long ago the TrueNAS health cron job last pushed. It runs every minute. Alert: TrueNASHealthMetricsMissing after 15 minutes."
+    },
+    {
+      "type": "table",
+      "title": "Pools, vdevs and disks",
+      "id": 47,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 17,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "(last_over_time(truenas_pool_vdev_state{state!~\"ONLINE|AVAIL|INUSE\"}[90s]) * 0 + 1) or (last_over_time(truenas_pool_vdev_state{state=~\"ONLINE|AVAIL|INUSE\"}[90s]) * 0)",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "description": "Every vdev and disk of every pool with its ZFS state, problems first. A removed disk shows the serial TrueNAS remembers for it.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "ONLINE": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "AVAIL": {
+                        "color": "green",
+                        "index": 1
+                      },
+                      "INUSE": {
+                        "color": "green",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "regex",
+                    "options": {
+                      "pattern": ".+",
+                      "result": {
+                        "color": "red",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Value",
+                "desc": true
+              },
+              {
+                "field": "pool"
+              },
+              {
+                "field": "parent"
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "__name__": true,
+              "cluster": true,
+              "job": true,
+              "instance": true,
+              "class": true,
+              "vdev": true
+            },
+            "indexByName": {
+              "pool": 0,
+              "parent": 1,
+              "type": 2,
+              "disk": 3,
+              "serial": 4,
+              "state": 5
+            },
+            "renameByName": {
+              "pool": "Pool",
+              "parent": "Vdev",
+              "type": "Type",
+              "disk": "Disk",
+              "serial": "Serial",
+              "state": "State"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "SMART by disk",
+      "id": 48,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 15,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "last_over_time(truenas_smart_healthy[90s])",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "last_over_time(truenas_smart_reallocated_sectors[90s])",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "last_over_time(truenas_smart_pending_sectors[90s])",
+          "legendFormat": "",
+          "refId": "C",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "last_over_time(truenas_smart_offline_uncorrectable_sectors[90s])",
+          "legendFormat": "",
+          "refId": "D",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "last_over_time(truenas_smart_selftest_failed[90s])",
+          "legendFormat": "",
+          "refId": "E",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "description": "SMART results per disk. Healthy is 1 when the overall health check passes. Failing disks are listed first. The sector counters are blank for disks that do not report them (NVMe, many SSDs).",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "groupBy",
+          "options": {
+            "fields": {
+              "serial": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "disk": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "Value #A": {
+                "aggregations": ["lastNotNull"],
+                "operation": "aggregate"
+              },
+              "Value #B": {
+                "aggregations": ["lastNotNull"],
+                "operation": "aggregate"
+              },
+              "Value #C": {
+                "aggregations": ["lastNotNull"],
+                "operation": "aggregate"
+              },
+              "Value #D": {
+                "aggregations": ["lastNotNull"],
+                "operation": "aggregate"
+              },
+              "Value #E": {
+                "aggregations": ["lastNotNull"],
+                "operation": "aggregate"
+              }
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Value #A (lastNotNull)"
+              },
+              {
+                "field": "serial"
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "cluster": true,
+              "job": true,
+              "instance": true
+            },
+            "indexByName": {
+              "serial": 0,
+              "disk": 1,
+              "Value #A (lastNotNull)": 2,
+              "Value #E (lastNotNull)": 3,
+              "Value #B (lastNotNull)": 4,
+              "Value #C (lastNotNull)": 5,
+              "Value #D (lastNotNull)": 6
+            },
+            "renameByName": {
+              "serial": "Serial",
+              "disk": "Disk",
+              "Value #A (lastNotNull)": "Healthy",
+              "Value #E (lastNotNull)": "Last self-test failed",
+              "Value #B (lastNotNull)": "Reallocated",
+              "Value #C (lastNotNull)": "Pending",
+              "Value #D (lastNotNull)": "Offline uncorrectable"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "ZFS device errors",
+      "id": 49,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 42
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (pool, serial, kind) (truenas_pool_vdev_errors{serial!=\"\"}) > 0",
+          "legendFormat": "{{pool}} {{serial}} {{kind}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["lastNotNull", "max"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Disks with read, write or checksum errors. Only disks with a nonzero count are shown, so an empty panel is good."
+    },
+    {
+      "type": "timeseries",
+      "title": "Reallocated and pending sectors",
+      "id": 50,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 42
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "truenas_smart_reallocated_sectors > 0 or truenas_smart_pending_sectors > 0",
+          "legendFormat": "{{serial}} {{disk}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["lastNotNull", "max"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Disks with reallocated or pending sectors. A count that keeps growing means the disk is wearing out. An empty panel is good."
+    },
+    {
+      "type": "row",
       "title": "CPU and system",
       "id": 8,
       "collapsed": false,
@@ -442,7 +1364,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 50
       },
       "panels": []
     },
@@ -458,7 +1380,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 6
+        "y": 51
       },
       "targets": [
         {
@@ -540,7 +1462,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 6
+        "y": 51
       },
       "targets": [
         {
@@ -631,7 +1553,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 6
+        "y": 51
       },
       "targets": [
         {
@@ -705,7 +1627,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 59
       },
       "panels": []
     },
@@ -721,7 +1643,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 15
+        "y": 60
       },
       "targets": [
         {
@@ -803,7 +1725,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 15
+        "y": 60
       },
       "targets": [
         {
@@ -881,7 +1803,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 15
+        "y": 60
       },
       "targets": [
         {
@@ -956,7 +1878,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 23
+        "y": 68
       },
       "panels": []
     },
@@ -972,7 +1894,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 24
+        "y": 69
       },
       "targets": [
         {
@@ -1058,7 +1980,7 @@
         "h": 8,
         "w": 16,
         "x": 8,
-        "y": 24
+        "y": 69
       },
       "targets": [
         {
@@ -1144,7 +2066,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 77
       },
       "panels": []
     },
@@ -1160,7 +2082,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 33
+        "y": 78
       },
       "targets": [
         {
@@ -1245,7 +2167,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 33
+        "y": 78
       },
       "targets": [
         {
@@ -1323,7 +2245,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 41
+        "y": 86
       },
       "targets": [
         {
@@ -1424,7 +2346,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 41
+        "y": 86
       },
       "targets": [
         {
@@ -1522,7 +2444,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 94
       },
       "panels": []
     },
@@ -1538,7 +2460,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 50
+        "y": 95
       },
       "targets": [
         {
@@ -1639,7 +2561,7 @@
         "h": 8,
         "w": 6,
         "x": 12,
-        "y": 50
+        "y": 95
       },
       "targets": [
         {
@@ -1718,7 +2640,7 @@
         "h": 8,
         "w": 6,
         "x": 18,
-        "y": 50
+        "y": 95
       },
       "targets": [
         {
@@ -1803,7 +2725,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 103
       },
       "panels": []
     },
@@ -1819,7 +2741,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 59
+        "y": 104
       },
       "targets": [
         {
@@ -1918,7 +2840,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 59
+        "y": 104
       },
       "targets": [
         {
@@ -2019,7 +2941,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 59
+        "y": 104
       },
       "targets": [
         {
@@ -2093,7 +3015,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 67
+        "y": 112
       },
       "panels": []
     },
@@ -2109,7 +3031,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 68
+        "y": 113
       },
       "targets": [
         {
@@ -2197,7 +3119,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 68
+        "y": 113
       },
       "targets": [
         {
@@ -2275,7 +3197,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 68
+        "y": 113
       },
       "targets": [
         {
@@ -2376,7 +3298,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 76
+        "y": 121
       },
       "targets": [
         {
@@ -2474,7 +3396,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 82
+        "y": 127
       },
       "panels": []
     },
@@ -2490,7 +3412,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 83
+        "y": 128
       },
       "targets": [
         {
@@ -2567,7 +3489,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 83
+        "y": 128
       },
       "targets": [
         {
