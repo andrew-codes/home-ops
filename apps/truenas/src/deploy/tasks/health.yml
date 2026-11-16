@@ -1,9 +1,10 @@
 ---
 # Installs a TrueNAS cron job that reports ZFS pool, vdev and SMART health to
 # VictoriaMetrics. The job runs src/health/truenas-health.py, which the play
-# embeds in the job's command. TrueNAS stores cron jobs in its own database, so
-# they survive upgrades and need no file on the host. The middleware strips
-# newlines from a cron command, so the script is passed as one base64 line.
+# copies into health_dir, a directory on a pool dataset. TrueNAS resets the
+# boot pool's file system on upgrade but keeps pool datasets, and it stores cron
+# jobs in its own database. The command stays short because the middleware
+# rejects a cron command over 1024 characters.
 # Like the observability tasks, this reads the current state first and writes
 # only on drift, and manages only the job with this description.
 - name: Check that the node address is set
@@ -13,6 +14,49 @@
       - observability_host | string | length > 0
     fail_msg: observability_host must be the address of the Kubernetes node.
     quiet: true
+
+- name: Check that the install directory is set
+  ansible.builtin.assert:
+    that:
+      - health_dir is defined
+      - health_dir | string is match('^/mnt/[^/]+/.+')
+    fail_msg: >-
+      health_dir (1Password field truenas/health-dir) must be an absolute
+      path to a directory on a pool dataset, under /mnt/<pool>/.
+    quiet: true
+
+- name: Check that the install directory's parent exists
+  ansible.builtin.stat:
+    path: "{{ health_dir | dirname }}"
+  register: truenas_health_parent_stat
+  become: true
+
+- name: Fail when the install directory's parent is missing
+  ansible.builtin.assert:
+    that: truenas_health_parent_stat.stat.isdir | default(false)
+    fail_msg: >-
+      {{ health_dir | dirname }} is not a directory. Its pool dataset must
+      exist; the play creates only the last path component.
+    quiet: true
+
+- name: Create the install directory
+  ansible.builtin.file:
+    path: "{{ health_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  become: true
+
+# Root runs the job every minute, so only root may write the script.
+- name: Install the health collector
+  ansible.builtin.copy:
+    src: "{{ health_script }}"
+    dest: "{{ health_dir }}/truenas-health.py"
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
 
 - name: Define the desired health cron job
   ansible.builtin.set_fact:
@@ -25,10 +69,14 @@
       stderr: true
       schedule: "{{ health_cron_schedule }}"
       command: >-
-        echo '{{ lookup('ansible.builtin.file', health_script) | b64encode }}'
-        | base64 -d
-        | python3 - push
+        python3 {{ (health_dir ~ '/truenas-health.py') | quote }} push
         http://{{ observability_host }}:{{ health_import_port | int }}/api/v1/import/prometheus
+
+- name: Check that the cron command fits the middleware limit
+  ansible.builtin.assert:
+    that: truenas_health_cron_desired.command | length <= 1024
+    fail_msg: The cron command is over the 1024 characters TrueNAS allows.
+    quiet: true
 
 - name: List the cron jobs
   ansible.builtin.command: midclt call cronjob.query
@@ -51,8 +99,7 @@
       - "{{ truenas_health_cron_desired | to_json }}"
   when: truenas_health_cron_current | length == 0
 
-# Only the fields this play sets are compared. A command stored with the
-# newlines already removed compares equal because the command has none.
+# Only the fields this play sets are compared.
 - name: Reconcile the health cron job if it drifted
   ansible.builtin.command:
     argv:

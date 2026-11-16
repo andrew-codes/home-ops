@@ -586,7 +586,7 @@ describe("truenas-health.py", () => {
         encoding: "utf8",
       })
       expect(result.status).toBe(2)
-      expect(result.stderr).toContain("python3 - print")
+      expect(result.stderr).toContain("python3 truenas-health.py print")
     }
   })
 })
