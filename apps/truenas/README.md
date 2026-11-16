@@ -113,11 +113,11 @@ For the health job, the `pool.query`, `boot.get_state` and `disk.query` output a
 
 ## Nx targets
 
-| Target   | What it does                                                                                                               |
-| -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `lint`   | `ansible-playbook --syntax-check` against the playbook - no host contact, safe to run anytime.                             |
-| `test`   | Jest tests for the health collector: it runs the script against recorded `midclt` and `smartctl` output (needs `python3`). |
-| `deploy` | Runs the play against the NAS over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md).                            |
+| Target   | What it does                                                                                                                                                                                     |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lint`   | `ansible-playbook --syntax-check` against the playbook - no host contact, safe to run anytime.                                                                                                   |
+| `test`   | Jest tests for the health collector (recorded `midclt` and `smartctl` output, needs `python3`), then the `vmalert-tool` tests for the `truenas` alert rules in `tests/` (needs Docker and `yq`). |
+| `deploy` | Runs the play against the NAS over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md).                                                                                                  |
 
 The `truenas-health` alert rules have their own unit tests, [`src/health/rules/truenas-health.test.yaml`](src/health/rules/truenas-health.test.yaml), which `vmalert-tool` runs against the rules. They need Docker and `yq`, so they are not part of `test`:
 
