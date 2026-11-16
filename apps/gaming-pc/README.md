@@ -490,10 +490,11 @@ fails the deploy:
 ### Tests
 
 `yarn nx test gaming-pc` runs [`tests/fps-summary.test.ps1`](tests/fps-summary.test.ps1)
-(the summariser, with a fake clock and no PresentMon; needs `pwsh`) and the
-`vmalert-tool` tests for the alert rules in
+(the summariser, with a fake clock and no PresentMon; needs `pwsh`),
+[`tests/ohmgraphite-config.test.ps1`](tests/ohmgraphite-config.test.ps1) (the generated
+OhmGraphite config; needs `pwsh`) and the `vmalert-tool` tests for the alert rules in
 [`tests/gaming-pc-rules.test.yaml`](tests/gaming-pc-rules.test.yaml) (needs Docker
-and `yq`). Both run in the pull request checks.
+and `yq`). All run in the pull request checks.
 
 ## Windows settings the deploy applies
 
