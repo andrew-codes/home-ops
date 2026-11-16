@@ -117,6 +117,9 @@ spec:
           relabel_configs:
             - action: "labelmap"
               regex: "__meta_kubernetes_node_label_(.+)"
+            - source_labels:
+                - "__meta_kubernetes_node_name"
+              target_label: "node"
             - target_label: "__address__"
               replacement: "kubernetes.default.svc:443"
             - source_labels:
@@ -135,6 +138,9 @@ spec:
           relabel_configs:
             - action: "labelmap"
               regex: "__meta_kubernetes_node_label_(.+)"
+            - source_labels:
+                - "__meta_kubernetes_node_name"
+              target_label: "node"
             - target_label: "__address__"
               replacement: "kubernetes.default.svc:443"
             - source_labels:
