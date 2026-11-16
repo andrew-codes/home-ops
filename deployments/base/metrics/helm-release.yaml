@@ -2,21 +2,6 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: vmoperator
-  namespace: default
-spec:
-  chart:
-    spec:
-      chart: victoria-metrics-operator
-      sourceRef:
-        kind: HelmRepository
-        name: vm
-      version: 0.68.2
-  interval: 1m0s
----
-apiVersion: helm.toolkit.fluxcd.io/v2
-kind: HelmRelease
-metadata:
   name: vmagent
   namespace: default
 spec:

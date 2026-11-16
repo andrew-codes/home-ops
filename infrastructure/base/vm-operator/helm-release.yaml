@@ -1,0 +1,28 @@
+---
+# The VictoriaMetrics operator and its CRDs live in their own Flux Kustomization
+# (vm-operator) so they are installed and upgraded before any VM* or VL* custom
+# resource is validated. Flux dry-runs a whole Kustomization against the live API
+# before applying anything, so a custom resource that uses a field the installed
+# CRD lacks blocks the apply of its own Kustomization, including the HelmRelease
+# that would upgrade the CRD.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: vmoperator
+  namespace: default
+spec:
+  chart:
+    spec:
+      chart: victoria-metrics-operator
+      sourceRef:
+        kind: HelmRepository
+        name: vm
+      version: 0.68.2
+  interval: 1m0s
+  # The chart renders its CRDs from templates (crds.plain: false), so Helm
+  # upgrades them as part of the release. CreateReplace also covers the plain
+  # crds/ directory form, which Helm never upgrades on its own.
+  install:
+    crds: CreateReplace
+  upgrade:
+    crds: CreateReplace

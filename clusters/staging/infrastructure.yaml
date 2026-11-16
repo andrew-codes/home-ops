@@ -83,3 +83,19 @@ spec:
   path: ./infrastructure/staging/traffic-manager
   prune: true
   wait: true
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: vm-operator
+  namespace: default
+spec:
+  interval: 10m0s
+  retryInterval: 1m
+  timeout: 10m
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./infrastructure/staging/vm-operator
+  prune: true
+  wait: true

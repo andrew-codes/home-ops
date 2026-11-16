@@ -27,6 +27,7 @@ spec:
   dependsOn:
     - name: nfs-provisioner
     - name: metrics
+    - name: vm-operator
   interval: 10m0s
   sourceRef:
     kind: GitRepository
@@ -44,6 +45,7 @@ metadata:
 spec:
   dependsOn:
     - name: nfs-provisioner
+    - name: vm-operator
   interval: 10m0s
   sourceRef:
     kind: GitRepository
@@ -61,6 +63,7 @@ metadata:
 spec:
   dependsOn:
     - name: metrics
+    - name: vm-operator
     - name: sealed-secrets
     - name: secrets
   interval: 10m0s
