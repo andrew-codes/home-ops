@@ -68,6 +68,7 @@ const run = async (
   vars:
     ansible_user: ${username}
     ansible_password: ${password}
+    ansible_ssh_common_args: "-o PreferredAuthentications=password -o PubkeyAuthentication=no"
   hosts:
     ${ip}:
 `,
