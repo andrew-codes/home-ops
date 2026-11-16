@@ -24,11 +24,11 @@ OP_VAULT=<vault-name> nx run truenas:deploy
 
 Run it as the captain, not from an agent session - see [AGENTS.md](AGENTS.md). [`scripts/deploy.ts`](scripts/deploy.ts) reads the secrets below through the repo's [1Password-backed configuration API](../../packages/configuration-1password) and runs the playbook with the SSH user as `ansible_user`. SSH uses your normal key setup, and the user must be able to run `midclt` (an admin user can).
 
-| Secret               | Used for                                                                                |
-| -------------------- | --------------------------------------------------------------------------------------- |
-| `truenas/ip`         | The host to run the playbook against                                                    |
-| `truenas/username`   | The SSH user                                                                            |
-| `k8s/ip`             | The Kubernetes node that receives metrics and logs (already exists)                     |
+| Secret               | Used for                                                                                                        |
+| -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `truenas/ip`         | The host to run the playbook against                                                                            |
+| `truenas/username`   | The SSH user                                                                                                    |
+| `k8s/ip`             | The Kubernetes node that receives metrics and logs (already exists)                                             |
 | `truenas/health-dir` | Directory on a pool dataset, under `/mnt/<pool>/`, that the play creates and installs the health collector into |
 
 `truenas/ip` and `truenas/username` do not exist in 1Password yet. They are optional: when either is missing, `deploy` logs a warning and does nothing, like `proxmox2/ip` for [`pve`](../pve/README.md). Create a `truenas` item in the infra vault with `ip` and `username` fields to enable it. Once those are set, the item also needs a `health-dir` field; `deploy` fails without it. The play creates that directory (root, mode `0700`) when its parent exists, so the parent dataset must exist already. The older `nas/ip` is not used here, because it can still point at the previous NAS.
