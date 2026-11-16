@@ -35,6 +35,9 @@ spec:
     config:
       global:
         scrape_interval: "10s"
+        # The Kubernetes dashboards filter every query by a cluster label.
+        external_labels:
+          cluster: "home-ops"
       scrape_configs:
         - job_name: "hass"
           scrape_interval: "60s"
@@ -75,6 +78,34 @@ spec:
                 - "__meta_kubernetes_endpoint_port_name"
               action: "keep"
               regex: "default;kubernetes;https"
+        # Host metrics from the node-exporter DaemonSet (deployments/base/exporters),
+        # one target per node.
+        - job_name: "node-exporter"
+          kubernetes_sd_configs:
+            - role: "endpoints"
+          relabel_configs:
+            - source_labels:
+                - "__meta_kubernetes_namespace"
+                - "__meta_kubernetes_service_name"
+                - "__meta_kubernetes_endpoint_port_name"
+              action: "keep"
+              regex: "default;node-exporter;metrics"
+            - source_labels:
+                - "__meta_kubernetes_endpoint_node_name"
+              target_label: "node"
+        # Kubernetes object state (deployments/base/exporters). No namespace, pod
+        # or node target labels are added here: they would collide with the labels
+        # kube-state-metrics puts on its own series.
+        - job_name: "kube-state-metrics"
+          kubernetes_sd_configs:
+            - role: "endpoints"
+          relabel_configs:
+            - source_labels:
+                - "__meta_kubernetes_namespace"
+                - "__meta_kubernetes_service_name"
+                - "__meta_kubernetes_endpoint_port_name"
+              action: "keep"
+              regex: "default;kube-state-metrics;http"
         - job_name: "kubernetes-nodes"
           scheme: "https"
           tls_config:

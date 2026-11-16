@@ -66,6 +66,24 @@ spec:
             summary: "No cAdvisor targets are being scraped (job {{ $labels.job }})"
             description: "vmagent has no scrape target at all for job {{ $labels.job }} (the per-container CPU and memory metrics of each Kubernetes node) for 10 minutes. One target per node is expected. Container metrics are not being collected."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=vmagent
+        - alert: NodeExporterTargetsMissing
+          expr: absent(up{job="node-exporter"})
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "No node-exporter targets are being scraped (job {{ $labels.job }})"
+            description: "vmagent has no scrape target at all for job {{ $labels.job }} (the host metrics of each Kubernetes node) for 10 minutes. One target per node is expected. The node disk space alerts cannot fire without it."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Node%20Exporter
+        - alert: KubeStateMetricsTargetsMissing
+          expr: absent(up{job="kube-state-metrics"})
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "No kube-state-metrics targets are being scraped (job {{ $labels.job }})"
+            description: "vmagent has no scrape target at all for job {{ $labels.job }} (the Kubernetes object state exporter) for 10 minutes. The crash loop alerts cannot fire without it."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
         - alert: KubeAPIServerDown
           expr: up{job="kubernetes-apiservers"} == 0
           for: 5m
@@ -191,4 +209,99 @@ spec:
           annotations:
             summary: "Volume {{ $labels.persistentvolumeclaim }} is nearly out of space"
             description: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has only {{ $value | humanizePercentage }} of its space left (node {{ $labels.kubernetes_io_hostname }}). The workload using it will start failing."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+---
+# Node file system selector shared by the rules below: real disks only. Pseudo,
+# memory backed, read-only image and network file systems are left out (network
+# volumes are covered by the PersistentVolume rules above).
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: node-disk
+spec:
+  groups:
+    - name: node-disk
+      rules:
+        - alert: NodeFilesystemFillingUp
+          expr: >-
+            (
+              node_filesystem_avail_bytes{job="node-exporter",fstype!~"tmpfs|ramfs|overlay|squashfs|erofs|iso9660|fuse.*|nfs.*|cifs|smb.*"}
+              / node_filesystem_size_bytes{job="node-exporter",fstype!~"tmpfs|ramfs|overlay|squashfs|erofs|iso9660|fuse.*|nfs.*|cifs|smb.*"}
+              < 0.40
+            and
+              predict_linear(node_filesystem_avail_bytes{job="node-exporter",fstype!~"tmpfs|ramfs|overlay|squashfs|erofs|iso9660|fuse.*|nfs.*|cifs|smb.*"}[6h], 24 * 3600) < 0
+            and
+              node_filesystem_readonly{job="node-exporter"} == 0
+            )
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk {{ $labels.mountpoint }} on node {{ $labels.node }} will fill up within a day"
+            description: "{{ $labels.mountpoint }} ({{ $labels.device }}, {{ $labels.fstype }}) on node {{ $labels.node }} has {{ $value | humanizePercentage }} of its space left and, at the rate of the last 6 hours, will run out within 24 hours."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Node%20Exporter
+        - alert: NodeFilesystemSpaceLow
+          expr: >-
+            (
+              node_filesystem_avail_bytes{job="node-exporter",fstype!~"tmpfs|ramfs|overlay|squashfs|erofs|iso9660|fuse.*|nfs.*|cifs|smb.*"}
+              / node_filesystem_size_bytes{job="node-exporter",fstype!~"tmpfs|ramfs|overlay|squashfs|erofs|iso9660|fuse.*|nfs.*|cifs|smb.*"}
+              < 0.10
+            and
+              node_filesystem_readonly{job="node-exporter"} == 0
+            )
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk {{ $labels.mountpoint }} on node {{ $labels.node }} is almost full"
+            description: "{{ $labels.mountpoint }} ({{ $labels.device }}, {{ $labels.fstype }}) on node {{ $labels.node }} has only {{ $value | humanizePercentage }} of its space left."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Node%20Exporter
+        - alert: NodeFilesystemAlmostFull
+          expr: >-
+            (
+              node_filesystem_avail_bytes{job="node-exporter",fstype!~"tmpfs|ramfs|overlay|squashfs|erofs|iso9660|fuse.*|nfs.*|cifs|smb.*"}
+              / node_filesystem_size_bytes{job="node-exporter",fstype!~"tmpfs|ramfs|overlay|squashfs|erofs|iso9660|fuse.*|nfs.*|cifs|smb.*"}
+              < 0.03
+            and
+              node_filesystem_readonly{job="node-exporter"} == 0
+            )
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Disk {{ $labels.mountpoint }} on node {{ $labels.node }} is nearly out of space"
+            description: "{{ $labels.mountpoint }} ({{ $labels.device }}, {{ $labels.fstype }}) on node {{ $labels.node }} has only {{ $value | humanizePercentage }} of its space left. Pods on the node will start failing and the kubelet will evict them."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Node%20Exporter
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: kubernetes-workloads
+spec:
+  groups:
+    - name: kubernetes-workloads
+      rules:
+        # The value is the container's lifetime restart count, taken from the
+        # series that is also in CrashLoopBackOff.
+        - alert: KubePodCrashLooping
+          expr: >-
+            kube_pod_container_status_restarts_total{job="kube-state-metrics"}
+            and on (namespace, pod, container)
+            (max_over_time(kube_pod_container_status_waiting_reason{job="kube-state-metrics",reason="CrashLoopBackOff"}[5m]) >= 1)
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.pod }} is crash looping"
+            description: "Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} has been in CrashLoopBackOff for 10 minutes and has restarted {{ $value }} times in total. It starts, crashes and is restarted with a growing delay."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+        # Catches loops that exit too fast or too slowly to be seen in
+        # CrashLoopBackOff on a scrape, and containers killed for running out of memory.
+        - alert: KubePodRestartingTooOften
+          expr: increase(kube_pod_container_status_restarts_total{job="kube-state-metrics"}[1h]) > 5
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.pod }} keeps restarting"
+            description: "Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} restarted {{ $value | humanize }} times in the last hour."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes

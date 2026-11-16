@@ -4,4 +4,3 @@ namespace: default
 resources:
   - helm-source.yaml
   - helm-release.yaml
-

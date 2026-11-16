@@ -23,6 +23,38 @@ vmagent -> VMSingle <- vmalert -> Alertmanager -+-> Home Assistant webhook -> co
 - The Watchdog covers what in-cluster alerting cannot: if the cluster, the node, vmalert, VMSingle or the
   network path is down, the pings stop and Healthchecks.io notifies you directly.
 
+## Cluster metrics, dashboards and rules
+
+Two exporters in `deployments/base/exporters` (their own Flux Kustomization, `exporters`, so a failing
+exporter never blocks `metrics`, `grafana` or `alerting`) feed the Kubernetes dashboards and rules:
+
+- `node-exporter` (DaemonSet, scrape job `node-exporter`): host CPU, memory, disk and network per node.
+  Series carry a `node` label with the Kubernetes node name.
+- `kube-state-metrics` (Deployment, scrape job `kube-state-metrics`): pod, deployment, node and volume
+  state, including container restarts and waiting reasons.
+
+vmagent finds both through their Services (the jobs in `deployments/base/metrics/helm-release.yaml`).
+It also adds a `cluster="home-ops"` label to everything it scrapes, because the dashboards filter on it.
+
+Grafana provisions dotdc's Kubernetes / Views set (Global, Namespaces, Nodes, Pods) and Node Exporter
+Full from grafana.com, pinned by revision in `deployments/base/grafana/helm-release.yaml`. They pick the
+datasource through a `datasource` variable, which resolves to the default `victoriametrics` datasource.
+
+The rules built on them:
+
+| Rule                                                           | Severity | Fires when                                                                                |
+| -------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------- |
+| `NodeFilesystemFillingUp`                                      | warning  | a node disk has under 40% free and is predicted to run out within 24 hours (6 hour trend) |
+| `NodeFilesystemSpaceLow`                                       | warning  | a node disk has under 10% free for 15 minutes                                             |
+| `NodeFilesystemAlmostFull`                                     | critical | a node disk has under 3% free for 5 minutes                                               |
+| `KubePodCrashLooping`                                          | warning  | a container is in `CrashLoopBackOff` for 10 minutes                                       |
+| `KubePodRestartingTooOften`                                    | warning  | a container restarted more than 5 times in an hour                                        |
+| `NodeExporterTargetsMissing`, `KubeStateMetricsTargetsMissing` | warning  | an exporter has no scrape target for 10 minutes, so the rules above cannot fire           |
+
+The disk rules skip `tmpfs`, `overlay`, `squashfs`, read-only and network file systems. Network volumes
+(PVCs) are covered by the `PersistentVolume*` rules from the kubelet volume stats. A scrape target that
+is present but down is already caught by `TargetDown`.
+
 ## One-time setup
 
 ### 1. Put the two receiver URLs in 1Password and seal them
@@ -164,7 +196,12 @@ At most a few more checks (for example backup jobs that ping on success) are exp
    After the 30 second group wait, every recipient gets a critical push. It resolves by itself about
    5 minutes later and sends a resolved push. Use `severity: warning` to see the non-critical push.
 
-4. Failure path: stop the pings (for example seal a wrong `healthchecks-ping-url`); Healthchecks.io notifies you after the grace time.
+4. Exporters and dashboards: `kubectl get pods -n default -l app.kubernetes.io/name=prometheus-node-exporter`
+   and `-l app.kubernetes.io/name=kube-state-metrics` should be Running, the `node-exporter` and
+   `kube-state-metrics` jobs should be up in the vmagent targets page, and each dashboard in the
+   Kubernetes / Views set and Node Exporter Full should show data.
+
+5. Failure path: stop the pings (for example seal a wrong `healthchecks-ping-url`); Healthchecks.io notifies you after the grace time.
 
 ## Known limits
 
