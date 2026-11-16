@@ -362,7 +362,7 @@ textfile directory and `fps-exporter.log`). The monitoring directory is locked t
 administrators, because a SYSTEM task runs the scripts in it and windows_exporter
 reads its textfile directory. The scripts are copied there out of
 `developer\tools` because the deploy empties and refills that directory (every entry
-except `dxl`, see below).
+except `dxl`, which stays untouched).
 
 ### Why these, and what each is not
 
