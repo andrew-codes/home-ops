@@ -24,6 +24,7 @@
     },
     "deploy-observability": {
       "executor": "@ha/nx-executors:invoke",
+      "dependsOn": ["^prepare", "prepare"],
       "options": {
         "module": "scripts/deploy-observability.ts",
         "cwd": "{projectRoot}"

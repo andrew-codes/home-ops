@@ -6,6 +6,7 @@
   "targets": {
     "pre-deploy": {
       "executor": "@ha/nx-executors:invoke",
+      "dependsOn": ["^prepare", "prepare"],
       "options": {
         "cwd": "{projectRoot}",
         "module": "scripts/pre-deploy.ts"
