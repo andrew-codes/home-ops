@@ -3,8 +3,9 @@
 # This keeps the name and node port (30080) that vminsert used so Flux updates
 # the Service in place: creating a second Service that claims node port 30080
 # before the old one is pruned would fail the apply and block the prune.
-# The target port is now the single-node HTTP port, which serves every
-# ingestion and query endpoint.
+# The target port is the operator's named container port "http" (8429 by
+# default, not 8428), which serves every ingestion and query endpoint. Naming it
+# keeps this Service correct if the operator changes its default.
 apiVersion: v1
 kind: Service
 metadata:
@@ -19,7 +20,7 @@ spec:
   ports:
     - name: vmsingle-http
       port: 8428
-      targetPort: 8428
+      targetPort: http
       nodePort: 30080
 ---
 # Graphite push door for the TrueNAS Reporting Exporter. VictoriaMetrics serves
