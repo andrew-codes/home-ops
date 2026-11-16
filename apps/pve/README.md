@@ -124,32 +124,30 @@ nothing changed).
 
 ### 5. Proxmox Backup Server storage ([`tasks/storage-pbs.yml`](src/deploy/tasks/storage-pbs.yml))
 
-Registers a PBS storage entry (Proxmox storage id `pbs-nas`) against `10.0.209.71`,
-datastore `nas`. Same check-then-add-or-reconcile idempotency as `nas-iso`, via
-`pvesm status --storage pbs-nas`.
+Registers a PBS storage entry (Proxmox storage id `pbs-nas`) against the PBS host in
+1Password (`pbs/ip`), datastore `main`, authenticating as the `pbs/backup-username`
+account. The storage id stays `pbs-nas` so existing backup jobs keep resolving it.
+Same check-then-add-or-reconcile idempotency as `nas-iso`, via
+`pvesm status --storage pbs-nas`: an existing entry is updated in place with
+`pvesm set`, never duplicated. Backup jobs and existing backups are not touched.
 
 > [!IMPORTANT]
-> **The PBS credentials for this integration do not exist in 1Password yet**, and the
-> **TLS fingerprint may need manual approval on first connect** - see
-> [Secrets](#secrets-that-do-not-exist-yet) and [PBS TLS fingerprint](#pbs-tls-fingerprint).
+> The **TLS fingerprint may need manual approval on first connect** - see
+> [PBS TLS fingerprint](#pbs-tls-fingerprint).
 
 #### PBS TLS fingerprint
 
-`pvesm add pbs` can fail on a self-signed/non-authoritative PBS certificate unless a
-`--fingerprint` is supplied. The playbook only appends `--fingerprint` when the
-`PBS_FINGERPRINT` environment variable is set (see [Deploying](#deploying)) - it is
-optional because it isn't known until someone fetches it from the real PBS server.
+The PBS certificate is self-signed, so Proxmox needs its fingerprint. The playbook reads it
+from the `fingerprint` field of the `pbs` 1Password item (`pbs/fingerprint`) and passes it
+as `--fingerprint`. The play fails before touching the storage if the storage is being
+created or repointed to a different server and that field is empty. An unchanged server
+with an empty field keeps working.
 
-Fetch and verify it before the first run:
+The captain must add the field. Get the value on the PBS itself:
 
 ```bash
-echo | openssl s_client -connect 10.0.209.71:8007 2>/dev/null \
-  | openssl x509 -noout -fingerprint -sha256
+proxmox-backup-manager cert info
 ```
-
-Compare that against what the PBS server's own web UI shows under
-_Dashboard > Certificate_ before trusting it - a fingerprint fetched over an
-untrusted network could be a MITM's, not the server's.
 
 ### 6. NVIDIA GPU passthrough, two cards, two VMs ([`tasks/gpu-passthrough.yml`](src/deploy/tasks/gpu-passthrough.yml))
 
@@ -293,14 +291,14 @@ These need a human at the machine (or its console), not this playbook:
   cannot be resolved in software beyond that documented workaround.
 - **The bare-metal Proxmox 8.3.4 ISO install itself**, if starting from nothing - see
   [Proxmox's installer docs](https://pve.proxmox.com/pve-docs/pve-admin-guide.html#chapter_installation).
-- **Creating the PBS and NAS-share service accounts** and putting their real
-  credentials into the 1Password items this automation reads - see
+- **Creating the NAS-share service account** and putting its real
+  credentials into the 1Password item this automation reads - see
   [Secrets that do not exist yet](#secrets-that-do-not-exist-yet).
 - **Confirming the NUT monitor account and UPS name** against the Synology NAS's
   UPS Network Status settings, and allow-listing this host as a permitted client -
   see [NUT monitor account and UPS name](#nut-monitor-account-and-ups-name).
-- **Approving the PBS TLS fingerprint** on first connect, if `pvesm add pbs` doesn't
-  auto-accept it even with `--fingerprint` supplied - see
+- **Approving the PBS TLS fingerprint** on first connect, by adding `pbs/fingerprint` to
+  1Password first - see
   [PBS TLS fingerprint](#pbs-tls-fingerprint).
 - **The reboot(s)** needed after the network, GRUB/IOMMU, and blacklist changes -
   a manually supervised step, with console access available as a fallback. Confirm SSH access
@@ -316,22 +314,23 @@ These need a human at the machine (or its console), not this playbook:
 Read through [`packages/configuration-1password`](../../packages/configuration-1password),
 the same as every other host app in this repo.
 
-| Secret                  | Used for                                                                                                         |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `proxmox/ip`            | The host to run the playbook against (the Ansible inventory target)                                              |
-| `andrew-mbp/public-key` | The operator's SSH public key, installed into `root`'s `authorized_keys`                                         |
-| `nas/ip`                | The NAS host backing the `nas-iso` SMB share                                                                     |
-| `pve-nas-iso/username`  | NAS `ISO` share username (see [below](#secrets-that-do-not-exist-yet))                                           |
-| `pve-nas-iso/password`  | NAS `ISO` share password (see [below](#secrets-that-do-not-exist-yet))                                           |
-| `pve-pbs/username`      | PBS datastore username (see [below](#secrets-that-do-not-exist-yet))                                             |
-| `pve-pbs/password`      | PBS datastore password (see [below](#secrets-that-do-not-exist-yet))                                             |
-| `nut/monitor-username`  | NUT monitor account username (see [below](#secrets-that-do-not-exist-yet))                                       |
-| `nut/monitor-password`  | NUT monitor account password (see [below](#secrets-that-do-not-exist-yet))                                       |
-| `k8s/ip`                | The Kubernetes node that receives logs and metrics (see [Observability](#8-observability-tasksobservabilityyml)) |
-| `proxmox2/ip`           | Optional second Proxmox host, used only by `deploy-observability`                                                |
+| Secret                  | Used for                                                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `proxmox/ip`            | The host to run the playbook against (the Ansible inventory target)                                                |
+| `andrew-mbp/public-key` | The operator's SSH public key, installed into `root`'s `authorized_keys`                                           |
+| `nas/ip`                | The NAS host backing the `nas-iso` SMB share                                                                       |
+| `pve-nas-iso/username`  | NAS `ISO` share username (see [below](#secrets-that-do-not-exist-yet))                                             |
+| `pve-nas-iso/password`  | NAS `ISO` share password (see [below](#secrets-that-do-not-exist-yet))                                             |
+| `pbs/ip`                | The Proxmox Backup Server host                                                                                     |
+| `pbs/backup-username`   | PBS backup user the `pbs-nas` storage authenticates as (owned by [`resources/pbs`](../../resources/pbs/README.md)) |
+| `pbs/backup-password`   | PBS backup user password                                                                                           |
+| `nut/monitor-username`  | NUT monitor account username (see [below](#secrets-that-do-not-exist-yet))                                         |
+| `nut/monitor-password`  | NUT monitor account password (see [below](#secrets-that-do-not-exist-yet))                                         |
+| `k8s/ip`                | The Kubernetes node that receives logs and metrics (see [Observability](#8-observability-tasksobservabilityyml))   |
+| `proxmox2/ip`           | Optional second Proxmox host, used only by `deploy-observability`                                                  |
 
-`PBS_FINGERPRINT` is an optional **environment variable**, not a 1Password secret -
-see [PBS TLS fingerprint](#pbs-tls-fingerprint).
+`pbs/fingerprint` must be added to the `pbs` item by hand - see
+[PBS TLS fingerprint](#pbs-tls-fingerprint).
 
 ### `andrew-mbp/public-key`: confirm the field name
 
@@ -354,15 +353,13 @@ from `andrew-mbp/public-key` to `andrew-mbp/public key` (and in
 
 Per [`apps/andrew-mbp/README.md`](../andrew-mbp/README.md#time-machine-backups-to-the-nas)
 and [`apps/dorri-mbp/README.md`](../dorri-mbp/README.md), only `nas/ip` exists in
-1Password today - there is no NAS username/password. The same gap applies to PBS.
+1Password today - there is no NAS username/password.
 
-**These four 1Password items must be created with real values before
+**These three 1Password items must be created with real values before
 `nx run pve:deploy` can run non-interactively:**
 
 - `pve-nas-iso` (fields `username`, `password`) - a service account for the NAS's
   `ISO` SMB share.
-- `pve-pbs` (fields `username`, `password`) - a service account for the PBS
-  datastore.
 - `nut` (fields `monitor-username`, `monitor-password`) - the account the Synology
   NAS's UPS Network Status service authenticates NUT clients with. Shared with
   [`pbs`](../../resources/pbs/README.md#nut-ups-monitoring) and
@@ -380,13 +377,8 @@ already exists, since the Kubernetes provisioning reads it.
 ## Deploying
 
 ```bash
-PBS_FINGERPRINT="$(echo | openssl s_client -connect 10.0.209.71:8007 2>/dev/null | openssl x509 -noout -fingerprint -sha256 | cut -d= -f2)" \
-  nx run pve:deploy
+nx run pve:deploy
 ```
-
-`PBS_FINGERPRINT` is optional - omit it to let `pvesm add pbs` attempt its own
-auto-accept first, and only set it if that fails (see
-[PBS TLS fingerprint](#pbs-tls-fingerprint)).
 
 > [!CAUTION]
 > **Do not run this from an agent session.** See [AGENTS.md](AGENTS.md). This is a
