@@ -24,13 +24,14 @@ OP_VAULT=<vault-name> nx run truenas:deploy
 
 Run it as the captain, not from an agent session - see [AGENTS.md](AGENTS.md). [`scripts/deploy.ts`](scripts/deploy.ts) reads the secrets below through the repo's [1Password-backed configuration API](../../packages/configuration-1password) and runs the playbook with the SSH user as `ansible_user`. SSH uses your normal key setup, and the user must be able to run `midclt` (an admin user can).
 
-| Secret             | Used for                                                            |
-| ------------------ | ------------------------------------------------------------------- |
-| `truenas/ip`       | The host to run the playbook against                                |
-| `truenas/username` | The SSH user                                                        |
-| `k8s/ip`           | The Kubernetes node that receives metrics and logs (already exists) |
+| Secret               | Used for                                                                                |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| `truenas/ip`         | The host to run the playbook against                                                    |
+| `truenas/username`   | The SSH user                                                                            |
+| `k8s/ip`             | The Kubernetes node that receives metrics and logs (already exists)                     |
+| `truenas/health-dir` | Directory on a pool dataset, under `/mnt`, where the play installs the health collector |
 
-`truenas/ip` and `truenas/username` do not exist in 1Password yet. They are optional: when either is missing, `deploy` logs a warning and does nothing, like `proxmox2/ip` for [`pve`](../pve/README.md). Create a `truenas` item in the infra vault with `ip` and `username` fields to enable it. The older `nas/ip` is not used here, because it can still point at the previous NAS.
+`truenas/ip` and `truenas/username` do not exist in 1Password yet. They are optional: when either is missing, `deploy` logs a warning and does nothing, like `proxmox2/ip` for [`pve`](../pve/README.md). Create a `truenas` item in the infra vault with `ip` and `username` fields to enable it. Once those are set, the item also needs a `health-dir` field, and the directory it names must already exist on the NAS (the play does not create datasets); `deploy` fails without it. The older `nas/ip` is not used here, because it can still point at the previous NAS.
 
 ## Dashboard and alerts
 
@@ -65,12 +66,12 @@ The chosen route uses only what the appliance ships (`python3`, `midclt`, `smart
 ### What survives upgrades and reboots
 
 - **The job is registered through the middleware.** The play calls `cronjob.create` and `cronjob.update` through `midclt`, like the exporter and syslog tasks. It never touches `/etc/crontab`, `/etc/cron.d` or any other file. TrueNAS keeps cron jobs in its configuration database, which is carried across upgrades and included in its config backups, and it regenerates the schedule from there at boot.
-- **The collector script is not a file on the host.** [`src/health/truenas-health.py`](src/health/truenas-health.py) is embedded in the job's command as one base64 line, so it lives in the same database row as the job. Nothing sits on the boot pool's root file system, and nothing depends on a pool dataset being imported at boot. A file on a pool dataset would also need a dataset created on the NAS, and the job would fail whenever the pool was not mounted. The middleware strips newlines from a cron command, which is why the script is passed as one line and not a heredoc.
-- **Re-running the play is the repair.** If someone deletes or edits the job, the next `nx run truenas:deploy` puts it back, and the `TrueNASHealthMetricsMissing` alert says when it has stopped.
+- **The collector script is a file on a pool dataset.** The play copies [`src/health/truenas-health.py`](src/health/truenas-health.py) to `truenas-health.py` in the directory named by `truenas/health-dir`, owned by root. TrueNAS resets the boot pool's root file system on upgrade, so the file lives on a pool dataset, which an upgrade keeps. The middleware rejects a cron command over 1024 characters, so the command cannot carry the script and is only `python3 <path> push <url>`. The job fails for a minute or two if the pool is not yet imported after a boot, and `TrueNASHealthMetricsMissing` covers that. The play creates the file, not the directory or dataset.
+- **Re-running the play is the repair.** If someone deletes or edits the job or the script, the next `nx run truenas:deploy` puts it back, and the `TrueNASHealthMetricsMissing` alert says when it has stopped.
 
 ### What it reports
 
-The job runs `python3 - push http://<node>:30080/api/v1/import/prometheus`, VictoriaMetrics' Prometheus text ingestion on the `vmsingle` NodePort Service, and every sample carries labels, so no name mangling is needed.
+The job runs `python3 <health-dir>/truenas-health.py push http://<node>:30080/api/v1/import/prometheus`, VictoriaMetrics' Prometheus text ingestion on the `vmsingle` NodePort Service, and every sample carries labels, so no name mangling is needed.
 
 | Series                                                                                                                      | Meaning                                                                                                                                                                    |
 | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -92,9 +93,7 @@ A disk in standby is not woken: `smartctl -n standby` skips it and its SMART ser
 On the NAS shell, as root. This prints the metrics and sends nothing:
 
 ```bash
-midclt call cronjob.query '[["description","=","Report ZFS pool and SMART health to VictoriaMetrics"]]' \
-  | jq -r '.[0].command' | sed -E "s/^echo '([^']+)'.*/\1/" | base64 -d > /tmp/truenas-health.py
-python3 /tmp/truenas-health.py print
+python3 <health-dir>/truenas-health.py print
 ```
 
 Errors go to stderr, so a source that cannot be read shows up there. The same output is what the job pushes. To run the job itself as TrueNAS does, use the cron job's Run Now in the UI (System, Advanced Settings, Cron Jobs) or `midclt call cronjob.run <id> false`.
@@ -109,7 +108,7 @@ The middleware method names, field names and the TrueNAS version (25.10.8) were 
 
 The play was run against a Debian container with a stand-in `midclt` that follows those shapes. It created both settings on a first run, changed nothing on a second, corrected a disabled and mis-pointed exporter and a UDP syslog entry, kept an unrelated syslog server and a custom `update_every`, and failed cleanly when both syslog slots were taken. It has not been run against the real host.
 
-For the health job, the `pool.query`, `boot.get_state` and `disk.query` output and the `cronjob.query` and `core.get_methods` shapes were read from the live host with query calls only, and the `src/health` fixtures are trimmed copies of that output with the serials replaced. The `health` tasks ran against a stand-in `midclt`: they created the cron job, changed nothing on a second run, and put back a disabled job with a changed schedule, user and command. The stored command was then run the way the middleware runs it (newlines stripped, `sh -c`) and its push was received by a local HTTP server. The collector's output was pushed into a local VictoriaMetrics, evaluated by a real vmalert and shown in a real Grafana. What was not run: the job on the real host (the play makes changes there, so the captain deploys it) and `smartctl` on the real disks, whose JSON the fixtures follow from smartmontools 7.4 and the parsing in TrueNAS's own SMART alert source.
+For the health job, the `pool.query`, `boot.get_state` and `disk.query` output and the `cronjob.query` and `core.get_methods` shapes were read from the live host with query calls only, and the `src/health` fixtures are trimmed copies of that output with the serials replaced. In an earlier version that embedded the script in the command, the `health` tasks ran against a stand-in `midclt`: they created the cron job, changed nothing on a second run, and put back a disabled job with a changed schedule, user and command. The stored command was then run the way the middleware runs it (newlines stripped, `sh -c`) and its push was received by a local HTTP server. The collector's output was pushed into a local VictoriaMetrics, evaluated by a real vmalert and shown in a real Grafana. What was not run after moving the script to a file on a dataset: the play against the real host or a stand-in (the render of the cron command was checked to be under 1024 characters). Also not run: the job on the real host (the play makes changes there, so the captain deploys it) and `smartctl` on the real disks, whose JSON the fixtures follow from smartmontools 7.4 and the parsing in TrueNAS's own SMART alert source.
 
 ## Nx targets
 

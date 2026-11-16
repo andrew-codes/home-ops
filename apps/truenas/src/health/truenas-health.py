@@ -6,8 +6,8 @@ smartctl. Pool and disk state come from the middleware (pool.query,
 boot.get_state, disk.query), SMART from `smartctl -j`, because TrueNAS 25.10
 removed its SMART API.
 
-    python3 - print        write the metrics to stdout (a dry run)
-    python3 - push <url>   POST them to a VictoriaMetrics /api/v1/import/prometheus URL
+    python3 truenas-health.py print         write the metrics to stdout (a dry run)
+    python3 truenas-health.py push <url>    POST them to a VictoriaMetrics /api/v1/import/prometheus URL
 
 A source that fails (a middleware call, one disk) is reported as
 truenas_health_collect_ok 0 and leaves its other series out, so one bad disk

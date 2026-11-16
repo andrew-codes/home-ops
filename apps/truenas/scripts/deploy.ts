@@ -7,7 +7,8 @@ import path from "path"
 /**
  * Sends TrueNAS metrics (Graphite exporter) and logs (remote syslog) to the
  * cluster. The TrueNAS address and SSH user are optional: when either is not
- * in 1Password yet, this logs a warning and does nothing.
+ * in 1Password yet, this logs a warning and does nothing. truenas/health-dir
+ * is required once those two are set.
  */
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
@@ -27,11 +28,16 @@ const run = async (
     return
   }
   const observabilityHost = await configurationApi.get("k8s/ip")
+  // Directory on a pool dataset (under /mnt) that holds the health collector.
+  // Required: the cron job's command is capped at 1024 characters, so it
+  // cannot carry the script.
+  const healthDir = await configurationApi.get("truenas/health-dir")
 
   const playbook = path.join(__dirname, "..", "src", "deploy", "index.yml")
   await runPlaybook(playbook, [truenasIp], {
     ansible_user: truenasUsername,
     observability_host: observabilityHost,
+    health_dir: healthDir,
   })
 }
 
