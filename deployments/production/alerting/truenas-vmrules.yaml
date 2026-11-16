@@ -1,0 +1,173 @@
+---
+# TrueNAS rules. They read the series the host pushes through its Graphite
+# reporting exporter (see apps/truenas). VictoriaMetrics stores those as dotted
+# names with no labels, for example
+# truenas.nas.truenas_disk_temp.<disk>.temp, so every rule that needs the disk
+# or interface in its text pulls it out of __name__ with label_replace first.
+# The disk label is shortened to the serial number.
+#
+# Pool health, vdev state and SMART results are not part of these metrics, so
+# no rule here can see a degraded pool or a failing disk. See the alerting
+# README for how that gap is covered.
+#
+# These live in the production overlay, not in base: staging receives no
+# TrueNAS metrics, so the missing-data rules would fire there forever.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: truenas
+spec:
+  groups:
+    - name: truenas-availability
+      rules:
+        # The uptime series is the heartbeat. If it is gone, the host is off,
+        # its network is cut, the exporter is disabled or VictoriaMetrics is not
+        # ingesting Graphite, and none of the rules below can fire.
+        - alert: TrueNASMetricsMissing
+          expr: absent({__name__="truenas.nas.system.uptime.uptime"})
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "TrueNAS is not reporting metrics"
+            description: "No TrueNAS series has arrived in VictoriaMetrics for 10 minutes. The NAS may be down or unreachable, its Graphite reporting exporter may be disabled or pointed at the wrong port, or VictoriaMetrics is not accepting Graphite. The NFS shares the cluster uses may be offline, and the other TrueNAS alerts cannot fire."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+    - name: truenas-pool
+      rules:
+        # Pool usage is one series with no pool name in it: the exporter reports
+        # the pool as a whole.
+        - alert: TrueNASPoolUsageHigh
+          expr: >-
+            {__name__="truenas.nas.truenas_pool.usage.used"}
+            / {__name__="truenas.nas.truenas_pool.usage.total"} > 0.80
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS pool is {{ $value | humanizePercentage }} full"
+            description: "The TrueNAS pool is {{ $value | humanizePercentage }} full, above the 80% threshold for 30 minutes. ZFS slows down as a pool fills up, so free space or add capacity before it reaches 90%."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        - alert: TrueNASPoolAlmostFull
+          expr: >-
+            {__name__="truenas.nas.truenas_pool.usage.used"}
+            / {__name__="truenas.nas.truenas_pool.usage.total"} > 0.90
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "TrueNAS pool is nearly out of space"
+            description: "The TrueNAS pool is {{ $value | humanizePercentage }} full, above the 90% threshold for 15 minutes. Writes will slow down and then fail once it fills, which affects everything that stores data on the NAS."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # Above 70% used, and the 24 hour trend of the free space reaches zero
+        # within 7 days.
+        - alert: TrueNASPoolFillingUp
+          expr: >-
+            (
+              {__name__="truenas.nas.truenas_pool.usage.used"}
+              / {__name__="truenas.nas.truenas_pool.usage.total"} > 0.70
+            and
+              predict_linear({__name__="truenas.nas.truenas_pool.usage.available"}[1d], 7 * 24 * 3600) < 0
+            )
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS pool will fill up within a week"
+            description: "The TrueNAS pool is {{ $value | humanizePercentage }} full and, at the rate of the last 24 hours, will run out of space within 7 days."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+    - name: truenas-disks
+      rules:
+        - alert: TrueNASDiskTemperatureHigh
+          expr: >-
+            label_replace(label_replace(
+              {__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"},
+              "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
+              "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*") >= 50
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS disk {{ $labels.disk }} is running hot"
+            description: "Disk {{ $labels.disk }} has been at {{ $value | humanize }}°C or more for 15 minutes (warning threshold 50°C). Check the fans and airflow in the NAS."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        - alert: TrueNASDiskTemperatureCritical
+          expr: >-
+            label_replace(label_replace(
+              {__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"},
+              "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
+              "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*") >= 60
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "TrueNAS disk {{ $labels.disk }} is overheating"
+            description: "Disk {{ $labels.disk }} is at {{ $value | humanize }}°C, at or above the 60°C critical threshold, for 5 minutes. Sustained heat shortens drive life and can cause failures."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # A disk that reported in the last day and has not for 10 minutes: pulled,
+        # failed or dropped off the controller. It resolves by itself a day after
+        # the disk was last seen, so a disk removed on purpose stops alerting.
+        - alert: TrueNASDiskMissing
+          expr: >-
+            label_replace(label_replace(
+              last_over_time({__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"}[1d]),
+              "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
+              "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*")
+            unless on(disk)
+            label_replace(label_replace(
+              {__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"},
+              "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
+              "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*")
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS disk {{ $labels.disk }} stopped reporting"
+            description: "Disk {{ $labels.disk }} reported a temperature in the last day but not for the last 10 minutes (last value {{ $value | humanize }}°C). The disk may have failed or dropped off its controller. Check the pool in the TrueNAS UI."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # The whole family gone while the host still reports: the disk metrics
+        # collector stopped. The two rules above cannot see that.
+        - alert: TrueNASDiskTemperatureMetricsMissing
+          expr: >-
+            absent({__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"})
+            unless absent({__name__="truenas.nas.system.uptime.uptime"})
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS disk temperatures are not being reported"
+            description: "TrueNAS is reporting metrics, but no disk temperature series has arrived for 15 minutes. The disk temperature alerts cannot fire."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        - alert: TrueNASDiskStatsMetricsMissing
+          expr: >-
+            absent({__name__=~"truenas[.]nas[.]truenas_disk_stats[.]busy[.].+[.]busy"})
+            unless absent({__name__="truenas.nas.system.uptime.uptime"})
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS disk activity is not being reported"
+            description: "TrueNAS is reporting metrics, but no disk busy, IOPS or throughput series has arrived for 15 minutes. The disk panels on the dashboard are empty."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+    - name: truenas-network
+      rules:
+        # Physical interfaces only (names starting en or eth). VM taps (macvtap),
+        # bridges and the like are left out. An interface that was never up in
+        # the last 7 days, such as an unused port, is not alerted on.
+        - alert: TrueNASNetworkLinkDown
+          expr: >-
+            (
+              label_replace(
+                {__name__=~"truenas[.]nas[.]net_carrier[.](en|eth)[a-z0-9]+[.]up"},
+                "iface", "$1", "__name__", "truenas[.]nas[.]net_carrier[.](.+)[.]up") == 0
+            and on(iface)
+              label_replace(
+                max_over_time({__name__=~"truenas[.]nas[.]net_carrier[.](en|eth)[a-z0-9]+[.]up"}[7d]),
+                "iface", "$1", "__name__", "truenas[.]nas[.]net_carrier[.](.+)[.]up") == 1
+            )
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS network link {{ $labels.iface }} is down"
+            description: "Interface {{ $labels.iface }} on the NAS has had no carrier for 5 minutes, after being up in the last 7 days. Check the cable, the switch port and the NIC."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
