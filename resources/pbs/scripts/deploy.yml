@@ -93,10 +93,11 @@
     # it, so a source the installer or an admin already wrote is not duplicated
     # (apt warns about, and can fail on, the same source in two files).
     - name: Look for an existing PBS no-subscription repository
-      ansible.builtin.command: grep -rlE "pbs-no-subscription" /etc/apt/sources.list /etc/apt/sources.list.d
+      ansible.builtin.find:
+        paths: /etc/apt/sources.list.d
+        patterns: ["*.list", "*.sources"]
+        contains: 'pbs-no-subscription'
       register: pbs_nosub_sources
-      changed_when: false
-      failed_when: pbs_nosub_sources.rc > 1
 
     - name: Add the PBS no-subscription repository
       ansible.builtin.copy:
@@ -110,7 +111,7 @@
         owner: root
         group: root
         mode: "0644"
-      when: pbs_nosub_sources.rc != 0
+      when: pbs_nosub_sources.matched == 0
 
     - name: Update apt cache
       ansible.builtin.command: apt-get update
