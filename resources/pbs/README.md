@@ -38,6 +38,8 @@ OP_VAULT=<vault-name> nx run pbs:deploy
 
 [`scripts/deploy.ts`](scripts/deploy.ts) reads `pbs/ip`, `pbs/username`, `pbs/password`, `pbs/backup-username`, `pbs/backup-password` and `k8s/ip` through the repo's [1Password-backed configuration API](../../packages/configuration-1password), writes them into a gitignored `.secrets/` inventory and vars file next to the playbook, and runs `ansible-playbook` against them.
 
+The generated inventory sets `ansible_ssh_common_args` to `-o PreferredAuthentications=password -o PubkeyAuthentication=no`, so SSH logs in with the password only. Without it, SSH offers every key in the SSH agent first (for example the 1Password agent), and a fresh host disconnects with "Too many authentication failures" before the password is tried. The agent in `SSH_AUTH_SOCK` no longer matters.
+
 ### Andrew's SSH key is a special case
 
 `pbs/*` above all come from `OP_VAULT`, the shared infra-secrets vault every other `configurationApi.get()` call in this repo reads from. Andrew's own SSH key is different: it is a personal credential that lives in the **`Private`** 1Password vault as the `andrew-mbp` item, independent of whatever `OP_VAULT` is set to. [`scripts/deploy.ts`](scripts/deploy.ts) reads it directly with `op read "op://Private/andrew-mbp/public key"` rather than through `configurationApi`, and installs it as an `authorized_key` for the account the playbook connects as.
