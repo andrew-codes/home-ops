@@ -307,6 +307,10 @@ function Stop-FpsExporter {
 function Get-OhmGraphiteConfig {
     # Prometheus pull mode: sensors are read only when vmagent scrapes, so the
     # poll interval is the scrape interval and nothing runs between scrapes.
+    # `type` is what selects it. OhmGraphite defaults to Graphite push when the
+    # key is absent and then never opens the listener, so port 4445 stays closed
+    # even though the service is Running. `prometheus_path` is the form
+    # OhmGraphite hands to HttpListener, a relative path with a trailing slash.
     #
     # CPU only. Every other hardware class is switched off, so LibreHardwareMonitor
     # never opens it: the GPU is read by windows_exporter (and by FanControl),
@@ -319,6 +323,7 @@ function Get-OhmGraphiteConfig {
 <?xml version="1.0" encoding="utf-8" ?>
 <configuration>
   <appSettings>
+    <add key="type" value="prometheus" />
     <add key="prometheus_host" value="*" />
     <add key="prometheus_port" value="$($OhmGraphite.Port)" />
     <add key="prometheus_path" value="metrics/" />

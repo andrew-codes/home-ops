@@ -8,8 +8,8 @@
 # secret (key `ip`, from 1Password gaming-pc/ip) through the GAMING_PC_IP
 # environment variable, and vmagent expands `%{GAMING_PC_IP}` in the scrape
 # config. The secret is optional: until it exists vmagent keeps running every
-# other job, logs that it skips these two targets, and picks them up on the next
-# restart once the secret is there.
+# other job, logs that it skips these two targets, and picks them up only when the
+# pod is recreated after the secret exists (the variable is read at startup).
 #
 # The PC is often off or asleep, so `up == 0` here is normal and nothing alerts
 # on it.

@@ -427,6 +427,9 @@ for that comparison.
   a _new_ ETW trace session once it is running, which is why the capture starts at
   boot, before any game. If the task is restarted while such a game is open, the
   new session can be refused and FPS is simply missing for that game.
+- **OhmGraphite** only listens on 4445 when its config says `type` is `prometheus`;
+  without that key it defaults to Graphite push and the service runs with the port
+  closed. `tests/ohmgraphite-config.test.ps1` pins the generated config.
 - **OhmGraphite** uses PawnIO, which FanControl has already put on the machine.
   FACEIT was reported to block PawnIO and FanControl's README says that was fixed
   in PawnIO 2.1.0. If a game ever complains about FanControl, stop the
@@ -471,7 +474,10 @@ fails the deploy:
   then add `- gaming-pc-sealed.yaml` to `infrastructure/production/secrets/kustomization.yaml`.
   `gaming-pc/ip` is also in the sealed list in `packages/configuration-1password`, so
   `yarn nx g @ha/nx-secrets-generators:seal --env production` produces the same file
-  (it reseals every secret). Restart vmagent after the secret lands.
+  (it reseals every secret). Restart vmagent (recreate the pod) after the secret lands:
+  vmagent expands `%{GAMING_PC_IP}` from its environment at startup, and the secret
+  reference is optional, so a pod started before the secret existed has no variable
+  and skips both gaming-pc targets.
 
 - **Firewall.** `deploy.yml` opens ports 9182 and 4445 on the Private profile to
   `k8s/ip` only, read from 1Password by `scripts/deploy.ts`.
@@ -484,10 +490,11 @@ fails the deploy:
 ### Tests
 
 `yarn nx test gaming-pc` runs [`tests/fps-summary.test.ps1`](tests/fps-summary.test.ps1)
-(the summariser, with a fake clock and no PresentMon; needs `pwsh`) and the
-`vmalert-tool` tests for the alert rules in
+(the summariser, with a fake clock and no PresentMon; needs `pwsh`),
+[`tests/ohmgraphite-config.test.ps1`](tests/ohmgraphite-config.test.ps1) (the generated
+OhmGraphite config; needs `pwsh`) and the `vmalert-tool` tests for the alert rules in
 [`tests/gaming-pc-rules.test.yaml`](tests/gaming-pc-rules.test.yaml) (needs Docker
-and `yq`). Both run in the pull request checks.
+and `yq`). All run in the pull request checks.
 
 ## Windows settings the deploy applies
 
