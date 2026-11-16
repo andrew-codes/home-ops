@@ -1,0 +1,26 @@
+---
+# Kubernetes object state (pods, deployments, nodes, volumes) as metrics. The
+# dashboards and the crash loop alerts read it. vmagent scrapes it through the
+# kube-state-metrics Service (job "kube-state-metrics", see
+# deployments/base/metrics/helm-release.yaml).
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-state-metrics
+  namespace: default
+spec:
+  chart:
+    spec:
+      chart: kube-state-metrics
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+      version: 9.0.1
+  interval: 1m0s
+  values:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 256Mi

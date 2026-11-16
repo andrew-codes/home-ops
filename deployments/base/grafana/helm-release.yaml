@@ -63,9 +63,29 @@ spec:
           gnetId: 12683
           revision: 7
           datasource: victoriametrics
-        kubernetes:
-          gnetId: 14205
-          revision: 1
+        # dotdc's Kubernetes / Views set. They read kube-state-metrics, cAdvisor,
+        # kubelet and node-exporter series and pick their datasource through a
+        # `datasource` template variable, which resolves to the default
+        # (victoriametrics) datasource.
+        kubernetes-global:
+          gnetId: 15757
+          revision: 43
+          datasource: victoriametrics
+        kubernetes-namespaces:
+          gnetId: 15758
+          revision: 46
+          datasource: victoriametrics
+        kubernetes-nodes:
+          gnetId: 15759
+          revision: 40
+          datasource: victoriametrics
+        kubernetes-pods:
+          gnetId: 15760
+          revision: 41
+          datasource: victoriametrics
+        node-exporter-full:
+          gnetId: 1860
+          revision: 46
           datasource: victoriametrics
       # proxmox:
       #   __inputs: []

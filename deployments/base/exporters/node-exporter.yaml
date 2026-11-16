@@ -1,0 +1,29 @@
+---
+# Host metrics (CPU, memory, disk, network) for every node. vmagent scrapes it
+# through the node-exporter Service (job "node-exporter", see
+# deployments/base/metrics/helm-release.yaml). The chart's defaults already run
+# it on the host network and PID namespace, mount the node root file system
+# read-only, and skip pseudo file systems and container runtime mounts.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: node-exporter
+  namespace: default
+spec:
+  chart:
+    spec:
+      chart: prometheus-node-exporter
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+      version: 5.1.0
+  interval: 1m0s
+  values:
+    # A stable Service name, which the vmagent scrape job selects on.
+    fullnameOverride: node-exporter
+    resources:
+      requests:
+        cpu: 50m
+        memory: 32Mi
+      limits:
+        memory: 128Mi
