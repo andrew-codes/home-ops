@@ -19,6 +19,9 @@ const run = async (
   const devSshPub = await configurationApi.get("dev/ssh-key/public")
   const nutMonitorUsername = await configurationApi.get("nut/monitor-username")
   const nutMonitorPassword = await configurationApi.get("nut/monitor-password")
+  // The cluster node scrapes the exporters this deploy installs, so the
+  // firewall rules for their ports name this address and no other.
+  const k8sNodeIp = await configurationApi.get("k8s/ip")
 
   await fs.mkdir(path.join(__dirname, "..", ".secrets"), { recursive: true })
 
@@ -54,6 +57,7 @@ nut_ups_name: "ups"
 nut_battery_charge_floor: 30
 nut_monitor_username: ${JSON.stringify(nutMonitorUsername)}
 nut_monitor_password: ${JSON.stringify(nutMonitorPassword)}
+k8s_node_ip: ${JSON.stringify(k8sNodeIp)}
 `,
     "utf8",
   )

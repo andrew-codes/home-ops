@@ -3,3 +3,13 @@ kind: Kustomization
 namespace: default
 resources:
   - ../../base/metrics
+patches:
+  # The gaming PC's sensors and FPS (apps/gaming-pc). Production only: staging
+  # has no gaming PC, so a job there would only fail. The job lives in
+  # gaming-pc-scrape.yaml so the scrape config stays readable as YAML.
+  - target:
+      group: helm.toolkit.fluxcd.io
+      version: v2
+      kind: HelmRelease
+      name: vmagent
+    path: gaming-pc-scrape.yaml

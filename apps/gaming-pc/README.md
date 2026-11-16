@@ -322,6 +322,168 @@ run's `SUMMARY` lines, and counted in the `RESULT ... warnings=` line the
 playbook prints. If they warn, install that app from the Store by hand once;
 `AutoDownload` keeps it updated afterwards.
 
+## Metrics and sensors
+
+The machine's sensors and frame rate go to the cluster's VictoriaMetrics, so the
+Gaming PC dashboard in Grafana can show temperatures getting hot before they
+become a problem, next to the FPS and the game that was running.
+
+| Hardware | What it is                                                  |
+| -------- | ----------------------------------------------------------- |
+| CPU      | AMD Ryzen 9 9950X3D (Tjmax 95 C)                            |
+| Board    | ASUS ROG Crosshair X670E Hero                               |
+| GPU      | NVIDIA GeForce RTX 5090 (`src/config.json`, rated for 90 C) |
+
+Recorded here because LibreHardwareMonitor and the temperature thresholds depend
+on them.
+
+### What runs on the PC
+
+[`src/monitoring.ps1`](src/monitoring.ps1) installs and converges three things.
+The deploy task `Install and configure the metrics exporters` runs it, and its
+last line (`RESULT changed=N warnings=N failures=N`) is what the task reads.
+Everything is pinned to an exact version and SHA-256 (the digest GitHub publishes
+for the release asset), so a deploy installs exactly those bits. To bump one, edit
+the version, URL and hash at the top of the script.
+
+| Piece                                                                                                                                          | Gives                                                                                                                                                                                                                                                                                                                                                                                   | Cost and risk                                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **windows_exporter** 0.32.1, port 9182, collectors `cpu,gpu,memory,textfile`                                                                   | GPU temperature, fan, power, clocks, utilisation and VRAM, CPU load and clocks, memory, and the FPS file below                                                                                                                                                                                                                                                                          | User-mode Windows service, no kernel driver. The GPU sensors come from the Windows graphics kernel, the same source Task Manager uses.            |
+| **PresentMon** 2.6.0 console, started at boot by the `Gaming-PC-FPS` task as SYSTEM, wrapped by [`src/fps-exporter.ps1`](src/fps-exporter.ps1) | Frame times through event tracing (ETW), summarised by [`src/fps-summary.ps1`](src/fps-summary.ps1) every 30 s into `C:\ProgramData\gaming-pc\monitoring\textfile\gaming-pc-fps.prom`: `gaming_pc_fps_average`, `gaming_pc_fps_1pct_low`, `gaming_pc_frametime_p99_milliseconds`, `gaming_pc_frametime_max_milliseconds`, `gaming_pc_frames_total` and `gaming_pc_active_app_info{app}` | It does not inject into or hook any game. The file is empty when no game is running, so the series disappear instead of freezing.                 |
+| **OhmGraphite** 0.38.0, port 4445, Prometheus pull mode                                                                                        | CPU temperature only (`ohm_cpu_celsius`, plus package power and clocks)                                                                                                                                                                                                                                                                                                                 | A second reader of the same LibreHardwareMonitor stack FanControl already runs, through the PawnIO driver FanControl installs. It adds no driver. |
+
+Where things live: `C:\Program Files\windows_exporter`, `C:\Program Files\OhmGraphite`
+and `C:\ProgramData\gaming-pc\monitoring` (PresentMon, the two FPS scripts, the
+textfile directory and `fps-exporter.log`). The monitoring directory is locked to
+administrators, because a SYSTEM task runs the scripts in it and windows_exporter
+reads its textfile directory. The scripts are copied there out of
+`developer\tools` because the deploy empties and refills that directory.
+
+### Why these, and what each is not
+
+- **FanControl is not replaced and not read.** It has no export path (no API, log
+  or shared memory, and its plugin API only injects sensors into it), so the CPU
+  temperature needs a second reader. OhmGraphite is scoped to the CPU class only:
+  the GPU, motherboard (Super I/O and embedded controller), storage, RAM, network,
+  controller, PSU and battery classes are all switched off in its config, so
+  LibreHardwareMonitor never opens them. The Super I/O and embedded controller are
+  what FanControl is controlling fans through, and storage SMART reads are the
+  classic in-game hitch, so none of them is polled. As a result **fan speeds other
+  than the GPU's and motherboard temperatures are not exported.**
+- **The GPU is read through the Windows graphics kernel, not NVAPI.** LibreHardwareMonitor
+  issue 598 ties NVAPI GPU polling to in-game stutter on an RTX 3090, and FanControl
+  already polls the card at 1 Hz, so a second NVAPI reader is the one to avoid.
+- **RTSS and Afterburner are not used for FPS.** They hook into the game process,
+  and games with an anti-cheat have been reported to block or flag them. PresentMon
+  only traces ETW events.
+- **No hotspot or 12V-2x6 connector temperature.** NVIDIA does not expose the
+  hotspot on Blackwell, and a standard RTX 5090 has no connector sensor. The
+  connector can run hotter than the core reads, so the GPU temperature alerts
+  protect the core and the fans, not the connector.
+
+### Gameplay cost
+
+None of this has been measured on the machine yet. What is known:
+
+- **The FPS summariser** costs about 6 microseconds of CPU per frame line (measured
+  by feeding 500,000 lines to PowerShell 7.6 on an Apple M-series Mac, so only the
+  order of magnitude carries over). At 300 lines a second that is under 0.2% of one
+  core. Both it and PresentMon run at below-normal priority.
+- **windows_exporter** is scraped every 30 s. The `gpu` collector has no switch to
+  skip its per-process counters, so each scrape reads all GPU engine and memory
+  instances; vmagent drops the per-process series, which saves storage but not
+  that work. The same data feeds Task Manager.
+- **Always-on ETW tracing** has no independent benchmark. Intel's 2.6.0 notes claim
+  78% less CPU than 2.5, with no absolute figure.
+- **OhmGraphite** only reads sensors when scraped (30 s), CPU class only.
+
+Measure before trusting it, with PresentMon capturing frame times from a built-in
+game benchmark or a fixed route, three runs per arm, alternating the order:
+
+1. Everything stopped: `Stop-ScheduledTask Gaming-PC-FPS`, then `Stop-Service windows_exporter, OhmGraphite`.
+2. `windows_exporter` only.
+3. Everything running.
+
+```powershell
+.\PresentMon-2.6.0-x64.exe --process_name <game>.exe --timed 300 --delay 20 --terminate_after_timed --no_console_stats --output_file C:\temp\run.csv
+```
+
+Compare the 99.9th percentile frame time, the maximum and the count of frames
+over twice the median, not the average FPS: a periodic sensor hitch hardly moves
+the average. If the hitches land at multiples of the scrape interval, the scrape
+is the cause. PresentMon is itself an ETW observer in every arm, so the first arm
+cannot isolate the always-on tracing cost; use the game's own benchmark summary
+for that comparison.
+
+### Anti-cheat
+
+- **windows_exporter** and **PresentMon** load no kernel driver and do not touch the
+  game process. PresentMon issue 573 shows an anti-cheat (EA AntiCheat) can refuse
+  a _new_ ETW trace session once it is running, which is why the capture starts at
+  boot, before any game. If the task is restarted while such a game is open, the
+  new session can be refused and FPS is simply missing for that game.
+- **OhmGraphite** uses PawnIO, which FanControl has already put on the machine.
+  FACEIT was reported to block PawnIO and FanControl's README says that was fixed
+  in PawnIO 2.1.0. If a game ever complains about FanControl, stop the
+  `OhmGraphite` service the same way.
+
+### Checks on the first deploy
+
+`monitoring.ps1` turns these into warnings in the deploy output, and none of them
+fails the deploy:
+
+- `windows_exporter` must report `windows_gpu_temperature_celsius` for the RTX 5090
+  from a service account. This is unverified on this card: the collector's author
+  tested a GTX 1070. If it is missing, fall back to `nvidia_gpu_exporter`.
+- `OhmGraphite` must report `ohm_cpu_celsius`. If it does not, check the PawnIO
+  driver (`HKLM:\SYSTEM\CurrentControlSet\Services\PawnIO`) and
+  `C:\Program Files\OhmGraphite\OhmGraphite.log`.
+- PresentMon accepts `--no_track_display --no_track_gpu --no_track_input`
+  together (documented, not yet run) and writes `Application` and
+  `MsBetweenPresents` columns. `fps-exporter.log` records its messages.
+- vmagent's scrapes arrive from the cluster node's address. The firewall rules
+  allow only `k8s/ip`; if the cluster's network does not source-NAT pod traffic,
+  the scrape is blocked and the rules need the pod network instead.
+
+### Cluster side
+
+- **Scrape job.** [`deployments/production/metrics/gaming-pc-scrape.yaml`](../../deployments/production/metrics/gaming-pc-scrape.yaml)
+  adds a `gaming-pc` job (30 s, one target per exporter, labelled `exporter`) to
+  vmagent in production. The PC's address comes from the `gaming-pc` sealed secret
+  (key `ip`, from 1Password `gaming-pc/ip`) through the `GAMING_PC_IP` environment
+  variable, so no address is committed. The secret is optional: until it exists
+  vmagent skips these two targets and keeps running every other job.
+- **Seal the secret** (once, as the captain, signed in to 1Password):
+
+  ```bash
+  OP_VAULT=<vault> sh -c 'kubectl create secret generic gaming-pc \
+    --from-literal="ip=$(op read --no-newline "op://$OP_VAULT/gaming-pc/ip")" \
+    --namespace default --dry-run=client -o yaml \
+    | kubeseal --format=yaml --cert=resources/sealed-secrets/keys/production.pub' \
+    > infrastructure/production/secrets/gaming-pc-sealed.yaml
+  ```
+
+  then add `- gaming-pc-sealed.yaml` to `infrastructure/production/secrets/kustomization.yaml`.
+  `gaming-pc/ip` is also in the sealed list in `packages/configuration-1password`, so
+  `yarn nx g @ha/nx-secrets-generators:seal --env production` produces the same file
+  (it reseals every secret). Restart vmagent after the secret lands.
+
+- **Firewall.** `deploy.yml` opens ports 9182 and 4445 on the Private profile to
+  `k8s/ip` only, read from 1Password by `scripts/deploy.ts`.
+- **Dashboard and alerts.** The `Gaming PC` dashboard is
+  [`deployments/base/grafana/dashboards/gaming-pc.json`](../../deployments/base/grafana/dashboards/gaming-pc.json).
+  The thermal alert rules are in the alerting
+  [README](../../deployments/base/alerting/README.md#gaming-pc). The PC is often
+  off, so nothing alerts on it being down, and `TargetDown` skips the `gaming-pc` job.
+
+### Tests
+
+`yarn nx test gaming-pc` runs [`tests/fps-summary.test.ps1`](tests/fps-summary.test.ps1)
+(the summariser, with a fake clock and no PresentMon; needs `pwsh`) and the
+`vmalert-tool` tests for the alert rules in
+[`tests/gaming-pc-rules.test.yaml`](tests/gaming-pc-rules.test.yaml) (needs Docker
+and `yq`). Both run in the pull request checks.
+
 ## Windows settings the deploy applies
 
 | Setting                                    | How                                                                                                                       |
@@ -443,6 +605,7 @@ a machine behind Tailscale, which is the trade the ticket accepts.
 | `pre-deploy` | Prepares both ends of a deploy: installs the Mac-side Ansible prerequisites, and prints and verifies the Windows-side ones. See above. |
 | `deploy`     | Runs [`scripts/deploy.yml`](scripts/deploy.yml) against the machine over SSH.                                                          |
 | `publish`    | Packages `src/` as a GitHub Release for the machine's own self-update task. Unrelated to deploying; see [below](#the-publish-target).  |
+| `test`       | Runs the FPS summariser tests and the thermal alert rule tests, no machine needed. See [Tests](#tests).                                |
 
 `deploy` is deliberately excluded from `yarn deploy/all`; the exclusion list
 lives on that script in the root `package.json`, and the rule behind it is

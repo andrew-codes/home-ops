@@ -72,6 +72,9 @@ const sealedSecretNames = [
   "homebox-oidc/issuer-url",
   "homebox/api-key-pepper",
   "home-assistant/ssh-key-private",
+  // The gaming PC's address, for the vmagent scrape job in
+  // deployments/production/metrics. apps/gaming-pc reads it directly too.
+  "gaming-pc/ip",
   "voice-agent/home-assistant-token",
   "voice-agent/anthropic-api-key",
   "voice-agent/langsmith-api-key",

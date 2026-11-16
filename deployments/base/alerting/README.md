@@ -59,7 +59,8 @@ The rules built on them:
 
 The disk rules skip `tmpfs`, `overlay`, `squashfs`, read-only and network file systems. Network volumes
 (PVCs) are covered by the `PersistentVolume*` rules from the kubelet volume stats. A scrape target that
-is present but down is already caught by `TargetDown`.
+is present but down is already caught by `TargetDown`, except the gaming PC's, which is off for much of
+the day (see [Gaming PC](#gaming-pc)).
 
 ## TrueNAS
 
@@ -142,6 +143,24 @@ The backup server pushes its host and datastore usage through its InfluxDB metri
 - **Gaps and resolving.** The timer pushes every 5 minutes and a push can be missed, so no rule reads a bare selector for a current value or for presence. Current values go through `last_over_time` over 5 minutes (PBS's own series) or 15 minutes (the timer's), and presence through `absent_over_time`. The values are the latest sample, so an alert resolves on the next push after the state changes.
 - **The usage rules use the datastore's file system.** The `nas` datastore is an NFS mount, so its total, used and free are those of the NAS volume it sits on.
 - **Unit tests.** `resources/pbs/tests/pbs-rules.test.yaml` runs the rules through `vmalert-tool` (`resources/pbs/scripts/test-rules.sh`, or `yarn nx test pbs`; needs Docker and `yq`). It covers a healthy host that fires nothing, each failure, a gap between pushes, recovery, and the exact push text. The script has its own tests in `resources/pbs/tests/test_pbs_health.py`.
+
+## Gaming PC
+
+The gaming PC (`apps/gaming-pc`, see its [README](../../../apps/gaming-pc/README.md#metrics-and-sensors)) is scraped by vmagent as the `gaming-pc` job: `windows_exporter` for the RTX 5090's temperature, fan and power and the frame rate, and OhmGraphite for the Ryzen 9 9950X3D's temperature. The `Gaming PC` dashboard in Grafana shows both. The rules are the `gaming-pc` VMRule in `deployments/production/alerting/gaming-pc-vmrules.yaml`, in the production overlay only because staging has no gaming PC.
+
+| Rule                             | Severity | Fires when                                                                                                                         |
+| -------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `GamingPCGpuTemperatureHigh`     | warning  | the GPU is at 85 °C or more for 5 minutes. NVIDIA rates the RTX 5090 for 90 °C and gaming sits at about 80 °C.                     |
+| `GamingPCGpuTemperatureCritical` | critical | the GPU is at 90 °C or more, its rated maximum, for 2 minutes                                                                      |
+| `GamingPCGpuFanStopped`          | critical | the GPU fan reads 0 RPM while the GPU is above 70 °C, for 3 minutes. Fan stop at idle is normal and does not alert.                |
+| `GamingPCCpuTemperatureHigh`     | warning  | the hottest CPU temperature sensor is at 85 °C or more for 10 minutes. The 9950X3D is specified for 95 °C and boosts into the 80s. |
+| `GamingPCCpuTemperatureCritical` | critical | the hottest CPU temperature sensor is at 90 °C or more for 5 minutes                                                               |
+
+- **The push names the game.** Each `summary` ends with `while playing <game>` when the FPS summary reports one, because the question is what was running when it got hot. The text reads the active application at the moment the alert fires (a `query` template), so the alert's labels do not change when the game does.
+- **The PC being off is not an alert.** It is off or asleep for much of the day, so there is no "PC down" or "metrics missing" rule, the rules above only see data while it is on, and `TargetDown` skips the `gaming-pc` job.
+- **The thresholds are sustained on purpose.** Both CPU rules and the GPU warning wait several minutes, so a boost spike or a shader compile does not push the phone.
+- **What the GPU sensor cannot see.** NVIDIA does not expose the hotspot on Blackwell, and a standard RTX 5090 has no sensor on its 12V-2x6 power connector, which can run hotter than the core. These rules protect the core and the fans.
+- **Unit tests.** `apps/gaming-pc/tests/gaming-pc-rules.test.yaml` runs the rules through `vmalert-tool` (`apps/gaming-pc/scripts/test.sh`, or `yarn nx test gaming-pc`; needs Docker and `yq`). It covers a sustained warning and critical, a spike that stays quiet, the game name appearing and disappearing, fan stop while cool and while hot, the CPU thresholds and an off PC firing nothing.
 
 ## Alerts in Grafana
 

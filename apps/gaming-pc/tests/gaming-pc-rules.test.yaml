@@ -1,0 +1,175 @@
+# vmalert-tool unit tests for deployments/production/alerting/gaming-pc-vmrules.yaml.
+# scripts/test.sh extracts the rule groups into gaming-pc-rules.yaml next to this
+# file's copy and runs `vmalert-tool unittest`. Series are named the way
+# windows_exporter and OhmGraphite expose them, with the labels vmagent adds
+# (job, exporter, instance).
+rule_files:
+  - gaming-pc-rules.yaml
+
+evaluation_interval: 30s
+
+tests:
+  # The GPU runs at 80 C while gaming (normal), climbs to 86 C for ten minutes,
+  # then 91 C. The warning needs 5 minutes at 85 C, the critical 2 minutes at 90 C.
+  - name: gpu warns after five minutes at 85 C and goes critical at 90 C
+    interval: 30s
+    input_series:
+      # 0-10 min at 80 C, 10-20 min at 86 C, 20-24 min at 91 C
+      - series: 'windows_gpu_temperature_celsius{job="gaming-pc",exporter="windows",instance="pc:9182",luid="0x0_0x1",phys="0"}'
+        values: "80x20 86x20 91x8"
+      - series: 'windows_gpu_fan_speed_rpm{job="gaming-pc",exporter="windows",instance="pc:9182",luid="0x0_0x1",phys="0"}'
+        values: "2000x48"
+      - series: 'gaming_pc_active_app_info{job="gaming-pc",exporter="windows",instance="pc:9182",app="Cyberpunk2077.exe"}'
+        values: "1x48"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: GamingPCGpuTemperatureHigh
+        exp_alerts: []
+      - eval_time: 14m
+        alertname: GamingPCGpuTemperatureHigh
+        exp_alerts: []
+      - eval_time: 16m
+        alertname: GamingPCGpuTemperatureHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "Gaming PC GPU is at 86°C while playing Cyberpunk2077.exe"
+              description: "The RTX 5090 has been at 85°C or more for 5 minutes (now 86°C). NVIDIA rates it for 90°C. Check the fans, case airflow and dust before it starts to throttle. The temperature, clocks and fan speed over time are on the Gaming PC dashboard."
+              dashboard_url: https://grafana.smith-simms.family/d/gaming-pc/gaming-pc
+      - eval_time: 20m
+        alertname: GamingPCGpuTemperatureCritical
+        exp_alerts: []
+      - eval_time: 23m
+        alertname: GamingPCGpuTemperatureCritical
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "Gaming PC GPU is at 91°C, its rated maximum while playing Cyberpunk2077.exe"
+              description: "The RTX 5090 has been at 90°C or more for 2 minutes (now 91°C), the maximum NVIDIA rates it for. Stop the game and check the fans and airflow. The connector at the power cable can run hotter than this sensor reads, and no sensor on this card reports it."
+              dashboard_url: https://grafana.smith-simms.family/d/gaming-pc/gaming-pc
+
+  # A short spike to 88 C, and the PC sitting hot at idle with no game, stay
+  # quiet or lose only the game name.
+  - name: a spike under five minutes does not warn and no game means no game name
+    interval: 30s
+    input_series:
+      # 2 minutes at 88 C, then back to 60 C
+      - series: 'windows_gpu_temperature_celsius{job="gaming-pc",exporter="windows",instance="pc:9182",luid="0x0_0x1",phys="0"}'
+        values: "60x10 88x4 60x20"
+      - series: 'windows_gpu_fan_speed_rpm{job="gaming-pc",exporter="windows",instance="pc:9182",luid="0x0_0x1",phys="0"}'
+        values: "1500x34"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: GamingPCGpuTemperatureHigh
+        exp_alerts: []
+      - eval_time: 16m
+        alertname: GamingPCGpuTemperatureHigh
+        exp_alerts: []
+
+  - name: no game running leaves the game name out of the summary
+    interval: 30s
+    input_series:
+      - series: 'windows_gpu_temperature_celsius{job="gaming-pc",exporter="windows",instance="pc:9182",luid="0x0_0x1",phys="0"}'
+        values: "87x20"
+      - series: 'windows_gpu_fan_speed_rpm{job="gaming-pc",exporter="windows",instance="pc:9182",luid="0x0_0x1",phys="0"}'
+        values: "2400x20"
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: GamingPCGpuTemperatureHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "Gaming PC GPU is at 87°C"
+              description: "The RTX 5090 has been at 85°C or more for 5 minutes (now 87°C). NVIDIA rates it for 90°C. Check the fans, case airflow and dust before it starts to throttle. The temperature, clocks and fan speed over time are on the Gaming PC dashboard."
+              dashboard_url: https://grafana.smith-simms.family/d/gaming-pc/gaming-pc
+
+  # Fan stop at idle is normal. The same 0 RPM above 70 C is not.
+  - name: fan stop is fine while cool and an alert while hot
+    interval: 30s
+    input_series:
+      # 10 min cool at 45 C with the fan stopped, then 10 min at 78 C with it stopped
+      - series: 'windows_gpu_temperature_celsius{job="gaming-pc",exporter="windows",instance="pc:9182",luid="0x0_0x1",phys="0"}'
+        values: "45x20 78x20"
+      - series: 'windows_gpu_fan_speed_rpm{job="gaming-pc",exporter="windows",instance="pc:9182",luid="0x0_0x1",phys="0"}'
+        values: "0x40"
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: GamingPCGpuFanStopped
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: GamingPCGpuFanStopped
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: GamingPCGpuFanStopped
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "Gaming PC GPU fan reads 0 RPM at 78°C"
+              description: "The RTX 5090 fan has reported 0 RPM for 3 minutes while the GPU is above 70°C (now 78°C). Fan stop is only normal when the card is cool. A fan has failed or the reading is wrong; check the card."
+              dashboard_url: https://grafana.smith-simms.family/d/gaming-pc/gaming-pc
+
+  # The 9950X3D boosts into the 80s and briefly above, so only sustained heat
+  # alerts. Hottest sensor over time (each "xN" is N+1 samples, 30 s apart):
+  #   0-4.5 min   80 C
+  #   5-5.5 min   92 C  a one minute burst, under both windows
+  #   6-10.5 min  80 C
+  #   11-22.5 min 86 C  over 85 C for ten minutes from 21 min
+  #   23-28.5 min 91 C  over 90 C for five minutes from 28 min
+  - name: cpu alerts only when the heat is sustained
+    interval: 30s
+    input_series:
+      - series: 'ohm_cpu_celsius{job="gaming-pc",exporter="ohm",instance="pc:4445",hardware="AMD Ryzen 9 9950X3D",sensor="Core (Tctl/Tdie)"}'
+        values: "80x9 92x1 80x9 86x23 91x11"
+      - series: 'ohm_cpu_celsius{job="gaming-pc",exporter="ohm",instance="pc:4445",hardware="AMD Ryzen 9 9950X3D",sensor="CCD1 (Tdie)"}'
+        values: "75x9 85x1 75x9 80x23 85x11"
+      - series: 'gaming_pc_active_app_info{job="gaming-pc",exporter="windows",instance="pc:9182",app="BaldursGate3.exe"}'
+        values: "1x60"
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: GamingPCCpuTemperatureHigh
+        exp_alerts: []
+      - eval_time: 8m
+        alertname: GamingPCCpuTemperatureCritical
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: GamingPCCpuTemperatureHigh
+        exp_alerts: []
+      - eval_time: 22m
+        alertname: GamingPCCpuTemperatureHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "Gaming PC CPU is at 86°C while playing BaldursGate3.exe"
+              description: "The Ryzen 9 9950X3D has been at 85°C or more for 10 minutes (now 86°C). It is specified for 95°C. Check the cooler, its fan or pump and the case airflow."
+              dashboard_url: https://grafana.smith-simms.family/d/gaming-pc/gaming-pc
+      - eval_time: 27m
+        alertname: GamingPCCpuTemperatureCritical
+        exp_alerts: []
+      - eval_time: 28m
+        alertname: GamingPCCpuTemperatureCritical
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "Gaming PC CPU is at 91°C while playing BaldursGate3.exe"
+              description: "The Ryzen 9 9950X3D has been at 90°C or more for 5 minutes (now 91°C), 5°C under the 95°C it throttles at. Stop what is running and check the cooler, its fan or pump and the case airflow."
+              dashboard_url: https://grafana.smith-simms.family/d/gaming-pc/gaming-pc
+
+  # The PC being off is not an alert: with no samples, no rule fires.
+  - name: an off pc fires nothing
+    interval: 30s
+    input_series:
+      - series: 'up{job="gaming-pc",exporter="windows",instance="pc:9182"}'
+        values: "0x40"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: GamingPCGpuTemperatureHigh
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: GamingPCCpuTemperatureHigh
+        exp_alerts: []
