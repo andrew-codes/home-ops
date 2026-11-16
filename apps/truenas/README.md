@@ -29,9 +29,9 @@ Run it as the captain, not from an agent session - see [AGENTS.md](AGENTS.md). [
 | `truenas/ip`         | The host to run the playbook against                                                    |
 | `truenas/username`   | The SSH user                                                                            |
 | `k8s/ip`             | The Kubernetes node that receives metrics and logs (already exists)                     |
-| `truenas/health-dir` | Directory on a pool dataset, under `/mnt`, where the play installs the health collector |
+| `truenas/health-dir` | Directory on a pool dataset, under `/mnt/<pool>/`, that the play creates and installs the health collector into |
 
-`truenas/ip` and `truenas/username` do not exist in 1Password yet. They are optional: when either is missing, `deploy` logs a warning and does nothing, like `proxmox2/ip` for [`pve`](../pve/README.md). Create a `truenas` item in the infra vault with `ip` and `username` fields to enable it. Once those are set, the item also needs a `health-dir` field, and the directory it names must already exist on the NAS (the play does not create datasets); `deploy` fails without it. The older `nas/ip` is not used here, because it can still point at the previous NAS.
+`truenas/ip` and `truenas/username` do not exist in 1Password yet. They are optional: when either is missing, `deploy` logs a warning and does nothing, like `proxmox2/ip` for [`pve`](../pve/README.md). Create a `truenas` item in the infra vault with `ip` and `username` fields to enable it. Once those are set, the item also needs a `health-dir` field; `deploy` fails without it. The play creates that directory (root, mode `0700`) when its parent exists, so the parent dataset must exist already. The older `nas/ip` is not used here, because it can still point at the previous NAS.
 
 ## Dashboard and alerts
 
@@ -66,7 +66,7 @@ The chosen route uses only what the appliance ships (`python3`, `midclt`, `smart
 ### What survives upgrades and reboots
 
 - **The job is registered through the middleware.** The play calls `cronjob.create` and `cronjob.update` through `midclt`, like the exporter and syslog tasks. It never touches `/etc/crontab`, `/etc/cron.d` or any other file. TrueNAS keeps cron jobs in its configuration database, which is carried across upgrades and included in its config backups, and it regenerates the schedule from there at boot.
-- **The collector script is a file on a pool dataset.** The play copies [`src/health/truenas-health.py`](src/health/truenas-health.py) to `truenas-health.py` in the directory named by `truenas/health-dir`, owned by root. TrueNAS resets the boot pool's root file system on upgrade, so the file lives on a pool dataset, which an upgrade keeps. The middleware rejects a cron command over 1024 characters, so the command cannot carry the script and is only `python3 <path> push <url>`. The job fails for a minute or two if the pool is not yet imported after a boot, and `TrueNASHealthMetricsMissing` covers that. The play creates the file, not the directory or dataset.
+- **The collector script is a file on a pool dataset.** The play copies [`src/health/truenas-health.py`](src/health/truenas-health.py) to `truenas-health.py` in the directory named by `truenas/health-dir`, owned by root. TrueNAS resets the boot pool's root file system on upgrade, so the file lives on a pool dataset, which an upgrade keeps. The middleware rejects a cron command over 1024 characters, so the command cannot carry the script and is only `python3 <path> push <url>`. The job fails for a minute or two if the pool is not yet imported after a boot, and `TrueNASHealthMetricsMissing` covers that. The play creates the directory (not the dataset above it) and the file.
 - **Re-running the play is the repair.** If someone deletes or edits the job or the script, the next `nx run truenas:deploy` puts it back, and the `TrueNASHealthMetricsMissing` alert says when it has stopped.
 
 ### What it reports
