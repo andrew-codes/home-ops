@@ -100,8 +100,10 @@ Sends this host's logs and metrics to the Kubernetes node (`k8s/ip`, written to
   `/etc/rsyslog.d/90-victorialogs.conf` from
   [`scripts/templates/victorialogs-rsyslog.conf.j2`](scripts/templates/victorialogs-rsyslog.conf.j2).
   It forwards everything to VictoriaLogs over TCP in RFC 5424 format (port `30514`) with a
-  100MB disk queue. The template is checked with `rsyslogd -N1` before it is installed, and
-  the `restart rsyslog` handler runs only when it changes.
+  100MB disk queue. The file is installed at its real path and then `rsyslogd -N1` checks the
+  whole configuration (`/etc/rsyslog.conf` plus `/etc/rsyslog.d`). A config that fails is rolled
+  back (the previous file is restored, or the new one removed) and the play fails before rsyslog
+  restarts. The `restart rsyslog` handler runs only when the config changed.
 - Adds a `victoriametrics` InfluxDB (HTTP) metric server pointed at port `30080` with
   `proxmox-backup-debug api create /config/metrics/influxdb-http`, and reconciles it with
   `api set` when the URL, organization, bucket or enabled flag drifted. PBS has no

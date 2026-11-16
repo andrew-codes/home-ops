@@ -256,8 +256,12 @@ deployments publish.
 
 - Installs `rsyslog` (Proxmox VE logs to journald only) and templates
   `/etc/rsyslog.d/90-victorialogs.conf`, which forwards everything to VictoriaLogs over TCP in
-  RFC 5424 format (port `30514`) with a 100MB disk queue. The template is checked with
-  `rsyslogd -N1` before it is installed, and the `restart rsyslog` handler runs only when it changes.
+  RFC 5424 format (port `30514`) with a 100MB disk queue. The file is installed at its real path
+  and then `rsyslogd -N1` checks the whole configuration (`/etc/rsyslog.conf` plus
+  `/etc/rsyslog.d`). A config that fails is rolled back (the previous file is restored, or the new
+  one removed) and the play fails before rsyslog restarts. The `restart rsyslog` handler runs only
+  when the config changed. Ansible's `validate:` option is not used because `rsyslogd` gets
+  "Permission denied" reading a file from Ansible's temporary directory.
 - Adds a `victoriametrics` InfluxDB metric server (HTTP, port `30080`) with `pvesh create`.
   If it already exists, it compares server, port, protocol, organization, bucket and the disabled
   flag, and runs `pvesh set` only on drift. No token is set: VictoriaMetrics ignores the token,
