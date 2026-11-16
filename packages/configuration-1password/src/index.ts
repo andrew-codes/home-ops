@@ -118,6 +118,7 @@ const secretNames = [
   "pbs/password",
   "pbs/backup-username",
   "pbs/backup-password",
+  "pbs/fingerprint",
   "andrew-mbp/public-key",
   "pve-nas-iso/username",
   "pve-nas-iso/password",

@@ -2,7 +2,6 @@ import { runPlaybook } from "@ha/ansible"
 import type { ConfigurationApi } from "@ha/configuration-api"
 import type { Configuration } from "@ha/configuration-workspace"
 import { logger } from "@ha/logger"
-import { env } from "node:process"
 import path from "path"
 
 const run = async (
@@ -18,12 +17,10 @@ const run = async (
   const pbsHost = await configurationApi.get("pbs/ip")
   const pbsUsername = await configurationApi.get("pbs/backup-username")
   const pbsPassword = await configurationApi.get("pbs/backup-password")
+  const pbsFingerprint = await configurationApi.get("pbs/fingerprint")
   const nutMonitorUsername = await configurationApi.get("nut/monitor-username")
   const nutMonitorPassword = await configurationApi.get("nut/monitor-password")
   const observabilityHost = await configurationApi.get("k8s/ip")
-
-  // Not in 1Password - see README "PBS TLS fingerprint".
-  const pbsFingerprint = env["PBS_FINGERPRINT"] ?? ""
 
   const deployPath = path.join(__dirname, "..", "src", "deploy")
   await runPlaybook(path.join(deployPath, "index.yml"), [proxmoxIp], {

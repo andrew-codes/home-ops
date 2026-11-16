@@ -5,6 +5,24 @@
   ignore_errors: true
   changed_when: false
 
+- name: Read the registered pbs-nas storage config
+  ansible.builtin.command: pvesm config pbs-nas
+  register: pbs_config
+  when: pbs_status.rc == 0
+  changed_when: false
+
+- name: Require a TLS fingerprint when the PBS server is new or changing
+  ansible.builtin.assert:
+    that:
+      - pbs_fingerprint | default('') | length > 0
+    fail_msg: >-
+      pbs-nas is being created or repointed to {{ pbs_host }} but pbs/fingerprint
+      is empty in 1Password. Get it on the PBS with `proxmox-backup-manager cert info`
+      and add it as the `fingerprint` field of the `pbs` item.
+  when: >-
+    pbs_status.rc != 0 or
+    (pbs_config.stdout_lines | select('match', '^server ' ~ (pbs_host | regex_escape) ~ '$') | list | length) == 0
+
 - name: Add the Proxmox Backup Server storage (storage id pbs-nas, datastore from pbs_datastore)
   ansible.builtin.command: >
     pvesm add pbs pbs-nas

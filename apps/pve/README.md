@@ -137,21 +137,17 @@ Same check-then-add-or-reconcile idempotency as `nas-iso`, via
 
 #### PBS TLS fingerprint
 
-`pvesm add pbs` can fail on a self-signed/non-authoritative PBS certificate unless a
-`--fingerprint` is supplied. The playbook only appends `--fingerprint` when the
-`PBS_FINGERPRINT` environment variable is set (see [Deploying](#deploying)) - it is
-optional because it isn't known until someone fetches it from the real PBS server.
+The PBS certificate is self-signed, so Proxmox needs its fingerprint. The playbook reads it
+from the `fingerprint` field of the `pbs` 1Password item (`pbs/fingerprint`) and passes it
+as `--fingerprint`. The play fails before touching the storage if the storage is being
+created or repointed to a different server and that field is empty. An unchanged server
+with an empty field keeps working.
 
-Fetch and verify it before the first run:
+The captain must add the field. Get the value on the PBS itself:
 
 ```bash
-echo | openssl s_client -connect <pbs/ip>:8007 2>/dev/null \
-  | openssl x509 -noout -fingerprint -sha256
+proxmox-backup-manager cert info
 ```
-
-Compare that against what the PBS server's own web UI shows under
-_Dashboard > Certificate_ before trusting it - a fingerprint fetched over an
-untrusted network could be a MITM's, not the server's.
 
 ### 6. NVIDIA GPU passthrough, two cards, two VMs ([`tasks/gpu-passthrough.yml`](src/deploy/tasks/gpu-passthrough.yml))
 
@@ -301,8 +297,8 @@ These need a human at the machine (or its console), not this playbook:
 - **Confirming the NUT monitor account and UPS name** against the Synology NAS's
   UPS Network Status settings, and allow-listing this host as a permitted client -
   see [NUT monitor account and UPS name](#nut-monitor-account-and-ups-name).
-- **Approving the PBS TLS fingerprint** on first connect, if `pvesm add pbs` doesn't
-  auto-accept it even with `--fingerprint` supplied - see
+- **Approving the PBS TLS fingerprint** on first connect, by adding `pbs/fingerprint` to
+  1Password first - see
   [PBS TLS fingerprint](#pbs-tls-fingerprint).
 - **The reboot(s)** needed after the network, GRUB/IOMMU, and blacklist changes -
   a manually supervised step, with console access available as a fallback. Confirm SSH access
@@ -333,8 +329,8 @@ the same as every other host app in this repo.
 | `k8s/ip`                | The Kubernetes node that receives logs and metrics (see [Observability](#8-observability-tasksobservabilityyml))   |
 | `proxmox2/ip`           | Optional second Proxmox host, used only by `deploy-observability`                                                  |
 
-`PBS_FINGERPRINT` is an optional **environment variable**, not a 1Password secret -
-see [PBS TLS fingerprint](#pbs-tls-fingerprint).
+`pbs/fingerprint` must be added to the `pbs` item by hand - see
+[PBS TLS fingerprint](#pbs-tls-fingerprint).
 
 ### `andrew-mbp/public-key`: confirm the field name
 
@@ -381,13 +377,8 @@ already exists, since the Kubernetes provisioning reads it.
 ## Deploying
 
 ```bash
-PBS_FINGERPRINT="$(echo | openssl s_client -connect <pbs/ip>:8007 2>/dev/null | openssl x509 -noout -fingerprint -sha256 | cut -d= -f2)" \
-  nx run pve:deploy
+nx run pve:deploy
 ```
-
-`PBS_FINGERPRINT` is optional - omit it to let `pvesm add pbs` attempt its own
-auto-accept first, and only set it if that fails (see
-[PBS TLS fingerprint](#pbs-tls-fingerprint)).
 
 > [!CAUTION]
 > **Do not run this from an agent session.** See [AGENTS.md](AGENTS.md). This is a
