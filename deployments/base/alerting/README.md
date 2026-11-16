@@ -35,6 +35,10 @@ exporter never blocks `metrics`, `grafana` or `alerting`) feed the Kubernetes da
 
 vmagent finds both through their Services (the jobs in `deployments/base/metrics/helm-release.yaml`).
 It also adds a `cluster="home-ops"` label to everything it scrapes, because the dashboards filter on it.
+The kubelet and cAdvisor jobs (`kubernetes-nodes`, `kubernetes-nodes-cadvisor`) also set a `node` label
+from the Kubernetes node name, which the Nodes dashboard filters on for container and PVC volume series
+(`kubelet_volume_stats_*`). The kubelet reports those for PVC-backed volumes, NFS included, so the
+Kubernetes Storage panels only fill for volumes mounted by a running pod.
 
 Grafana provisions dotdc's Kubernetes / Views set (Global, Namespaces, Nodes, Pods) and Node Exporter
 Full from grafana.com, pinned by revision in `deployments/base/grafana/helm-release.yaml`. They pick the
