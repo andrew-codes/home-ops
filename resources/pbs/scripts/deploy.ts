@@ -24,6 +24,24 @@ const getAndrewSshPublicKey = async (): Promise<string> => {
   return stdout
 }
 
+/**
+ * UPS monitoring is opt-in (PBS_ENABLE_NUT=1): the NUT server is the TrueNAS
+ * host, and the monitor account is read only when it is wanted, so a deploy
+ * without NUT does not need those fields.
+ */
+const getNutVars = async (
+  configurationApi: ConfigurationApi<Configuration>,
+): Promise<string> => {
+  const nutServerHost = await configurationApi.get("truenas/ip")
+  const nutMonitorUsername = await configurationApi.get("nut/monitor-username")
+  const nutMonitorPassword = await configurationApi.get("nut/monitor-password")
+  return `pbs_nut_enabled: true
+nut_server_host: ${JSON.stringify(nutServerHost)}
+nut_monitor_username: ${JSON.stringify(nutMonitorUsername)}
+nut_monitor_password: ${JSON.stringify(nutMonitorPassword)}
+`
+}
+
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
 ): Promise<void> => {
@@ -32,13 +50,15 @@ const run = async (
   const ip = await configurationApi.get("pbs/ip")
   const username = await configurationApi.get("pbs/username")
   const password = await configurationApi.get("pbs/password")
-  const nasIp = await configurationApi.get("nas/ip")
   const backupUsername = await configurationApi.get("pbs/backup-username")
   const backupPassword = await configurationApi.get("pbs/backup-password")
-  const nutMonitorUsername = await configurationApi.get("nut/monitor-username")
-  const nutMonitorPassword = await configurationApi.get("nut/monitor-password")
   const observabilityHost = await configurationApi.get("k8s/ip")
   const andrewSshPublicKey = await getAndrewSshPublicKey()
+
+  const nutVars =
+    process.env["PBS_ENABLE_NUT"] === "1"
+      ? await getNutVars(configurationApi)
+      : "pbs_nut_enabled: false\n"
 
   await fs.mkdir(path.join(__dirname, "..", ".secrets"), { recursive: true })
 
@@ -56,14 +76,11 @@ const run = async (
   await fs.writeFile(
     path.join(__dirname, "..", ".secrets", "ansible-secrets.yml"),
     `---
-nas_host: ${nasIp}
 pbs_backup_username: ${backupUsername}
 pbs_backup_password: ${backupPassword}
-nut_monitor_username: ${JSON.stringify(nutMonitorUsername)}
-nut_monitor_password: ${JSON.stringify(nutMonitorPassword)}
 andrew_ssh_public_key: "${andrewSshPublicKey}"
 observability_host: ${JSON.stringify(observabilityHost)}
-`,
+${nutVars}`,
     "utf8",
   )
 

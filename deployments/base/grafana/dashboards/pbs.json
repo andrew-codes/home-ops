@@ -295,7 +295,7 @@
         "textMode": "auto",
         "orientation": "auto"
       },
-      "description": "Datastores PBS cannot open, for example the NFS-backed one while the NAS is down."
+      "description": "Datastores PBS cannot open, for example one whose disk is not mounted or does not answer."
     },
     {
       "type": "stat",
@@ -1379,7 +1379,7 @@
           "sort": "desc"
         }
       },
-      "description": "Space used and free on the file system behind each datastore. For the NFS-backed nas datastore this is the NAS volume."
+      "description": "Space used and free on the file system behind each datastore."
     },
     {
       "type": "timeseries",
@@ -1623,7 +1623,7 @@
           "sort": "desc"
         }
       },
-      "description": "Block device throughput behind each datastore. A network file system has no local block device, so the nas datastore may show nothing here."
+      "description": "Block device throughput behind each datastore. A datastore with no local block device, such as one on a network file system, may show nothing here."
     },
     {
       "type": "timeseries",
@@ -2508,7 +2508,7 @@
         "textMode": "auto",
         "orientation": "auto"
       },
-      "description": "How long the last health run took. API calls to a slow NAS mount show up here first."
+      "description": "How long the last health run took. API calls to a slow or hung datastore disk show up here first."
     },
     {
       "type": "stat",
