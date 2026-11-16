@@ -276,11 +276,23 @@
         data: "{{ item.data }}"
         type: dword
       loop:
-        - { path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications', name: ToastEnabled, data: 0 }
-        - { path: 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer', name: DisableNotificationCenter, data: 1 }
+        - {
+            path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\PushNotifications',
+            name: ToastEnabled,
+            data: 0,
+          }
+        - {
+            path: 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer',
+            name: DisableNotificationCenter,
+            data: 1,
+          }
         # ToastEnabled above is the user-facing toggle and apps can prompt to
         # re-enable it; this is the policy that stops toasts outright.
-        - { path: 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications', name: NoToastApplicationNotification, data: 1 }
+        - {
+            path: 'HKCU:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications',
+            name: NoToastApplicationNotification,
+            data: 1,
+          }
 
     # Dia declares a push COM server in its package manifest. When its backend
     # sends a WNS raw notification while Dia is closed, Windows launches
@@ -311,9 +323,17 @@
         type: dword
       loop:
         # The Settings > Gaming > Xbox Game Bar toggle itself.
-        - { path: 'HKCU:\System\GameConfigStore', name: GameDVR_Enabled, data: 0 }
+        - {
+            path: 'HKCU:\System\GameConfigStore',
+            name: GameDVR_Enabled,
+            data: 0,
+          }
         # Background game-capture, a separate switch from the toggle above.
-        - { path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR', name: AppCaptureEnabled, data: 0 }
+        - {
+            path: 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR',
+            name: AppCaptureEnabled,
+            data: 0,
+          }
 
     # The machine-wide policy, not just the per-user toggle: this is what
     # actually stops Win+G from opening Game Bar at all, and greys out the
@@ -388,7 +408,7 @@
     - name: Hide Recycle Bin from desktop
       win_regedit:
         path: HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel
-        name: '{645FF040-5081-101B-9F08-00AA002F954E}'
+        name: "{645FF040-5081-101B-9F08-00AA002F954E}"
         data: 1
         type: dword
 
@@ -411,8 +431,16 @@
         data: "{{ item.data }}"
         type: dword
       loop:
-        - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', name: ShowTaskViewButton, data: 0 }
-        - { path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search', name: SearchboxTaskbarMode, data: 0 }
+        - {
+            path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced',
+            name: ShowTaskViewButton,
+            data: 0,
+          }
+        - {
+            path: 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search',
+            name: SearchboxTaskbarMode,
+            data: 0,
+          }
       # No per-user TaskbarDa write here: once the machine policy above
       # (AllowNewsAndInterests) is live, Windows' policy engine takes
       # ownership of this user's TaskbarDa value and locks it - a direct
