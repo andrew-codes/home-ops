@@ -1,0 +1,141 @@
+# vmalert-tool unit tests for deployments/production/alerting/truenas-vmrules.yaml.
+# scripts/test-rules.sh extracts the rule groups into truenas-rules.yaml next to
+# this file's copy and runs `vmalert-tool unittest`. Series are named the way
+# the Graphite exporter delivers them: dotted names, no labels.
+rule_files:
+  - truenas-rules.yaml
+
+evaluation_interval: 1m
+
+tests:
+  # One disk goes quiet while the others keep reporting: the alert fires.
+  - name: one disk vanishes
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diska.temp"}'
+        values: "40x30"
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diskb.temp"}'
+        values: "41x120"
+    alert_rule_test:
+      - eval_time: 40m
+        alertname: TrueNASDiskMissing
+        exp_alerts: []
+      - eval_time: 90m
+        alertname: TrueNASDiskMissing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              disk: diska
+            exp_annotations:
+              summary: "TrueNAS disk diska stopped reporting"
+              description: "Disk diska reported a temperature in the last day but has had no sample for 15 minutes, while the other disks still report (last value 40°C). The disk may have failed or dropped off its controller. Check the pool in the TrueNAS UI."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  # The whole push stream pauses for 20 minutes, as it does when VictoriaMetrics
+  # restarts. Every disk goes quiet at once: the per-disk alert stays silent.
+  - name: all disks pause for 20 minutes
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diska.temp"}'
+        values: "40x30 _x20 40x60"
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diskb.temp"}'
+        values: "41x30 _x20 41x60"
+    alert_rule_test:
+      - eval_time: 40m
+        alertname: TrueNASDiskMissing
+        exp_alerts: []
+      - eval_time: 48m
+        alertname: TrueNASDiskMissing
+        exp_alerts: []
+      - eval_time: 55m
+        alertname: TrueNASDiskMissing
+        exp_alerts: []
+      - eval_time: 90m
+        alertname: TrueNASDiskMissing
+        exp_alerts: []
+
+  # The stream stops and does not come back. TrueNASDiskTemperatureMetricsMissing
+  # and TrueNASMetricsMissing own this case, not the per-disk alert.
+  - name: all disks stay gone
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diska.temp"}'
+        values: "40x30"
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diskb.temp"}'
+        values: "41x30"
+    alert_rule_test:
+      - eval_time: 90m
+        alertname: TrueNASDiskMissing
+        exp_alerts: []
+
+  # A disk skips a few samples while the others keep reporting: no alert.
+  - name: short gap on one disk
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diska.temp"}'
+        values: "40x30 _x8 40x60"
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diskb.temp"}'
+        values: "41x120"
+    alert_rule_test:
+      - eval_time: 36m
+        alertname: TrueNASDiskMissing
+        exp_alerts: []
+      - eval_time: 60m
+        alertname: TrueNASDiskMissing
+        exp_alerts: []
+
+  # A hot disk keeps alerting through a short gap in its samples.
+  - name: hot disk through a short gap
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diska.temp"}'
+        values: "55x20 _x3 55x40"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: TrueNASDiskTemperatureHigh
+        exp_alerts: []
+      - eval_time: 45m
+        alertname: TrueNASDiskTemperatureHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              disk: diska
+            exp_annotations:
+              summary: "TrueNAS disk diska is running hot"
+              description: "Disk diska has been at 55°C or more for 15 minutes (warning threshold 50°C). Check the fans and airflow in the NAS."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  - name: critical disk through a short gap
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diska.temp"}'
+        values: "65x5 _x2 65x20"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: TrueNASDiskTemperatureCritical
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              disk: diska
+            exp_annotations:
+              summary: "TrueNAS disk diska is overheating"
+              description: "Disk diska is at 65°C, at or above the 60°C critical threshold, for 5 minutes. Sustained heat shortens drive life and can cause failures."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  # A link that goes down alerts even if its samples have gaps.
+  - name: link down through a short gap
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.net_carrier.enp1s0.up"}'
+        values: "1x20 0x4 _x2 0x20"
+    alert_rule_test:
+      - eval_time: 40m
+        alertname: TrueNASNetworkLinkDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              iface: enp1s0
+            exp_annotations:
+              summary: "TrueNAS network link enp1s0 is down"
+              description: "Interface enp1s0 on the NAS has had no carrier for 5 minutes, after being up in the last 7 days. Check the cable, the switch port and the NIC."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS

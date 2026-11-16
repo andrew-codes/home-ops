@@ -80,7 +80,7 @@ spec:
         - alert: TrueNASDiskTemperatureHigh
           expr: >-
             label_replace(label_replace(
-              {__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"},
+              last_over_time({__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"}[5m]),
               "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
               "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*") >= 50
           for: 15m
@@ -93,7 +93,7 @@ spec:
         - alert: TrueNASDiskTemperatureCritical
           expr: >-
             label_replace(label_replace(
-              {__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"},
+              last_over_time({__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"}[5m]),
               "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
               "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*") >= 60
           for: 5m
@@ -103,26 +103,36 @@ spec:
             summary: "TrueNAS disk {{ $labels.disk }} is overheating"
             description: "Disk {{ $labels.disk }} is at {{ $value | humanize }}°C, at or above the 60°C critical threshold, for 5 minutes. Sustained heat shortens drive life and can cause failures."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
-        # A disk that reported in the last day and has not for 10 minutes: pulled,
-        # failed or dropped off the controller. It resolves by itself a day after
-        # the disk was last seen, so a disk removed on purpose stops alerting.
+        # A disk that reported in the last day and has no sample in the last 15
+        # minutes while other disks still do: pulled, failed or dropped off the
+        # controller. The disks report together, so a pause of the whole push
+        # stream (VictoriaMetrics restarting, a network blip) makes every disk go
+        # quiet at once. That is not a disk problem, so the rule needs at least
+        # one disk with a recent sample; TrueNASDiskTemperatureMetricsMissing and
+        # TrueNASMetricsMissing cover the whole-stream case. It resolves by itself
+        # a day after the disk was last seen, so a disk removed on purpose stops
+        # alerting.
         - alert: TrueNASDiskMissing
           expr: >-
-            label_replace(label_replace(
-              last_over_time({__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"}[1d]),
-              "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
-              "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*")
-            unless on(disk)
-            label_replace(label_replace(
-              {__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"},
-              "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
-              "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*")
+            (
+              label_replace(label_replace(
+                last_over_time({__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"}[1d]),
+                "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
+                "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*")
+              unless on(disk)
+              label_replace(label_replace(
+                last_over_time({__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"}[15m]),
+                "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
+                "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*")
+            )
+            and on()
+            (count(last_over_time({__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"}[15m])) > 0)
           for: 10m
           labels:
             severity: warning
           annotations:
             summary: "TrueNAS disk {{ $labels.disk }} stopped reporting"
-            description: "Disk {{ $labels.disk }} reported a temperature in the last day but not for the last 10 minutes (last value {{ $value | humanize }}°C). The disk may have failed or dropped off its controller. Check the pool in the TrueNAS UI."
+            description: "Disk {{ $labels.disk }} reported a temperature in the last day but has had no sample for 15 minutes, while the other disks still report (last value {{ $value | humanize }}°C). The disk may have failed or dropped off its controller. Check the pool in the TrueNAS UI."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
         # The whole family gone while the host still reports: the disk metrics
         # collector stopped. The two rules above cannot see that.
@@ -157,7 +167,7 @@ spec:
           expr: >-
             (
               label_replace(
-                {__name__=~"truenas[.]nas[.]net_carrier[.](en|eth)[a-z0-9]+[.]up"},
+                last_over_time({__name__=~"truenas[.]nas[.]net_carrier[.](en|eth)[a-z0-9]+[.]up"}[5m]),
                 "iface", "$1", "__name__", "truenas[.]nas[.]net_carrier[.](.+)[.]up") == 0
             and on(iface)
               label_replace(

@@ -75,13 +75,15 @@ The rules are the `truenas` VMRule in `deployments/production/alerting/truenas-v
 | `TrueNASPoolFillingUp`                 | warning  | the pool is over 70% full and the 24 hour trend of free space reaches zero within 7 days (for 1 hour)             |
 | `TrueNASDiskTemperatureHigh`           | warning  | a disk is at 50 °C or more for 15 minutes                                                                         |
 | `TrueNASDiskTemperatureCritical`       | critical | a disk is at 60 °C or more for 5 minutes                                                                          |
-| `TrueNASDiskMissing`                   | warning  | a disk that reported in the last day has not for 10 minutes (resolves by itself a day after it was last seen)     |
+| `TrueNASDiskMissing`                   | warning  | a disk that reported in the last day has no sample for 15 minutes (for 10 minutes) while other disks still do     |
 | `TrueNASDiskTemperatureMetricsMissing` | warning  | no disk temperature series for 15 minutes while the host still reports                                            |
 | `TrueNASDiskStatsMetricsMissing`       | warning  | no disk busy, IOPS or throughput series for 15 minutes while the host still reports                               |
 | `TrueNASNetworkLinkDown`               | warning  | a physical interface (name starting `en` or `eth`) has no carrier for 5 minutes after being up in the last 7 days |
 
 - **Thresholds.** The disk temperatures are typical NAS hard disk limits: drives are rated to 60 to 65 °C, and sustained 50 °C or more shortens their life. NVMe and SSD drives run hotter, so if one lives in the NAS and trips the warning, raise the numbers or split the rule. The pool numbers follow the ZFS rule of thumb that performance drops past 80% full.
 - **The pool is one series.** The exporter reports pool usage without a pool name, so the pool rules describe "the pool". Check them again if a second pool is added.
+- **Gaps in the push stream.** The disks report together, so a pause of the whole push stream, for example while VictoriaMetrics restarts, silences every disk at once. The disk and link rules read the current value with `last_over_time` over 5 minutes, so a short gap does not reset them. `TrueNASDiskMissing` looks for a disk with no sample in 15 minutes and only fires while at least one other disk has a recent sample. When every disk is quiet, `TrueNASDiskTemperatureMetricsMissing` and `TrueNASMetricsMissing` are the alerts that fire.
+- **Rule tests.** `yarn nx test truenas` runs the `vmalert-tool` unit tests in `apps/truenas/tests` against these rules. It needs Docker and `yq`, and runs in the pull request checks.
 - **Unused ports.** `TrueNASNetworkLinkDown` ignores a port that was never up in the last 7 days, so a free port does not alert. A port that is unplugged for more than 7 days stops alerting.
 
 **Health.** The exporter has no pool health, vdev state or SMART result, so none of the rules above can see a degraded pool or a failing disk. The rules in the next section cover that, from a different source.
