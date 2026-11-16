@@ -1046,6 +1046,72 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
+    # Metrics for the cluster's VictoriaMetrics: GPU sensors and the FPS summary
+    # through windows_exporter, and CPU temperature through OhmGraphite. Both
+    # listen on the LAN, so the firewall opens their ports to the cluster node
+    # (k8s/ip, from 1Password) on the Private profile and nowhere else. The
+    # installs themselves, their pinned versions and what each one costs while
+    # gaming are in src/monitoring.ps1 and README.md#metrics-and-sensors.
+    - name: Allow the cluster node to scrape windows_exporter
+      win_firewall_rule:
+        name: "windows_exporter"
+        description: "Allow the cluster node to scrape windows_exporter (GPU sensors and FPS)"
+        direction: In
+        protocol: tcp
+        localport: 9182
+        remoteip: "{{ k8s_node_ip }}"
+        profiles: private
+        action: Allow
+        enabled: yes
+        state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    - name: Allow the cluster node to scrape OhmGraphite
+      win_firewall_rule:
+        name: "OhmGraphite"
+        description: "Allow the cluster node to scrape OhmGraphite (CPU temperature)"
+        direction: In
+        protocol: tcp
+        localport: 4445
+        remoteip: "{{ k8s_node_ip }}"
+        profiles: private
+        action: Allow
+        enabled: yes
+        state: present
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    # Ordered after the software install because OhmGraphite reads the CPU
+    # through the PawnIO driver that FanControl installs; the script warns, and
+    # does not fail, when it is missing. Idempotent: it prints RESULT changed=0
+    # when every exporter already matches its pinned version and settings.
+    - name: Install and configure the metrics exporters
+      win_shell: |
+        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\monitoring.ps1"
+      register: monitoring
+      changed_when: "'changed=0 ' not in monitoring.stdout"
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    # monitoring.ps1 reports a missing GPU or CPU series as a warning, which
+    # leaves the task green, and Ansible hides win_shell stdout on a green task.
+    # Print it when there is one: the first deploy needs to show whether the
+    # RTX 5090 really reports a temperature to windows_exporter.
+    - name: Show the metrics exporter output when it recorded warnings
+      ansible.builtin.debug:
+        var: monitoring.stdout_lines
+      when: "'warnings=0' not in monitoring.stdout"
+
     # Deliberately the last task in the playbook: the NUT server has not been
     # provisioned yet (out of scope for this repo), so this is expected to
     # fail until it is. Kept failing rather than made best-effort - a

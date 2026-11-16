@@ -1,0 +1,53 @@
+# Scrapes the gaming PC (apps/gaming-pc): windows_exporter on 9182 for GPU
+# sensors and the FPS textfile, and OhmGraphite on 4445 for the CPU package
+# temperature. It is appended to the chart's scrape_configs through
+# `extraScrapeConfigs`, which the victoria-metrics-agent chart concatenates onto
+# `config.scrape_configs`.
+#
+# The PC's address is not in the repo. It comes from the `gaming-pc` sealed
+# secret (key `ip`, from 1Password gaming-pc/ip) through the GAMING_PC_IP
+# environment variable, and vmagent expands `%{GAMING_PC_IP}` in the scrape
+# config. The secret is optional: until it exists vmagent keeps running every
+# other job, logs that it skips these two targets, and picks them up on the next
+# restart once the secret is there.
+#
+# The PC is often off or asleep, so `up == 0` here is normal and nothing alerts
+# on it.
+- op: add
+  path: /spec/values/env
+  value:
+    - name: GAMING_PC_IP
+      valueFrom:
+        secretKeyRef:
+          name: gaming-pc
+          key: ip
+          optional: true
+- op: add
+  path: /spec/values/extraScrapeConfigs
+  value:
+    - job_name: "gaming-pc"
+      # Thermals move over tens of seconds, and every scrape costs the PC a
+      # little while a game is running, so this is slower than the 10s global.
+      scrape_interval: "30s"
+      scrape_timeout: "10s"
+      static_configs:
+        - targets:
+            - "%{GAMING_PC_IP}:9182"
+          labels:
+            exporter: "windows"
+        - targets:
+            - "%{GAMING_PC_IP}:4445"
+          labels:
+            exporter: "ohm"
+      metric_relabel_configs:
+        # Per-process GPU memory. The collector offers no flag to leave it out,
+        # so it is dropped here: it costs storage but nothing on the PC.
+        - source_labels: ["__name__"]
+          regex: "windows_gpu_process_.*"
+          action: "drop"
+        # GPU engine time is per process too, and only the 3D engine is used for
+        # the utilisation panel. RE2 has no negative lookahead, so this drops
+        # every engine type that is not exactly "3D".
+        - source_labels: ["__name__", "engtype"]
+          regex: "windows_gpu_engine_time_seconds_total;(|[^3].*|3|3[^D].*|3D.+)"
+          action: "drop"

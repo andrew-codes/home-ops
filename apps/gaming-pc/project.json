@@ -26,6 +26,13 @@
         "cwd": "{projectRoot}",
         "module": "scripts/publish-github-release.ts"
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "scripts/test.sh",
+        "cwd": "{projectRoot}"
+      }
     }
   },
   "tags": [],

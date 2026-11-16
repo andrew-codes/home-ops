@@ -6,3 +6,4 @@ resources:
   - truenas-vmrules.yaml
   - truenas-health-vmrules.yaml
   - pbs-vmrules.yaml
+  - gaming-pc-vmrules.yaml

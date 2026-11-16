@@ -30,8 +30,10 @@ spec:
   groups:
     - name: scrape-targets
       rules:
+        # gaming-pc is excluded because the PC is off or asleep for much of the day, so its
+        # targets are down on purpose. Its thermal rules only see data while it is on.
         - alert: TargetDown
-          expr: up{job!~"kubernetes-nodes|kubernetes-apiservers"} == 0
+          expr: up{job!~"kubernetes-nodes|kubernetes-apiservers|gaming-pc"} == 0
           for: 5m
           labels:
             severity: warning

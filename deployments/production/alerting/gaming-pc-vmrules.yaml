@@ -1,0 +1,81 @@
+# Gaming PC thermal rules. They read the series vmagent scrapes from the PC's
+# windows_exporter (GPU sensors) and OhmGraphite (CPU temperature), job
+# "gaming-pc", see apps/gaming-pc and deployments/production/metrics.
+#
+# There is deliberately no "PC is down" or "metrics missing" rule. The PC is off
+# or asleep most of the day, so its targets are down most of the day, and
+# TargetDown in base/vmrules.yaml skips this job for the same reason. These rules
+# only see data while the PC is on, and stay quiet otherwise.
+#
+# The summary is what the phone push shows (see base/alerting/README.md), so it
+# names the game when the FPS summary reports one: the thermal question is "what
+# was running when it got hot". The `query` template reads the application at
+# the moment the alert fires.
+#
+# In the production overlay, not base: staging has no gaming PC.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: gaming-pc
+spec:
+  groups:
+    - name: gaming-pc-thermals
+      rules:
+        # NVIDIA rates the RTX 5090 for 90 C. Normal gaming sits at about 80 C,
+        # so 85 C for 5 minutes means something has gone wrong (fans, case
+        # airflow, dust, a hot room) before the card starts to throttle.
+        - alert: GamingPCGpuTemperatureHigh
+          expr: max(windows_gpu_temperature_celsius{job="gaming-pc"}) >= 85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Gaming PC GPU is at {{ $value | printf "%.0f" }}°C{{ with query "gaming_pc_active_app_info{job=\"gaming-pc\"}" }}{{ range . }} while playing {{ .Labels.app }}{{ end }}{{ end }}'
+            description: 'The RTX 5090 has been at 85°C or more for 5 minutes (now {{ $value | printf "%.0f" }}°C). NVIDIA rates it for 90°C. Check the fans, case airflow and dust before it starts to throttle. The temperature, clocks and fan speed over time are on the Gaming PC dashboard.'
+            dashboard_url: https://grafana.smith-simms.family/d/gaming-pc/gaming-pc
+        - alert: GamingPCGpuTemperatureCritical
+          expr: max(windows_gpu_temperature_celsius{job="gaming-pc"}) >= 90
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: 'Gaming PC GPU is at {{ $value | printf "%.0f" }}°C, its rated maximum{{ with query "gaming_pc_active_app_info{job=\"gaming-pc\"}" }}{{ range . }} while playing {{ .Labels.app }}{{ end }}{{ end }}'
+            description: 'The RTX 5090 has been at 90°C or more for 2 minutes (now {{ $value | printf "%.0f" }}°C), the maximum NVIDIA rates it for. Stop the game and check the fans and airflow. The connector at the power cable can run hotter than this sensor reads, and no sensor on this card reports it.'
+            dashboard_url: https://grafana.smith-simms.family/d/gaming-pc/gaming-pc
+        # A card with its fans stopped is hot within minutes. Fan stop at idle is
+        # normal, so this needs the GPU to be above 70 C as well. The value is the
+        # temperature.
+        - alert: GamingPCGpuFanStopped
+          expr: >-
+            max(windows_gpu_temperature_celsius{job="gaming-pc"}) > 70
+            and on ()
+            max(windows_gpu_fan_speed_rpm{job="gaming-pc"}) == 0
+          for: 3m
+          labels:
+            severity: critical
+          annotations:
+            summary: 'Gaming PC GPU fan reads 0 RPM at {{ $value | printf "%.0f" }}°C{{ with query "gaming_pc_active_app_info{job=\"gaming-pc\"}" }}{{ range . }} while playing {{ .Labels.app }}{{ end }}{{ end }}'
+            description: 'The RTX 5090 fan has reported 0 RPM for 3 minutes while the GPU is above 70°C (now {{ $value | printf "%.0f" }}°C). Fan stop is only normal when the card is cool. A fan has failed or the reading is wrong; check the card.'
+            dashboard_url: https://grafana.smith-simms.family/d/gaming-pc/gaming-pc
+        # The Ryzen 9 9950X3D is specified for 95 C (Tjmax) and boosts into the
+        # 80s and briefly higher under load, so these are sustained thresholds:
+        # a spike is normal, ten minutes at 85 C is not. The value is the hottest
+        # CPU temperature sensor OhmGraphite reports (die and CCD sensors).
+        - alert: GamingPCCpuTemperatureHigh
+          expr: max(ohm_cpu_celsius{job="gaming-pc"}) >= 85
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Gaming PC CPU is at {{ $value | printf "%.0f" }}°C{{ with query "gaming_pc_active_app_info{job=\"gaming-pc\"}" }}{{ range . }} while playing {{ .Labels.app }}{{ end }}{{ end }}'
+            description: 'The Ryzen 9 9950X3D has been at 85°C or more for 10 minutes (now {{ $value | printf "%.0f" }}°C). It is specified for 95°C. Check the cooler, its fan or pump and the case airflow.'
+            dashboard_url: https://grafana.smith-simms.family/d/gaming-pc/gaming-pc
+        - alert: GamingPCCpuTemperatureCritical
+          expr: max(ohm_cpu_celsius{job="gaming-pc"}) >= 90
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: 'Gaming PC CPU is at {{ $value | printf "%.0f" }}°C{{ with query "gaming_pc_active_app_info{job=\"gaming-pc\"}" }}{{ range . }} while playing {{ .Labels.app }}{{ end }}{{ end }}'
+            description: 'The Ryzen 9 9950X3D has been at 90°C or more for 5 minutes (now {{ $value | printf "%.0f" }}°C), 5°C under the 95°C it throttles at. Stop what is running and check the cooler, its fan or pump and the case airflow.'
+            dashboard_url: https://grafana.smith-simms.family/d/gaming-pc/gaming-pc
