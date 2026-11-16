@@ -96,7 +96,7 @@
       ansible.builtin.find:
         paths: /etc/apt/sources.list.d
         patterns: ["*.list", "*.sources"]
-        contains: '.*pbs-no-subscription'
+        contains: ".*pbs-no-subscription"
       register: pbs_nosub_sources
 
     - name: Add the PBS no-subscription repository
