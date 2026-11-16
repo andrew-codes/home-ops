@@ -36,6 +36,23 @@ spec:
             url: http://vlsingle-vlsingle.default.svc.cluster.local:9428
             access: proxy
             editable: true
+          # The in-cluster VMAlertmanager, so Alerting > Alert groups lists every
+          # firing alert with its full text, labels and start time. The push
+          # notification links here (see deployments/base/alerting/README.md), and
+          # the link selects this source by name (?alertmanager=alertmanager), so
+          # keep the name stable.
+          - name: alertmanager
+            uid: alertmanager
+            type: alertmanager
+            orgId: 1
+            url: http://vmalertmanager-vmalertmanager.default.svc.cluster.local:9093
+            access: proxy
+            editable: true
+            jsonData:
+              implementation: prometheus
+              # Grafana-managed rules are not used (vmalert evaluates the rules),
+              # so do not forward Grafana alerts to this Alertmanager.
+              handleGrafanaManagedAlerts: false
 
     plugins:
       - victoriametrics-logs-datasource 0.34.0

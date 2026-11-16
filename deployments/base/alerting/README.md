@@ -12,7 +12,9 @@ vmagent -> VMSingle <- vmalert -> Alertmanager -+-> Home Assistant webhook -> co
 
 - Rules are `VMRule` objects in `vmrules.yaml`. Every rule needs a `summary` (what is wrong, naming the
   target) and a `description` (the instance, job or service and the measured value). The push text is
-  built from them. `dashboard_url` is optional and becomes the tap target of the push.
+  built from them: the title is the first alert's `summary` (plus a count of the rest) and the body is one
+  `summary` line per alert. The `description` is not in the push, it is on the Grafana alert groups page
+  the push opens. `dashboard_url` is optional and becomes the push's Dashboard button.
 - Alertmanager config is in `vmalertmanager.yaml`. It contains no secrets: the receiver URLs are read
   from the `alertmanager-receivers` secret (`url_file`).
 - Alerts are grouped by severity, so one outage reads as one push listing everything affected. A
@@ -84,6 +86,27 @@ The rules are the `truenas` VMRule in `deployments/production/alerting/truenas-v
 
 **Health gap.** The exporter has no pool health, vdev state or SMART result, so none of these rules can see a degraded pool or a failing disk. The most maintainable cover is TrueNAS's own alert service, which already raises those alerts. See the `apps/truenas` README for the recommendation and why an in-cluster exporter would be the second step.
 
+## Alert history
+
+Two Grafana pages show what fired, both behind the push (Alerting > Alert groups, and the `Alert history`
+dashboard at `https://grafana.smith-simms.family/d/alert-history`):
+
+- **Alert groups** (the `alertmanager` data source in `deployments/base/grafana/helm-release.yaml`) shows what
+  is firing now, with the full summary, description, labels and start time. It is what the push opens.
+- **Alert history** (`deployments/base/grafana/dashboards/alert-history.json`) shows what fired over a time
+  range. vmalert writes alert state to VictoriaMetrics as the `ALERTS` and `ALERTS_FOR_STATE` series. They
+  carry labels only (plus an `alertgroup` label), so the dashboard has no summary or description: the alert
+  names in its table link to Alert groups filtered to that alert, and the dashboard links back to the list.
+  Watchdog is left out.
+  - The state timeline is `ALERTS{alertstate="firing"}` per alert name and severity.
+  - The table has one row per alert label set. First fired and Last firing are `tfirst_over_time` and
+    `tlast_over_time` of the firing series, so a row that fired twice spans the gap between. Time firing is
+    `duration_over_time` with a 2 minute gap limit, so it adds up only the time the alert was firing.
+  - Firings counts how many times an alert started firing. `ALERTS_FOR_STATE` holds the time the alert became
+    active, which is a new value for every firing, so the count is `distinct_over_time` of it, kept to the
+    series that are firing. The bar gauge sums the same count by alert name.
+  - History goes back as far as the VictoriaMetrics retention (two years).
+
 ## One-time setup
 
 ### 1. Put the two receiver URLs in 1Password and seal them
@@ -145,9 +168,12 @@ triggers:
     allowed_methods: [POST]
     local_only: true
 variables:
+  grafana: https://grafana.smith-simms.family
   severity: "{{ trigger.json.commonLabels.severity | default('warning') }}"
   firing: "{{ trigger.json.alerts | selectattr('status', 'eq', 'firing') | list }}"
   resolved: "{{ trigger.json.alerts | selectattr('status', 'eq', 'resolved') | list }}"
+  alerts: "{{ firing + resolved }}"
+  names: "{{ alerts | map(attribute='labels.alertname') | unique | list }}"
   title: >-
     {%- if firing | count > 0 -%}
     {{ severity | upper }}: {{ firing[0].annotations.summary }}{% if firing | count > 1 %} (+{{ firing | count - 1 }} more){% endif %}
@@ -156,13 +182,17 @@ variables:
     {%- endif -%}
   message: |-
     {% for a in firing -%}
-    • [{{ a.labels.alertname }}] {{ a.annotations.description }} Since {{ (a.startsAt | as_datetime | as_local).strftime('%H:%M') }}.
+    • {{ a.annotations.summary }}
     {% endfor -%}
     {% for a in resolved -%}
     ✅ Resolved: {{ a.annotations.summary }}
     {% endfor -%}
-  link: >-
-    {{ (firing + resolved) | map(attribute='annotations.dashboard_url') | reject('undefined') | first | default('') }}
+  details: >-
+    {{ grafana }}/alerting/groups?alertmanager=alertmanager{% if names | count == 1 %}&queryString={{ ('alertname="' ~ names[0] ~ '"') | urlencode }}{% endif %}
+  dashboard: >-
+    {{ alerts | map(attribute='annotations.dashboard_url') | reject('undefined') | select | first | default('') }}
+  buttons: >-
+    {{ [{'action': 'URI', 'title': 'Details', 'uri': details}] + ([{'action': 'URI', 'title': 'Dashboard', 'uri': dashboard}] if dashboard else []) }}
 actions:
   - action: script.notify_via_control4
     data:
@@ -170,10 +200,54 @@ actions:
       title: "{{ title }}"
       message: "{{ message }}"
       critical: "{{ severity == 'critical' and firing | count > 0 }}"
-      url: "{{ link }}"
+      url: "{{ details }}"
+      actions: "{{ buttons }}"
       tag: alertmanager-{{ severity }}
       thread: alertmanager
 ```
+
+The push is kept short on purpose (iOS shows about four lines collapsed), and the detail is one tap away:
+
+- **Title and body.** The title names what is wrong (`CRITICAL: <first summary> (+2 more)`). The body is one
+  `summary` line per alert. No descriptions or start times.
+- **Tap.** Opens Grafana, Alerting, Alert groups, on the `alertmanager` data source (the in-cluster
+  VMAlertmanager, provisioned in `deployments/base/grafana/helm-release.yaml`). That page lists every firing
+  alert with its full summary, description, labels and start time. When all alerts in the push share one
+  `alertname`, the link filters to it (`queryString=alertname="<name>"`, URL-encoded by the template).
+  Otherwise it is the unfiltered list. The `alertmanager` parameter is the data source name, not its uid, so
+  do not rename the data source.
+- **Buttons.** `Details` opens the same alert groups page. `Dashboard` opens the first alert's `dashboard_url`
+  and is left out when no alert has one.
+
+`script.notify_via_control4` documents `actions` as a list of `{action, title}`. The companion app opens a
+link from a button only when the action is `URI` and carries a `uri`, so the script must pass `uri`
+through, along with `action` and `title`, unchanged to the notify call. The automation sends:
+
+```yaml
+actions:
+  - action: URI
+    title: Details
+    uri: https://grafana.smith-simms.family/alerting/groups?alertmanager=alertmanager&queryString=alertname%3D%22KubePodCrashLooping%22
+  - action: URI
+    title: Dashboard
+    uri: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+```
+
+and the script must hand them to the phone notification as `data.actions`, next to `data.url` (the tap
+target, from the script's `url` field):
+
+```yaml
+action: notify.mobile_app_<phone>
+data:
+  title: "{{ title }}"
+  message: "{{ message }}"
+  data:
+    url: "{{ url }}"
+    actions: "{{ actions }}"
+```
+
+If the script drops the `uri` key, the buttons show but do nothing. The script lives in Home Assistant, not
+in this repo, so check that it passes `uri` before relying on the buttons.
 
 ### 3. Healthchecks.io (one check)
 
@@ -204,6 +278,8 @@ At most a few more checks (for example backup jobs that ping on success) are exp
 
    After the 30 second group wait, every recipient gets a critical push. It resolves by itself about
    5 minutes later and sends a resolved push. Use `severity: warning` to see the non-critical push.
+   Tapping the push, or its `Details` button, opens Grafana's Alert groups page filtered to `TestAlert`
+   with the full description. Add a `dashboard_url` annotation to see the `Dashboard` button.
 
 4. Exporters and dashboards: `kubectl get pods -n default -l app.kubernetes.io/name=prometheus-node-exporter`
    and `-l app.kubernetes.io/name=kube-state-metrics` should be Running, the `node-exporter` and

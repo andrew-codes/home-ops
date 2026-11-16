@@ -10,6 +10,7 @@ resources:
 configMapGenerator:
   - name: grafana-dashboards-custom
     files:
+      - dashboards/alert-history.json
       - dashboards/truenas.json
 generatorOptions:
   disableNameSuffixHash: true
