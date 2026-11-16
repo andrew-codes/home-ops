@@ -19,6 +19,7 @@
     },
     "update": {
       "executor": "@ha/nx-executors:invoke",
+      "dependsOn": ["^prepare", "prepare"],
       "options": {
         "module": "scripts/update.ts",
         "cwd": "{projectRoot}"

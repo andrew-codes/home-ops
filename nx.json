@@ -83,6 +83,9 @@
     "test": {
       "dependsOn": ["^prepare", "prepare"]
     },
+    "@ha/nx-executors:upload-codecov": {
+      "dependsOn": ["^prepare", "prepare"]
+    },
     "@nx/js:tsc": {
       "cache": true,
       "dependsOn": ["^build"],
