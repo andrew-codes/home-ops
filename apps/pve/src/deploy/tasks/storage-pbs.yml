@@ -5,7 +5,7 @@
   ignore_errors: true
   changed_when: false
 
-- name: Add the Proxmox Backup Server storage (datastore "nas" on 10.0.209.71)
+- name: Add the Proxmox Backup Server storage (storage id pbs-nas, datastore from pbs_datastore)
   ansible.builtin.command: >
     pvesm add pbs pbs-nas
     --server {{ pbs_host }}

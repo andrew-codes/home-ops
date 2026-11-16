@@ -121,8 +121,6 @@ const secretNames = [
   "andrew-mbp/public-key",
   "pve-nas-iso/username",
   "pve-nas-iso/password",
-  "pve-pbs/username",
-  "pve-pbs/password",
   "nut/monitor-username",
   "nut/monitor-password",
   "grafana-admin/admin-password",

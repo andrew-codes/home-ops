@@ -15,13 +15,14 @@ const run = async (
   const nasHost = await configurationApi.get("nas/ip")
   const nasIsoUsername = await configurationApi.get("pve-nas-iso/username")
   const nasIsoPassword = await configurationApi.get("pve-nas-iso/password")
-  const pbsUsername = await configurationApi.get("pve-pbs/username")
-  const pbsPassword = await configurationApi.get("pve-pbs/password")
+  const pbsHost = await configurationApi.get("pbs/ip")
+  const pbsUsername = await configurationApi.get("pbs/backup-username")
+  const pbsPassword = await configurationApi.get("pbs/backup-password")
   const nutMonitorUsername = await configurationApi.get("nut/monitor-username")
   const nutMonitorPassword = await configurationApi.get("nut/monitor-password")
   const observabilityHost = await configurationApi.get("k8s/ip")
 
-  // Not yet in 1Password - see README "Proxmox Backup Server integration".
+  // Not in 1Password - see README "PBS TLS fingerprint".
   const pbsFingerprint = env["PBS_FINGERPRINT"] ?? ""
 
   const deployPath = path.join(__dirname, "..", "src", "deploy")
@@ -34,8 +35,8 @@ const run = async (
     nas_iso_host: nasHost,
     nas_iso_username: nasIsoUsername,
     nas_iso_password: nasIsoPassword,
-    pbs_host: "10.0.209.71",
-    pbs_datastore: "nas",
+    pbs_host: pbsHost,
+    pbs_datastore: "main",
     pbs_username: pbsUsername,
     pbs_password: pbsPassword,
     pbs_fingerprint: pbsFingerprint,
