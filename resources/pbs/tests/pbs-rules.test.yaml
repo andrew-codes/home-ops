@@ -30,36 +30,36 @@ tests:
         values: "1x180"
       - series: 'pbs_service_up{unit="proxmox-backup-proxy"}'
         values: "1x180"
-      - series: 'pbs_datastore_available{datastore="nas"}'
+      - series: 'pbs_datastore_available{datastore="main"}'
         values: "1x180"
       # The root file system of the host has no datastore label and is not a datastore.
       - series: 'blockstat_total{object="host",host="pbs"}'
         values: "100x180"
       - series: 'blockstat_used{object="host",host="pbs"}'
         values: "99x180"
-      - series: 'blockstat_total{object="host",host="pbs",datastore="nas"}'
+      - series: 'blockstat_total{object="host",host="pbs",datastore="main"}'
         values: "1000x180"
-      - series: 'blockstat_used{object="host",host="pbs",datastore="nas"}'
+      - series: 'blockstat_used{object="host",host="pbs",datastore="main"}'
         values: "400x180"
-      - series: 'blockstat_avail{object="host",host="pbs",datastore="nas"}'
+      - series: 'blockstat_avail{object="host",host="pbs",datastore="main"}'
         values: "600x180"
       # Backed up an hour ago, daily.
-      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="nas",backup_type="vm",backup_id="100"}'
+      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="main",backup_type="vm",backup_id="100"}'
         values: "946681200x180"
-      - series: 'pbs_backup_interval_seconds{datastore="nas",backup_type="vm",backup_id="100"}'
+      - series: 'pbs_backup_interval_seconds{datastore="main",backup_type="vm",backup_id="100"}'
         values: "86400x180"
       # Backed up 5 days ago, weekly: well inside the allowance.
-      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="nas",backup_type="ct",backup_id="101"}'
+      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="main",backup_type="ct",backup_id="101"}'
         values: "946252800x180"
-      - series: 'pbs_backup_interval_seconds{datastore="nas",backup_type="ct",backup_id="101"}'
+      - series: 'pbs_backup_interval_seconds{datastore="main",backup_type="ct",backup_id="101"}'
         values: "604800x180"
-      - series: 'pbs_backup_last_task_ok{datastore="nas",backup_type="vm",backup_id="100"}'
+      - series: 'pbs_backup_last_task_ok{datastore="main",backup_type="vm",backup_id="100"}'
         values: "1x180"
-      - series: 'pbs_job_last_run_ok{type="verify",datastore="nas",job="verify-nas"}'
+      - series: 'pbs_job_last_run_ok{type="verify",datastore="main",job="verify-main"}'
         values: "1x180"
-      - series: 'pbs_job_last_run_ok{type="prune",datastore="nas",job="prune-nas"}'
+      - series: 'pbs_job_last_run_ok{type="prune",datastore="main",job="prune-main"}'
         values: "1x180"
-      - series: 'pbs_job_last_run_ok{type="gc",datastore="nas"}'
+      - series: 'pbs_job_last_run_ok{type="gc",datastore="main"}'
         values: "1x180"
     alert_rule_test:
       - { eval_time: 170m, alertname: PBSMetricsMissing, exp_alerts: [] }
@@ -95,7 +95,7 @@ tests:
         values: "8000000000x30"
       - series: "pbs_health_push_timestamp_seconds"
         values: "1x30"
-      - series: 'blockstat_total{object="host",host="pbs",datastore="nas"}'
+      - series: 'blockstat_total{object="host",host="pbs",datastore="main"}'
         values: "1000x30"
     alert_rule_test:
       - { eval_time: 20m, alertname: PBSMetricsMissing, exp_alerts: [] }
@@ -105,7 +105,7 @@ tests:
           - exp_labels: { severity: critical }
             exp_annotations:
               summary: "Proxmox Backup Server stopped reporting metrics"
-              description: "No host metrics have arrived from Proxmox Backup Server for 15 minutes. The host may be down or unreachable, the proxmox-backup-proxy service may be stopped or hung (a datastore on a NAS mount that does not answer blocks it), or the InfluxDB metric server may be disabled. Backups to it are failing. Check the host and `systemctl status proxmox-backup-proxy`, and see the NAS-slower-than-host boot race section of the resources/pbs README."
+              description: "No host metrics have arrived from Proxmox Backup Server for 15 minutes. The host may be down or unreachable, the proxmox-backup-proxy service may be stopped or hung (a datastore on a disk that does not answer blocks it), or the InfluxDB metric server may be disabled. Backups to it are failing. Check the host and `systemctl status proxmox-backup-proxy`."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
       - { eval_time: 60m, alertname: PBSHealthMetricsMissing, exp_alerts: [] }
       # The whole stream paused: no datastore is "missing" on its own.
@@ -162,15 +162,15 @@ tests:
           - exp_labels: { severity: critical, unit: proxmox-backup }
             exp_annotations:
               summary: "Proxmox Backup Server service proxmox-backup is not running"
-              description: "The systemd unit proxmox-backup has been inactive for 5 minutes, so backups cannot reach the datastore. proxmox-backup waits for the NAS mount (RequiresMountsFor=/mnt/pbs), so check that the NAS is up and `/mnt/pbs` is mounted first, then `systemctl status proxmox-backup`."
+              description: "The systemd unit proxmox-backup has been inactive for 5 minutes, so backups cannot reach the datastore. Check `systemctl status proxmox-backup` and `journalctl -u proxmox-backup -n 50` on the PBS host, and that the datastore disk is mounted."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
 
-  # The NFS-backed datastore cannot be opened (the NAS was not up when the host
+  # The datastore cannot be opened (its disk was not mounted when the host
   # booted, or stopped answering). Short blips do not page.
   - name: datastore unavailable
     interval: 1m
     input_series:
-      - series: 'pbs_datastore_available{datastore="nas"}'
+      - series: 'pbs_datastore_available{datastore="main"}'
         values: "1x10 0x50"
       - series: 'pbs_datastore_available{datastore="other"}'
         values: "1x60"
@@ -179,10 +179,10 @@ tests:
       - eval_time: 30m
         alertname: PBSDatastoreUnavailable
         exp_alerts:
-          - exp_labels: { severity: critical, datastore: nas }
+          - exp_labels: { severity: critical, datastore: main }
             exp_annotations:
-              summary: "Proxmox Backup Server datastore nas is unavailable"
-              description: "PBS cannot open datastore nas (checked every 5 minutes, for 5 minutes now), so backups to it fail. For the NFS-backed nas datastore the usual cause is the NAS not answering or /mnt/pbs not mounted: check the NAS, then `systemctl status mnt-pbs.automount mnt-pbs.mount` and `ls /mnt/pbs` on the PBS host, and `journalctl -u proxmox-backup -n 50` for the error."
+              summary: "Proxmox Backup Server datastore main is unavailable"
+              description: "PBS cannot open datastore main (checked every 5 minutes, for 5 minutes now), so backups to it fail. The usual cause is the datastore disk not mounted or not answering: check `findmnt` and `df -h` on the PBS host, and `journalctl -u proxmox-backup -n 50` for the error. For an S3-backed datastore also check the connection to the bucket and the local cache disk."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
 
   # A datastore drops out of PBS's own metrics while the host keeps reporting.
@@ -191,7 +191,7 @@ tests:
     input_series:
       - series: 'memory_memtotal{object="host",host="pbs"}'
         values: "8000000000x180"
-      - series: 'blockstat_total{object="host",host="pbs",datastore="nas"}'
+      - series: 'blockstat_total{object="host",host="pbs",datastore="main"}'
         values: "1000x60 _x120"
       - series: 'blockstat_total{object="host",host="pbs",datastore="other"}'
         values: "1000x180"
@@ -204,19 +204,19 @@ tests:
       - eval_time: 100m
         alertname: PBSDatastoreMetricsMissing
         exp_alerts:
-          - exp_labels: { severity: warning, datastore: nas }
+          - exp_labels: { severity: warning, datastore: main }
             exp_annotations:
-              summary: "Proxmox Backup Server stopped reporting usage of datastore nas"
-              description: "Datastore nas reported its usage in the last day but has had no sample for 15 minutes, while the host still reports. PBS leaves a datastore out of its metrics while it is in maintenance mode or unmounted. Check the datastore in the PBS UI (Datastore, Options)."
+              summary: "Proxmox Backup Server stopped reporting usage of datastore main"
+              description: "Datastore main reported its usage in the last day but has had no sample for 15 minutes, while the host still reports. PBS leaves a datastore out of its metrics while it is in maintenance mode or unmounted. Check the datastore in the PBS UI (Datastore, Options)."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
 
   # Usage: 85% warns, 95% is critical, and each only on its own band.
   - name: datastore usage
     interval: 1m
     input_series:
-      - series: 'blockstat_total{object="host",host="pbs",datastore="nas"}'
+      - series: 'blockstat_total{object="host",host="pbs",datastore="main"}'
         values: "1000x120"
-      - series: 'blockstat_used{object="host",host="pbs",datastore="nas"}'
+      - series: 'blockstat_used{object="host",host="pbs",datastore="main"}'
         values: "850x120"
       - series: 'blockstat_total{object="host",host="pbs",datastore="big"}'
         values: "1000x120"
@@ -232,10 +232,10 @@ tests:
         alertname: PBSDatastoreUsageHigh
         exp_alerts:
           - exp_labels:
-              { severity: warning, datastore: nas, object: host, host: pbs }
+              { severity: warning, datastore: main, object: host, host: pbs }
             exp_annotations:
-              summary: "Proxmox Backup Server datastore nas is 85% full"
-              description: "Datastore nas has been over 80% full for 30 minutes (now 85%). Backups fail when it fills up. Prune and garbage collection only free space after the weekly garbage collection run; check the retention in the prune job, or add space on the NAS."
+              summary: "Proxmox Backup Server datastore main is 85% full"
+              description: "Datastore main has been over 80% full for 30 minutes (now 85%). Backups fail when it fills up. Prune and garbage collection only free space after the weekly garbage collection run; check the retention in the prune job, or add space to the disk behind the datastore."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
       - { eval_time: 10m, alertname: PBSDatastoreAlmostFull, exp_alerts: [] }
       - eval_time: 40m
@@ -245,7 +245,7 @@ tests:
               { severity: critical, datastore: big, object: host, host: pbs }
             exp_annotations:
               summary: "Proxmox Backup Server datastore big is 95% full"
-              description: "Datastore big has been over 90% full for 15 minutes (now 95%). New backups start failing when it is full. Run garbage collection after pruning, or add space on the NAS."
+              description: "Datastore big has been over 90% full for 15 minutes (now 95%). New backups start failing when it is full. Run garbage collection after pruning, or add space to the disk behind the datastore."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
 
   # Fill rate. The datastore is at 76% and its free space falls by 1 a hour;
@@ -254,11 +254,11 @@ tests:
   - name: datastore filling up
     interval: 5m
     input_series:
-      - series: 'blockstat_total{object="host",host="pbs",datastore="nas"}'
+      - series: 'blockstat_total{object="host",host="pbs",datastore="main"}'
         values: "1000x720"
-      - series: 'blockstat_used{object="host",host="pbs",datastore="nas"}'
+      - series: 'blockstat_used{object="host",host="pbs",datastore="main"}'
         values: "700+0.08333333333x720"
-      - series: 'blockstat_avail{object="host",host="pbs",datastore="nas"}'
+      - series: 'blockstat_avail{object="host",host="pbs",datastore="main"}'
         values: "300-0.08333333333x720"
       - series: 'blockstat_total{object="host",host="pbs",datastore="young"}'
         values: "1000x720"
@@ -277,21 +277,21 @@ tests:
         alertname: PBSDatastoreFillingUp
         exp_alerts:
           - exp_labels:
-              { severity: warning, datastore: nas, object: host, host: pbs }
+              { severity: warning, datastore: main, object: host, host: pbs }
             exp_annotations:
-              summary: "Proxmox Backup Server datastore nas will fill up within 14 days"
-              description: "Datastore nas is over 70% full and the 7 day trend of its free space reaches zero within 14 days. Check what grew (a new guest, a longer retention) and the prune job, or add space on the NAS."
+              summary: "Proxmox Backup Server datastore main will fill up within 14 days"
+              description: "Datastore main is over 70% full and the 7 day trend of its free space reaches zero within 14 days. Check what grew (a new guest, a longer retention) and the prune job, or add space to the disk behind the datastore."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
 
   # A failed backup, a gap in the pushes, and recovery.
   - name: backup failed
     interval: 1m
     input_series:
-      - series: 'pbs_backup_last_task_ok{datastore="nas",backup_type="vm",backup_id="100"}'
+      - series: 'pbs_backup_last_task_ok{datastore="main",backup_type="vm",backup_id="100"}'
         values: "0x10 _x8 0x80"
-      - series: 'pbs_backup_last_task_ok{datastore="nas",backup_type="ct",backup_id="101"}'
+      - series: 'pbs_backup_last_task_ok{datastore="main",backup_type="ct",backup_id="101"}'
         values: "0x30 1x60"
-      - series: 'pbs_backup_last_task_ok{datastore="nas",backup_type="vm",backup_id="102"}'
+      - series: 'pbs_backup_last_task_ok{datastore="main",backup_type="vm",backup_id="102"}'
         values: "1x90"
     alert_rule_test:
       # Not yet: it waits 5 minutes so a retry that succeeds does not page.
@@ -303,24 +303,24 @@ tests:
           - exp_labels:
               {
                 severity: warning,
-                datastore: nas,
+                datastore: main,
                 backup_type: vm,
                 backup_id: "100",
               }
             exp_annotations:
               summary: "Proxmox Backup Server backup of vm/100 failed"
-              description: "The last backup task of vm/100 to datastore nas ended with an error. It stays on until the next backup of that guest succeeds. Open the task in the PBS UI (Administration, Tasks, filter on Backup) or the backup job log in Proxmox VE for the error."
+              description: "The last backup task of vm/100 to datastore main ended with an error. It stays on until the next backup of that guest succeeds. Open the task in the PBS UI (Administration, Tasks, filter on Backup) or the backup job log in Proxmox VE for the error."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
           - exp_labels:
               {
                 severity: warning,
-                datastore: nas,
+                datastore: main,
                 backup_type: ct,
                 backup_id: "101",
               }
             exp_annotations:
               summary: "Proxmox Backup Server backup of ct/101 failed"
-              description: "The last backup task of ct/101 to datastore nas ended with an error. It stays on until the next backup of that guest succeeds. Open the task in the PBS UI (Administration, Tasks, filter on Backup) or the backup job log in Proxmox VE for the error."
+              description: "The last backup task of ct/101 to datastore main ended with an error. It stays on until the next backup of that guest succeeds. Open the task in the PBS UI (Administration, Tasks, filter on Backup) or the backup job log in Proxmox VE for the error."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
       # ct/101 succeeded again at 30 minutes: only vm/100 is left.
       - eval_time: 50m
@@ -329,13 +329,13 @@ tests:
           - exp_labels:
               {
                 severity: warning,
-                datastore: nas,
+                datastore: main,
                 backup_type: vm,
                 backup_id: "100",
               }
             exp_annotations:
               summary: "Proxmox Backup Server backup of vm/100 failed"
-              description: "The last backup task of vm/100 to datastore nas ended with an error. It stays on until the next backup of that guest succeeds. Open the task in the PBS UI (Administration, Tasks, filter on Backup) or the backup job log in Proxmox VE for the error."
+              description: "The last backup task of vm/100 to datastore main ended with an error. It stays on until the next backup of that guest succeeds. Open the task in the PBS UI (Administration, Tasks, filter on Backup) or the backup job log in Proxmox VE for the error."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
 
   # Guests whose last good backup is older than their usual interval allows.
@@ -348,25 +348,25 @@ tests:
   - name: stale backups
     interval: 1m
     input_series:
-      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="nas",backup_type="vm",backup_id="100"}'
+      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="main",backup_type="vm",backup_id="100"}'
         values: "946681200x180"
-      - series: 'pbs_backup_interval_seconds{datastore="nas",backup_type="vm",backup_id="100"}'
+      - series: 'pbs_backup_interval_seconds{datastore="main",backup_type="vm",backup_id="100"}'
         values: "86400x180"
-      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="nas",backup_type="vm",backup_id="200"}'
+      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="main",backup_type="vm",backup_id="200"}'
         values: "946540800x180"
-      - series: 'pbs_backup_interval_seconds{datastore="nas",backup_type="vm",backup_id="200"}'
+      - series: 'pbs_backup_interval_seconds{datastore="main",backup_type="vm",backup_id="200"}'
         values: "86400x180"
-      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="nas",backup_type="vm",backup_id="300"}'
+      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="main",backup_type="vm",backup_id="300"}'
         values: "946339200x180"
-      - series: 'pbs_backup_interval_seconds{datastore="nas",backup_type="vm",backup_id="300"}'
+      - series: 'pbs_backup_interval_seconds{datastore="main",backup_type="vm",backup_id="300"}'
         values: "86400x180"
-      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="nas",backup_type="ct",backup_id="400"}'
+      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="main",backup_type="ct",backup_id="400"}'
         values: "946243200x180"
-      - series: 'pbs_backup_interval_seconds{datastore="nas",backup_type="ct",backup_id="400"}'
+      - series: 'pbs_backup_interval_seconds{datastore="main",backup_type="ct",backup_id="400"}'
         values: "604800x180"
-      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="nas",backup_type="ct",backup_id="500"}'
+      - series: 'pbs_backup_last_success_timestamp_seconds{datastore="main",backup_type="ct",backup_id="500"}'
         values: "945734400x180"
-      - series: 'pbs_backup_interval_seconds{datastore="nas",backup_type="ct",backup_id="500"}'
+      - series: 'pbs_backup_interval_seconds{datastore="main",backup_type="ct",backup_id="500"}'
         values: "604800x180"
     alert_rule_test:
       - eval_time: 170m
@@ -375,24 +375,24 @@ tests:
           - exp_labels:
               {
                 severity: warning,
-                datastore: nas,
+                datastore: main,
                 backup_type: vm,
                 backup_id: "200",
               }
             exp_annotations:
               summary: "No recent backup of vm/200 on Proxmox Backup Server"
-              description: "The last successful backup of vm/200 in datastore nas is 1d 18h 50m 0s old, more than one and a half times its usual interval. Check the backup job in Proxmox VE and that the guest still exists. If the guest was retired on purpose, forget its backup group in the PBS UI so this stops."
+              description: "The last successful backup of vm/200 in datastore main is 1d 18h 50m 0s old, more than one and a half times its usual interval. Check the backup job in Proxmox VE and that the guest still exists. If the guest was retired on purpose, forget its backup group in the PBS UI so this stops."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
           - exp_labels:
               {
                 severity: warning,
-                datastore: nas,
+                datastore: main,
                 backup_type: ct,
                 backup_id: "500",
               }
             exp_annotations:
               summary: "No recent backup of ct/500 on Proxmox Backup Server"
-              description: "The last successful backup of ct/500 in datastore nas is 11d 2h 50m 0s old, more than one and a half times its usual interval. Check the backup job in Proxmox VE and that the guest still exists. If the guest was retired on purpose, forget its backup group in the PBS UI so this stops."
+              description: "The last successful backup of ct/500 in datastore main is 11d 2h 50m 0s old, more than one and a half times its usual interval. Check the backup job in Proxmox VE and that the guest still exists. If the guest was retired on purpose, forget its backup group in the PBS UI so this stops."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
       - eval_time: 170m
         alertname: PBSBackupVeryStale
@@ -400,24 +400,24 @@ tests:
           - exp_labels:
               {
                 severity: critical,
-                datastore: nas,
+                datastore: main,
                 backup_type: vm,
                 backup_id: "300",
               }
             exp_annotations:
               summary: "vm/300 has not been backed up for 4d 2h 50m 0s"
-              description: "The last successful backup of vm/300 in datastore nas is 4d 2h 50m 0s old, more than three times its usual interval. Several backups in a row were missed. Check the backup job in Proxmox VE and that the guest still exists. If the guest was retired on purpose, forget its backup group in the PBS UI so this stops."
+              description: "The last successful backup of vm/300 in datastore main is 4d 2h 50m 0s old, more than three times its usual interval. Several backups in a row were missed. Check the backup job in Proxmox VE and that the guest still exists. If the guest was retired on purpose, forget its backup group in the PBS UI so this stops."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
 
   # The last run of each kind of job failed. verify is critical, the others warn.
   - name: job failures
     interval: 1m
     input_series:
-      - series: 'pbs_job_last_run_ok{type="verify",datastore="nas",job="verify-nas"}'
+      - series: 'pbs_job_last_run_ok{type="verify",datastore="main",job="verify-main"}'
         values: "0x30"
-      - series: 'pbs_job_last_run_ok{type="prune",datastore="nas",job="prune-nas"}'
+      - series: 'pbs_job_last_run_ok{type="prune",datastore="main",job="prune-main"}'
         values: "0x30"
-      - series: 'pbs_job_last_run_ok{type="gc",datastore="nas"}'
+      - series: 'pbs_job_last_run_ok{type="gc",datastore="main"}'
         values: "0x30"
       - series: 'pbs_job_last_run_ok{type="prune",datastore="other",job="prune-other"}'
         values: "1x30"
@@ -429,27 +429,32 @@ tests:
               {
                 severity: critical,
                 type: verify,
-                datastore: nas,
-                job: verify-nas,
+                datastore: main,
+                job: verify-main,
               }
             exp_annotations:
-              summary: "Proxmox Backup Server verify job verify-nas failed on nas"
-              description: "The last run of verify job verify-nas on datastore nas failed, which usually means it found backups it could not read back (corrupt or missing chunks), or it could not run at all. Open the task log in the PBS UI (Administration, Tasks) to see which snapshots, forget or re-backup them, and run the job again."
+              summary: "Proxmox Backup Server verify job verify-main failed on main"
+              description: "The last run of verify job verify-main on datastore main failed, which usually means it found backups it could not read back (corrupt or missing chunks), or it could not run at all. Open the task log in the PBS UI (Administration, Tasks) to see which snapshots, forget or re-backup them, and run the job again."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
       - eval_time: 20m
         alertname: PBSPruneFailed
         exp_alerts:
           - exp_labels:
-              { severity: warning, type: prune, datastore: nas, job: prune-nas }
+              {
+                severity: warning,
+                type: prune,
+                datastore: main,
+                job: prune-main,
+              }
             exp_annotations:
-              summary: "Proxmox Backup Server prune job prune-nas failed on nas"
-              description: "The last run of prune job prune-nas on datastore nas failed, so old backups are not being removed and the datastore will keep growing. Open the task log in the PBS UI (Administration, Tasks) for the error and run the job again."
+              summary: "Proxmox Backup Server prune job prune-main failed on main"
+              description: "The last run of prune job prune-main on datastore main failed, so old backups are not being removed and the datastore will keep growing. Open the task log in the PBS UI (Administration, Tasks) for the error and run the job again."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
       - eval_time: 20m
         alertname: PBSGarbageCollectionFailed
         exp_alerts:
-          - exp_labels: { severity: warning, type: gc, datastore: nas }
+          - exp_labels: { severity: warning, type: gc, datastore: main }
             exp_annotations:
-              summary: "Proxmox Backup Server garbage collection failed on nas"
-              description: "The last garbage collection of datastore nas failed, so pruned backups are not freeing space and the datastore will keep growing. Open the task log in the PBS UI (Administration, Tasks) for the error and run it again from Datastore, Prune and GC."
+              summary: "Proxmox Backup Server garbage collection failed on main"
+              description: "The last garbage collection of datastore main failed, so pruned backups are not freeing space and the datastore will keep growing. Open the task log in the PBS UI (Administration, Tasks) for the error and run it again from Datastore, Prune and GC."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server

@@ -26,43 +26,43 @@ def snapshots(*days_ago):
 
 
 def api(overrides=None):
-    """A healthy PBS: one datastore `nas` with two guests, one failed backup, all jobs fine."""
+    """A healthy PBS: one datastore `main` with two guests, one failed backup, all jobs fine."""
     answers = {
-        "/config/datastore": [{"name": "nas", "path": "/mnt/pbs"}],
-        "/admin/datastore/nas/status": {"total": 10, "used": 4, "avail": 6},
-        "/admin/datastore/nas/namespace": [],
-        "/admin/datastore/nas/groups": [
+        "/config/datastore": [{"name": "main", "path": "/mnt/pbs-main/datastore"}],
+        "/admin/datastore/main/status": {"total": 10, "used": 4, "avail": 6},
+        "/admin/datastore/main/namespace": [],
+        "/admin/datastore/main/groups": [
             {"backup-type": "vm", "backup-id": "100", "last-backup": NOW - 3600},
             {"backup-type": "ct", "backup-id": "101", "last-backup": NOW - 2 * DAY},
         ],
         "/nodes/localhost/tasks": [
             {
                 "worker_type": "backup",
-                "worker_id": "nas:vm/100",
+                "worker_id": "main:vm/100",
                 "endtime": NOW - 3600,
                 "status": "OK",
             },
             # Older than the one above: the newest task of a guest wins.
             {
                 "worker_type": "backup",
-                "worker_id": "nas:vm/100",
+                "worker_id": "main:vm/100",
                 "endtime": NOW - DAY - 3600,
                 "status": "backup failed: connection reset",
             },
             {
                 "worker_type": "backup",
-                "worker_id": "nas:ct/101",
+                "worker_id": "main:ct/101",
                 "endtime": NOW - 2 * DAY,
                 "status": "unable to open chunk store at /mnt/pbs/.chunks",
             },
             # Still running: no endtime, no status.
-            {"worker_type": "backup", "worker_id": "nas:vm/102", "starttime": NOW - 60},
-            {"worker_type": "verificationjob", "worker_id": "nas:verify-nas", "endtime": NOW},
+            {"worker_type": "backup", "worker_id": "main:vm/102", "starttime": NOW - 60},
+            {"worker_type": "verificationjob", "worker_id": "main:verify-main", "endtime": NOW},
         ],
         "/admin/verify": [
             {
-                "id": "verify-nas",
-                "store": "nas",
+                "id": "verify-main",
+                "store": "main",
                 "last-run-state": "OK",
                 "last-run-endtime": NOW - 5 * DAY,
                 "next-run": NOW + 2 * DAY,
@@ -70,8 +70,8 @@ def api(overrides=None):
         ],
         "/admin/prune": [
             {
-                "id": "prune-nas",
-                "store": "nas",
+                "id": "prune-main",
+                "store": "main",
                 "last-run-state": "WARNINGS: 2",
                 "last-run-endtime": NOW - 3600,
                 "next-run": NOW + DAY,
@@ -79,7 +79,7 @@ def api(overrides=None):
         ],
         "/admin/gc": [
             {
-                "store": "nas",
+                "store": "main",
                 "last-run-state": "garbage collection failed: io error",
                 "last-run-endtime": NOW - DAY,
                 "next-run": NOW + 6 * DAY,
@@ -91,7 +91,7 @@ def api(overrides=None):
     answers.update(overrides or {})
 
     def fake_get(path, *params, timeout=30):
-        if path == "/admin/datastore/nas/snapshots":
+        if path == "/admin/datastore/main/snapshots":
             guest = params[params.index("--backup-id") + 1]
             days = {"100": (0, 1, 2, 3, 4, 5), "101": (2, 3), "200": (0, 1, 2)}[guest]
             return snapshots(*days)
@@ -154,17 +154,17 @@ class Collect(unittest.TestCase):
         for expected in (
             'pbs_service_up{unit="proxmox-backup"} 1',
             'pbs_service_up{unit="proxmox-backup-proxy"} 1',
-            'pbs_datastore_available{datastore="nas"} 1',
-            'pbs_backup_last_success_timestamp_seconds{backup_id="100",backup_type="vm",datastore="nas"} %d'
+            'pbs_datastore_available{datastore="main"} 1',
+            'pbs_backup_last_success_timestamp_seconds{backup_id="100",backup_type="vm",datastore="main"} %d'
             % (NOW - 3600),
-            'pbs_backup_interval_seconds{backup_id="100",backup_type="vm",datastore="nas"} 86400',
+            'pbs_backup_interval_seconds{backup_id="100",backup_type="vm",datastore="main"} 86400',
             # Two snapshots give one gap: too few to read a schedule from.
-            'pbs_backup_interval_seconds{backup_id="101",backup_type="ct",datastore="nas"} 86400',
-            'pbs_job_last_run_ok{datastore="nas",job="verify-nas",type="verify"} 1',
+            'pbs_backup_interval_seconds{backup_id="101",backup_type="ct",datastore="main"} 86400',
+            'pbs_job_last_run_ok{datastore="main",job="verify-main",type="verify"} 1',
             # Warnings are not a failure.
-            'pbs_job_last_run_ok{datastore="nas",job="prune-nas",type="prune"} 1',
-            'pbs_gc_removed_bytes{datastore="nas"} 1024',
-            'pbs_gc_pending_bytes{datastore="nas"} 2048',
+            'pbs_job_last_run_ok{datastore="main",job="prune-main",type="prune"} 1',
+            'pbs_gc_removed_bytes{datastore="main"} 1024',
+            'pbs_gc_pending_bytes{datastore="main"} 2048',
         ):
             self.assertIn(expected, lines)
         for source in ("services", "datastores", "groups", "tasks", "jobs_verify", "jobs_prune", "jobs_gc"):
@@ -172,60 +172,75 @@ class Collect(unittest.TestCase):
 
     def test_failed_gc_job(self):
         self.assertIn(
-            'pbs_job_last_run_ok{datastore="nas",type="gc"} 0', collect(api())
+            'pbs_job_last_run_ok{datastore="main",type="gc"} 0', collect(api())
         )
 
     def test_newest_backup_task_of_a_guest_wins(self):
         lines = collect(api())
         self.assertIn(
-            'pbs_backup_last_task_ok{backup_id="100",backup_type="vm",datastore="nas"} 1', lines
+            'pbs_backup_last_task_ok{backup_id="100",backup_type="vm",datastore="main"} 1', lines
         )
         self.assertIn(
-            'pbs_backup_last_task_ok{backup_id="101",backup_type="ct",datastore="nas"} 0', lines
+            'pbs_backup_last_task_ok{backup_id="101",backup_type="ct",datastore="main"} 0', lines
         )
 
     def test_running_and_other_tasks_are_ignored(self):
         lines = collect(api())
         self.assertFalse([line for line in lines if 'backup_id="102"' in line])
-        self.assertFalse([line for line in lines if "verify-nas" in line and "last_task" in line])
+        self.assertFalse([line for line in lines if "verify-main" in line and "last_task" in line])
 
     def test_services_down(self):
         lines = collect(api(), active=False)
         self.assertIn('pbs_service_up{unit="proxmox-backup"} 0', lines)
 
     def test_unavailable_datastore_is_reported_and_skipped(self):
-        fake = api({"/admin/datastore/nas/status": RuntimeError("unable to open chunk store")})
+        fake = api({"/admin/datastore/main/status": RuntimeError("unable to open chunk store")})
         lines = collect(fake)
-        self.assertIn('pbs_datastore_available{datastore="nas"} 0', lines)
+        self.assertIn('pbs_datastore_available{datastore="main"} 0', lines)
         self.assertFalse([line for line in lines if line.startswith("pbs_backup_last_success")])
         self.assertIn('pbs_health_collect_ok{source="groups"} 1', lines)
 
+    def test_every_datastore_is_reported_and_one_failing_does_not_hide_the_other(self):
+        fake = api(
+            {
+                "/config/datastore": [
+                    {"name": "main", "path": "/mnt/pbs-main/datastore"},
+                    {"name": "offsite", "path": "/mnt/pbs-cache/offsite", "backend": "type=s3"},
+                ],
+                "/admin/datastore/offsite/status": RuntimeError("s3 unreachable"),
+            }
+        )
+        lines = collect(fake)
+        self.assertIn('pbs_datastore_available{datastore="main"} 1', lines)
+        self.assertIn('pbs_datastore_available{datastore="offsite"} 0', lines)
+        self.assertIn('pbs_backup_interval_seconds{backup_id="100",backup_type="vm",datastore="main"} 86400', lines)
+
     def test_hung_datastore_is_unavailable(self):
-        fake = api({"/admin/datastore/nas/status": subprocess.TimeoutExpired("x", 30)})
-        self.assertIn('pbs_datastore_available{datastore="nas"} 0', collect(fake))
+        fake = api({"/admin/datastore/main/status": subprocess.TimeoutExpired("x", 30)})
+        self.assertIn('pbs_datastore_available{datastore="main"} 0', collect(fake))
 
     def test_a_failing_source_leaves_the_rest(self):
         fake = api({"/admin/verify": RuntimeError("schema changed")})
         lines = collect(fake)
         self.assertIn('pbs_health_collect_ok{source="jobs_verify"} 0', lines)
         self.assertIn('pbs_health_collect_ok{source="jobs_prune"} 1', lines)
-        self.assertIn('pbs_datastore_available{datastore="nas"} 1', lines)
+        self.assertIn('pbs_datastore_available{datastore="main"} 1', lines)
 
     def test_no_datastore_config_is_reported(self):
         lines = collect(api({"/config/datastore": RuntimeError("no config")}))
         self.assertIn('pbs_health_collect_ok{source="datastores"} 0', lines)
 
     def test_namespaces_are_labelled(self):
-        base = api({"/admin/datastore/nas/namespace": [{"ns": "lab"}]})
+        base = api({"/admin/datastore/main/namespace": [{"ns": "lab"}]})
 
         def fake(path, *params, timeout=30):
-            if path == "/admin/datastore/nas/groups" and "--ns" in params:
+            if path == "/admin/datastore/main/groups" and "--ns" in params:
                 return [{"backup-type": "vm", "backup-id": "200", "last-backup": NOW - 60}]
             return base(path, *params, timeout=timeout)
 
         lines = collect(fake)
         self.assertIn(
-            'pbs_backup_last_success_timestamp_seconds{backup_id="200",backup_type="vm",datastore="nas",namespace="lab"} %d'
+            'pbs_backup_last_success_timestamp_seconds{backup_id="200",backup_type="vm",datastore="main",namespace="lab"} %d'
             % (NOW - 60),
             lines,
         )
@@ -253,7 +268,7 @@ class Run(unittest.TestCase):
         failed = subprocess.CompletedProcess([], 1, "", "unable to open chunk store\n")
         with mock.patch.object(pbs_health, "run", return_value=failed):
             with self.assertRaisesRegex(RuntimeError, "unable to open chunk store"):
-                pbs_health.api_get("/admin/datastore/nas/status")
+                pbs_health.api_get("/admin/datastore/main/status")
 
 
 if __name__ == "__main__":

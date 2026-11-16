@@ -1,29 +1,32 @@
 # pbs
 
-Ansible-driven configuration for the [Proxmox Backup Server](https://www.proxmox.com/en/proxmox-backup-server) host, run remotely over SSH. It is the backup target for the sibling `pve` Proxmox VE host: `pve` adds a PBS storage connection pointed at the datastore named `nas` this app creates here.
+Ansible-driven configuration for the [Proxmox Backup Server](https://www.proxmox.com/en/proxmox-backup-server) host, run remotely over SSH. It is the backup target for the sibling `pve` Proxmox VE host. This app configures a host that already runs PBS and already has its datastore. It adopts what is there and does not create or move storage.
 
 ## Prerequisites - not automated
 
-1. **The PBS ISO install itself.** Follow the [official Proxmox Backup Server installation docs](https://pbs.proxmox.com/docs/installation.html) to get a bare-metal or VM host booted into a fresh PBS install, reachable over SSH. Nothing here can do this step; it needs the installer console.
-2. **Populate the 1Password items this app reads from**, before the first deploy - see [Configuration](#configuration).
+1. **The PBS install itself.** Follow the [official Proxmox Backup Server installation docs](https://pbs.proxmox.com/docs/installation.html) to get a host booted into a fresh PBS install, reachable over SSH. Nothing here can do this step; it needs the installer console.
+2. **The datastore.** Create the datastore named `main` by hand, on a local disk that the host mounts itself (`/etc/fstab`). The host is a VM on TrueNAS, so the NAS provides the disk underneath and PBS sees a local file system. This app never creates a datastore. If `main` does not exist, the play stops with a message.
+3. **Populate the 1Password items this app reads from**, before the first deploy - see [Configuration](#configuration).
 
-**Hostname assumption.** If a hostname was not set during the ISO install, this app sets it to `pbs`. Confirm before running that `pbs` doesn't collide with anything already on the network.
+**Hostname assumption.** This app sets the hostname to `pbs`. Confirm before running that `pbs` does not collide with anything already on the network.
 
 ## What it manages
 
-| Concern                                                                                 | Where                                      |
-| --------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Timezone (`America/New_York`)                                                           | [`scripts/deploy.yml`](scripts/deploy.yml) |
-| DNS (`1.1.1.1`, `1.0.0.1`) and search domain (`smith-simms.family`)                     | [`scripts/deploy.yml`](scripts/deploy.yml) |
-| Hostname (`pbs`) and `/etc/hosts`                                                       | [`scripts/deploy.yml`](scripts/deploy.yml) |
-| Andrew's SSH public key                                                                 | [`scripts/deploy.yml`](scripts/deploy.yml) |
-| Static network (`10.0.209.71/24`, gateway `10.0.209.1`)                                 | [`scripts/deploy.yml`](scripts/deploy.yml) |
-| Proxmox Backup Server package, pinned to a known version                                | [`scripts/deploy.yml`](scripts/deploy.yml) |
-| NFS-backed `nas` datastore, backup user, prune/verify jobs, firewall                    | [`scripts/deploy.yml`](scripts/deploy.yml) |
-| NAS mount resilience (systemd automount + service dependency)                           | [`scripts/deploy.yml`](scripts/deploy.yml) |
-| NUT UPS monitoring, auto-shutdown on FSD/low battery (see [below](#nut-ups-monitoring)) | [`scripts/deploy.yml`](scripts/deploy.yml) |
-| Logs and metrics sent to the cluster (see [below](#observability))                      | [`scripts/deploy.yml`](scripts/deploy.yml) |
-| Backup and task health timer (see [below](#backup-and-task-health))                     | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| Concern                                                                                                                                     | Where                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Timezone (`America/New_York`)                                                                                                               | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| DNS (`1.1.1.1`, `1.0.0.1`) and search domain (`smith-simms.family`)                                                                         | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| Hostname (`pbs`) and `/etc/hosts`                                                                                                           | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| Andrew's SSH public key                                                                                                                     | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| apt sources: no enterprise source, one no-subscription source (see [below](#package-and-repositories))                                      | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| Proxmox Backup Server package: installed only when absent, never pinned or held                                                             | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| Backup user, its ACL, prune and verify jobs and the GC schedule of datastore `main`, each added only when missing (see [Storage](#storage)) | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| Firewall (`ufw`: SSH and the PBS web UI)                                                                                                    | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| NUT UPS monitoring, opt-in and off by default (see [below](#nut-ups-monitoring))                                                            | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| Logs and metrics sent to the cluster (see [below](#observability))                                                                          | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| Backup and task health timer (see [below](#backup-and-task-health))                                                                         | [`scripts/deploy.yml`](scripts/deploy.yml) |
+
+Not managed: the network, the datastore itself, any mount, and every datastore other than `main`.
 
 Everything is applied by one playbook, [`scripts/deploy.yml`](scripts/deploy.yml), run against the single host in [`scripts/deploy.ts`](scripts/deploy.ts)'s generated inventory.
 
@@ -33,7 +36,7 @@ Everything is applied by one playbook, [`scripts/deploy.yml`](scripts/deploy.yml
 OP_VAULT=<vault-name> nx run pbs:deploy
 ```
 
-[`scripts/deploy.ts`](scripts/deploy.ts) reads `pbs/ip`, `pbs/username`, `pbs/password`, `nas/ip`, `pbs/backup-username` and `pbs/backup-password` through the repo's [1Password-backed configuration API](../../packages/configuration-1password), writes them into a gitignored `.secrets/` inventory and vars file next to the playbook, and runs `ansible-playbook` against them.
+[`scripts/deploy.ts`](scripts/deploy.ts) reads `pbs/ip`, `pbs/username`, `pbs/password`, `pbs/backup-username`, `pbs/backup-password` and `k8s/ip` through the repo's [1Password-backed configuration API](../../packages/configuration-1password), writes them into a gitignored `.secrets/` inventory and vars file next to the playbook, and runs `ansible-playbook` against them.
 
 ### Andrew's SSH key is a special case
 
@@ -41,55 +44,44 @@ OP_VAULT=<vault-name> nx run pbs:deploy
 
 ### Configuration
 
-| Secret                               | 1Password location          | Populated?                      |
+| Secret                               | 1Password location          | Needed when                     |
 | ------------------------------------ | --------------------------- | ------------------------------- |
-| `pbs/ip`                             | infra vault (`OP_VAULT`)    | yes                             |
-| `pbs/username`                       | infra vault (`OP_VAULT`)    | yes                             |
-| `pbs/password`                       | infra vault (`OP_VAULT`)    | yes                             |
-| `nas/ip`                             | infra vault (`OP_VAULT`)    | yes                             |
-| `pbs/backup-username`                | infra vault (`OP_VAULT`)    | **must be confirmed/populated** |
-| `pbs/backup-password`                | infra vault (`OP_VAULT`)    | **must be confirmed/populated** |
-| `nut/monitor-username`               | infra vault (`OP_VAULT`)    | **must be confirmed/populated** |
-| `nut/monitor-password`               | infra vault (`OP_VAULT`)    | **must be confirmed/populated** |
-| `k8s/ip`                             | infra vault (`OP_VAULT`)    | yes (read by the k8s deploy)    |
-| `op://Private/andrew-mbp/public key` | `Private` vault, fixed item | yes (Andrew's existing SSH key) |
+| `pbs/ip`                             | infra vault (`OP_VAULT`)    | always                          |
+| `pbs/username`                       | infra vault (`OP_VAULT`)    | always                          |
+| `pbs/password`                       | infra vault (`OP_VAULT`)    | always                          |
+| `pbs/backup-username`                | infra vault (`OP_VAULT`)    | always                          |
+| `pbs/backup-password`                | infra vault (`OP_VAULT`)    | always                          |
+| `k8s/ip`                             | infra vault (`OP_VAULT`)    | always (the observability node) |
+| `op://Private/andrew-mbp/public key` | `Private` vault, fixed item | always                          |
+| `truenas/ip`                         | infra vault (`OP_VAULT`)    | only with `PBS_ENABLE_NUT=1`    |
+| `nut/monitor-username`               | infra vault (`OP_VAULT`)    | only with `PBS_ENABLE_NUT=1`    |
+| `nut/monitor-password`               | infra vault (`OP_VAULT`)    | only with `PBS_ENABLE_NUT=1`    |
 
-`pbs/backup-username` and `pbs/backup-password` are the credentials the PBS-side backup user is created with and the ones any client (`pve`, or a manual `proxmox-backup-client`) authenticates as against the `nas` datastore. Confirm their values are real before relying on a deploy that creates that user.
+All of these exist today, so a default deploy needs no new 1Password field.
 
-`nut/monitor-username` and `nut/monitor-password` are the account the Synology NAS's UPS Network Status service authenticates NUT clients with - see [NUT UPS monitoring](#nut-ups-monitoring). Shared with [`pve`](../../apps/pve/README.md#nut-monitor-account-and-ups-name) and [`gaming-pc`](../../apps/gaming-pc/README.md#nut-ups-monitoring), which read the same two fields.
+`pbs/backup-username` and `pbs/backup-password` are the credentials the PBS-side backup user is created with and the ones any client (`pve`, or a manual `proxmox-backup-client`) authenticates as against the `main` datastore. The play creates the user only when it is missing, and never changes the password of an existing one.
 
-## Network change: risk and rollback
+## Network
 
-Changing the interface to a static `10.0.209.71/24` can drop the current SSH connection if the host was not already on that address (for example, still on the DHCP address the ISO installer picked). That is expected on a first run, not a failure:
-
-- The playbook applies the change with `ifreload -a` (ifupdown2, installed by the PBS ISO by default) rather than restarting networking or rebooting, because `ifreload` diffs and only touches changed interfaces - the smallest blast radius the tooling supports.
-- If the connection drops, reconnect the inventory at `10.0.209.71` and re-run `nx run pbs:deploy`. Every task in the playbook is idempotent, so already-applied steps (hostname, SSH key, timezone, DNS) are skipped and only the remainder runs.
-- **Rollback**, if `10.0.209.71` is unreachable afterward: connect over the physical/hypervisor console (not SSH - that is exactly what may be broken) and either hand-correct `/etc/network/interfaces` or revert the managed stanza to `iface <name> inet dhcp`, then run `ifreload -a`.
+The network is not managed. A host is reached at the address in `pbs/ip`, so it is already on that address, and a play that rewrote the interface could cut off its own SSH connection. Set the address of the host when you install it, and keep `pbs/ip` in step with it. If the address has to change, change it on the console, then update `pbs/ip`.
 
 ## NUT UPS monitoring
 
-> [!WARNING]
-> **A misconfigured client here can shut this host down unexpectedly.** Verify the
-> NUT server address, UPS name and monitor credentials below against the real
-> Synology NAS before relying on this, or before merging a change to it.
+NUT is opt-in and off by default. The UPS server will be the TrueNAS host, but it does not run NUT yet, so a default deploy installs nothing and writes no `MONITOR` line.
 
-`scripts/deploy.yml` installs `nut-client` (client-only - this host never runs a
-local `upsd`) and configures `upsmon` to monitor the Synology NAS's built-in UPS
-Network Status service (out of scope for this repo - not provisioned here) as a NUT
-server at `10.5.113.53:3493`, `secondary` mode, and to run `shutdown -h +0` on `FSD`
-(forced shutdown, signalled by the NAS) or on its own low-battery detection.
+> [!WARNING] > **A misconfigured client here can shut this host down unexpectedly.** Enable it only
+> after TrueNAS runs a NUT server, with the UPS name and the monitor account below
+> verified against it.
 
-- `/etc/nut/nut.conf` is set to `MODE=netclient`.
-- `/etc/nut/upsmon.conf` is written with a `MONITOR` line carrying the NAS host, UPS
-  name, and the shared monitor credentials from [Configuration](#configuration).
-  Written with `no_log: true` since it embeds a password.
-- The `nut-monitor` (`upsmon`) service is enabled and started, restarted only when
-  the rendered config actually changed.
-- **The UPS name (`ups`) is an assumption, not a confirmed value** - it is the
-  Synology default, but has not been verified against this NAS's real UPS Network
-  Status configuration. Confirm it, the monitor account, and allow-list this host as
-  a permitted client (Control Panel > Hardware & Power > UPS > Network UPS Server)
-  before the first real run.
+To enable it, run `PBS_ENABLE_NUT=1 OP_VAULT=<vault-name> nx run pbs:deploy`. [`scripts/deploy.ts`](scripts/deploy.ts) then reads `truenas/ip`, `nut/monitor-username` and `nut/monitor-password`, and the play:
+
+- installs `nut-client` (client only, no local `upsd`) and sets `/etc/nut/nut.conf` to `MODE=netclient`;
+- writes `/etc/nut/upsmon.conf` with a `MONITOR` line for UPS `ups` on the TrueNAS host (`secondary` mode, `shutdown -h +0` on `FSD` or low battery), with `no_log: true` because it holds a password;
+- enables and starts `nut-monitor`, and restarts it only when the config changed.
+
+The UPS name `ups` is an assumption until the TrueNAS side exists. Change `nut_ups_name` in [`scripts/deploy.yml`](scripts/deploy.yml) if the server names it differently.
+
+Without `PBS_ENABLE_NUT=1`, the play removes any active `MONITOR` line from an existing `/etc/nut/upsmon.conf` and stops and disables `nut-monitor`. A host that an earlier run pointed at an old UPS server is therefore left with no active monitor. A host that never had NUT has no file, and nothing happens.
 
 ## Observability
 
@@ -153,44 +145,57 @@ PBS's metric server carries no task results, so a failed backup, verify, prune o
 
 - **Task results.** A state of `OK` or `WARNINGS: n` is a success, anything else is a failure. The newest finished backup task of each guest wins, so a failure clears when the next backup succeeds. A failed backup task has no namespace in its id, so `pbs_backup_last_task_ok` has none either.
 - **The schedule of a guest.** The backup job lives in Proxmox VE, so PBS does not know it. The script reads each guest's usual interval from its newest snapshots (the median gap of up to six), and the stale-backup alerts allow one and a half intervals (warning) and three (critical). A guest with fewer than three snapshots is assumed to be daily. A guest that was retired on purpose keeps alerting until its backup group is forgotten in the PBS UI, or its last snapshot is pruned.
-- **A datastore that does not answer.** A hung NFS mount blocks the API call in the kernel. Each call has a 30 second limit, a call that hangs is abandoned (it cannot be killed while it waits on the mount), and the datastore is reported with `pbs_datastore_available 0`. The unit has a 5 minute limit, so a run that still hangs stops before the next one starts, and the heartbeat alert covers it.
+- **A datastore that does not answer.** A datastore disk or mount that stops answering blocks the API call in the kernel. Each call has a 30 second limit, a call that hangs is abandoned (it cannot be killed while it waits on the mount), and the datastore is reported with `pbs_datastore_available 0`. The unit has a 5 minute limit, so a run that still hangs stops before the next one starts, and the heartbeat alert covers it.
 - **Dry run.** On the host, `python3 /usr/local/lib/pbs-health/pbs-health.py print` writes the metrics to stdout. `systemctl list-timers pbs-health.timer` and `journalctl -u pbs-health` show the timer and the last run.
 - **Not covered.** Only scheduled verify, prune and garbage collection jobs are read from the job APIs, and backup tasks from the task list. A one-off prune or verify started by hand, and sync jobs, are not reported.
 - **The API shapes were not run against a real PBS.** They come from the PBS source (`proxmox-backup` `src/api2`) and are exercised by the tests in `tests/test_pbs_health.py` with answers written out in the shape `proxmox-backup-debug api get --output-format json` prints. After the first deploy, confirm with `python3 /usr/local/lib/pbs-health/pbs-health.py print`: every `pbs_health_collect_ok` should be 1, and the `pbs_backup_*` and `pbs_job_*` series should list your guests and jobs. A `0` names the source whose output did not match.
 
 The alert rules and their unit tests are described in the [alerting README](../../deployments/base/alerting/README.md#proxmox-backup-server). The rules are tested with `vmalert-tool` (Docker and `yq` needed): `yarn nx test pbs` runs both these and the script's unit tests, or run `scripts/test-rules.sh` and `python3 -m unittest discover -s tests` from this directory.
 
-## NAS-slower-than-host boot race
+## Storage
 
-After a shared power outage, this NAS came back up more slowly than this host. The original NFS mount was a one-shot boot-time mount, so it ran before the NAS was reachable, failed once, and never retried - `/mnt/pbs` stayed empty and PBS failed with `unable to open chunk store at /mnt/pbs/.chunks - No such file or directory (os error 2)` until someone ran `mount -a` by hand.
+Storage belongs to the host, not to this app. Datastore `main` lives on a local disk that `/etc/fstab` mounts, and the play never mounts, formats, chowns or moves anything. It reads the datastore list from PBS and adopts `main`. If `main` is missing, the play fails before it changes anything.
 
-The mount is now a systemd automount (`x-systemd.automount` in `scripts/deploy.yml`): instead of mounting once at boot, systemd mounts it lazily on first access and keeps retrying if the NAS isn't there yet, rather than giving up. As a second layer, a `proxmox-backup.service` drop-in (`RequiresMountsFor=/mnt/pbs`) makes the service wait on the mount instead of racing it, so it can't start against an empty local directory. Re-running `nx run pbs:deploy` applies both to an already-provisioned host.
+Every step below acts only when its object is missing, so a run never duplicates or overwrites what an admin set up:
+
+| Object                     | Added when                               | Kept as it is when                               |
+| -------------------------- | ---------------------------------------- | ------------------------------------------------ |
+| Backup user                | the user does not exist                  | the user exists (the password is not reset)      |
+| `DatastoreBackup` ACL      | the user has no ACL on `/datastore/main` | the ACL exists                                   |
+| Prune job (`prune-main`)   | no prune job has store `main`            | any prune job has store `main`, whatever its id  |
+| Verify job (`verify-main`) | no verify job has store `main`           | any verify job has store `main`, whatever its id |
+| GC schedule (`weekly`)     | the datastore has no `gc-schedule`       | the datastore has a `gc-schedule`                |
+
+Other datastores on the host (for example an S3-backed offsite datastore with a local cache) are not read or changed by the play. The [health collector](#backup-and-task-health) and the dashboard still cover every datastore that PBS lists.
+
+The name of the adopted datastore is `pbs_datastore_name` in [`scripts/deploy.yml`](scripts/deploy.yml).
+
+An older host can still carry an NFS mount at `/mnt/pbs` and a `proxmox-backup.service` drop-in (`RequiresMountsFor=/mnt/pbs`) from an earlier version of this app. The play no longer writes either and does not remove them. Remove them by hand if the host no longer uses that mount.
 
 ## Manual steps - not run by this task
 
-- The PBS ISO install itself (see [Prerequisites](#prerequisites---not-automated)).
-- Populating `pbs/backup-username` and `pbs/backup-password` with real values, if not already done.
-- Confirming the NUT monitor account and UPS name against the Synology NAS's UPS
-  Network Status settings, and allow-listing this host as a permitted client - see
-  [NUT UPS monitoring](#nut-ups-monitoring).
-- Any reboot after the network change - the playbook prefers `ifreload -a` and never reboots the host on its own; a reboot, if one is ever needed, is a manually supervised action.
-- **Confirming the storage backing the `nas` NFS mount and the datastore matches what was actually racked.** This app assumes the NAS export at `<nas_host>:/volume1/pbs` is already sized and available for PBS backups; it does not provision NAS-side storage. If that assumption does not hold, treat it as a needs-decision rather than letting the playbook guess.
+- The PBS install itself and the creation of datastore `main` (see [Prerequisites](#prerequisites---not-automated)).
+- Any reboot - the play never reboots the host on its own.
+- Turning on NUT, once TrueNAS runs a NUT server (see [NUT UPS monitoring](#nut-ups-monitoring)).
 
-## Pinned package version
+## Package and repositories
 
-`scripts/deploy.yml` pins `proxmox-backup-server` to a specific version (`pbs_package_version`) and holds it with `dpkg_selections` after install, instead of letting a bare `apt install proxmox-backup-server` float to whatever the repo currently resolves. This only applies when the host doesn't already have PBS installed (see [Idempotency](#idempotency)) - a host provisioned from the ISO already has PBS and is left alone.
+PBS 4 runs on Debian trixie and keeps its apt sources as deb822 `.sources` files. The play:
 
-The pin is currently `4.2.5-1`, resolved from the [PBS installation docs](https://pbs.proxmox.com/docs/installation.html) on 2026-08-16 - it is not re-resolved on every run. To move it forward: check the current version in the `pbs-no-subscription` repo or the PBS docs/changelog, update `pbs_package_version` in `scripts/deploy.yml`, note the new date here, and re-run.
+- removes any `.list` or `.sources` file under `/etc/apt/sources.list.d` that names `enterprise.proxmox.com`, because the enterprise source needs a subscription and makes `apt-get update` fail;
+- adds `pbs-no-subscription.sources` only when no file under `/etc/apt` already names `pbs-no-subscription`, so a source that exists under another file name is not duplicated.
+
+The `proxmox-backup-server` package is not pinned and not held. The play installs it only when `proxmox-backup-manager version` fails (a host from the PBS ISO already has it), at the version the repository offers then. It never upgrades a running install. A host that an earlier run held gets the hold released. To update PBS, run `apt full-upgrade` on the host yourself.
 
 ## Idempotency
 
-Every task either checks existing state before changing it (hostname, network file content, apt package presence via `proxmox-backup-manager version`, PBS users, prune jobs, verify jobs, the NFS mount) or is naturally idempotent (`apt`, `copy`, `ufw`, `ansible.posix.authorized_key`, `ansible.posix.mount`). Re-running against an already-configured host is expected to report no changes.
+Every task either checks existing state before changing it (hostname, apt sources, apt package presence via `proxmox-backup-manager version`, the package hold, PBS users, ACLs, prune jobs, verify jobs and the GC schedule) or is naturally idempotent (`apt`, `copy`, `ufw`, `ansible.posix.authorized_key`). Re-running against an already-configured host is expected to report no changes.
 
 ## What was verified, and what was not
 
 The 1Password field name (`public key`, not `public-key`) and vault (`Private`) for the `andrew-mbp` SSH key item were confirmed with `op item get andrew-mbp` and a live `op read`, not assumed. The official PBS installation docs URL was fetched and confirmed live.
 
-**This playbook has never been run against the real host.** Verification here is `ansible-playbook --syntax-check`, the unit tests for the health script and the alert rules, `eslint` and `prettier` against the changed files - not a check-mode or live run, since `10.0.209.71` is a real host backing up the whole home lab and applying this is a manually supervised action after PR review.
+**This playbook has never been run against the real host.** Verification here is `ansible-playbook --syntax-check`, the unit tests for the health script and the alert rules, `eslint` and `prettier` against the changed files, and a read-only look at the host: it runs PBS 4 on Debian trixie, has a local `main` datastore with jobs and an ACL already in place, no NFS mount, no enterprise source and no NUT. The storage tasks were also run against a stand-in `proxmox-backup-manager` that returns that state. They made no change, and they made the five expected changes against an empty one. A real run is a manually supervised action after PR review.
 
 ## Nx targets
 
