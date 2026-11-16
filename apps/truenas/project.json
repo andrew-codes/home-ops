@@ -11,6 +11,28 @@
         "cwd": "{projectRoot}"
       }
     },
+    "test": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/.test-runs/unit"],
+      "options": {
+        "command": "jest",
+        "cwd": "apps/truenas"
+      }
+    },
+    "code-coverage": {
+      "executor": "@ha/nx-executors:upload-codecov",
+      "options": {
+        "coverageFilePath": "apps/truenas/.test-runs/unit/lcov.info"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/.test-runs/unit"],
+      "options": {
+        "command": "rm -rf dist .test-runs",
+        "cwd": "apps/truenas"
+      }
+    },
     "deploy": {
       "executor": "@ha/nx-executors:invoke",
       "options": {

@@ -4,3 +4,4 @@ namespace: default
 resources:
   - ../../base/alerting
   - truenas-vmrules.yaml
+  - truenas-health-vmrules.yaml

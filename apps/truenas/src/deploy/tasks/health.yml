@@ -1,0 +1,68 @@
+---
+# Installs a TrueNAS cron job that reports ZFS pool, vdev and SMART health to
+# VictoriaMetrics. The job runs src/health/truenas-health.py, which the play
+# embeds in the job's command. TrueNAS stores cron jobs in its own database, so
+# they survive upgrades and need no file on the host. The middleware strips
+# newlines from a cron command, so the script is passed as one base64 line.
+# Like the observability tasks, this reads the current state first and writes
+# only on drift, and manages only the job with this description.
+- name: Check that the node address is set
+  ansible.builtin.assert:
+    that:
+      - observability_host is defined
+      - observability_host | string | length > 0
+    fail_msg: observability_host must be the address of the Kubernetes node.
+    quiet: true
+
+- name: Define the desired health cron job
+  ansible.builtin.set_fact:
+    truenas_health_cron_desired:
+      description: "{{ health_cron_description }}"
+      user: root
+      enabled: true
+      # Both flags mean "discard that output". Nothing here should e-mail.
+      stdout: true
+      stderr: true
+      schedule: "{{ health_cron_schedule }}"
+      command: >-
+        echo '{{ lookup('ansible.builtin.file', health_script) | b64encode }}'
+        | base64 -d
+        | python3 - push
+        http://{{ observability_host }}:{{ health_import_port | int }}/api/v1/import/prometheus
+
+- name: List the cron jobs
+  ansible.builtin.command: midclt call cronjob.query
+  register: truenas_cron_jobs
+  changed_when: false
+
+- name: Find the health cron job
+  ansible.builtin.set_fact:
+    truenas_health_cron_current: >-
+      {{ truenas_cron_jobs.stdout | from_json
+         | selectattr('description', 'equalto', health_cron_description)
+         | list | first | default({}) }}
+
+- name: Add the health cron job
+  ansible.builtin.command:
+    argv:
+      - midclt
+      - call
+      - cronjob.create
+      - "{{ truenas_health_cron_desired | to_json }}"
+  when: truenas_health_cron_current | length == 0
+
+# Only the fields this play sets are compared. A command stored with the
+# newlines already removed compares equal because the command has none.
+- name: Reconcile the health cron job if it drifted
+  ansible.builtin.command:
+    argv:
+      - midclt
+      - call
+      - cronjob.update
+      - "{{ truenas_health_cron_current.id }}"
+      - "{{ truenas_health_cron_desired | to_json }}"
+  when:
+    - truenas_health_cron_current | length > 0
+    - >-
+      truenas_health_cron_current | combine(truenas_health_cron_desired, recursive=true)
+      != truenas_health_cron_current

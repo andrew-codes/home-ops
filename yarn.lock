@@ -3168,9 +3168,15 @@ __metadata:
     "@ha/ansible": "workspace:^0.0.1"
     "@ha/configuration-api": "workspace:^0.0.1"
     "@ha/configuration-workspace": "workspace:^0.0.1"
+    "@ha/configure-jest": "workspace:^0.0.1"
     "@ha/logger": "workspace:^0.0.1"
     "@ha/nx-executors": "workspace:^0.1.0"
+    "@types/jest": "npm:^29.5.14"
+    "@types/node": "npm:^18.19.76"
+    jest: "npm:^29.7.0"
     nx: "npm:^20.7.0"
+    ts-jest: "npm:^29.2.5"
+    typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
 

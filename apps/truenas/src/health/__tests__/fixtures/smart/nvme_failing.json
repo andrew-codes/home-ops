@@ -1,0 +1,50 @@
+{
+  "json_format_version": [1, 0],
+  "smartctl": {
+    "version": [7, 4],
+    "pre_release": false,
+    "svn_revision": "5530",
+    "platform_info": "x86_64-linux-6.12.113-production+truenas",
+    "build_info": "(local build)",
+    "argv": ["smartctl", "-j", "-a", "-n", "standby", "/dev/nvme0n1"],
+    "exit_status": 8
+  },
+  "device": {
+    "name": "/dev/nvme0n1",
+    "info_name": "/dev/nvme0n1",
+    "type": "nvme",
+    "protocol": "NVMe"
+  },
+  "model_name": "Samsung SSD 990 PRO 4TB",
+  "serial_number": "SERIAL-NVME0N1",
+  "smart_support": {
+    "available": true,
+    "enabled": true
+  },
+  "smart_status": {
+    "passed": false,
+    "nvme": {
+      "value": 4
+    }
+  },
+  "nvme_smart_health_information_log": {
+    "critical_warning": 4,
+    "temperature": 41,
+    "available_spare": 100,
+    "available_spare_threshold": 10,
+    "percentage_used": 92,
+    "data_units_read": 123456,
+    "data_units_written": 654321,
+    "media_errors": 5,
+    "num_err_log_entries": 0,
+    "warning_temp_time": 0,
+    "critical_comp_time": 0
+  },
+  "nvme_self_test_log": {
+    "current_self_test_operation": {
+      "value": 0,
+      "string": "No self-test in progress"
+    },
+    "table": []
+  }
+}

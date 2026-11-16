@@ -13,8 +13,24 @@
     observability_exporter_name: victoriametrics
     observability_graphite_prefix: truenas
     observability_graphite_namespace: nas
+    # VictoriaMetrics' HTTP ingestion door on the same node (the vmsingle
+    # NodePort Service in deployments/base/metrics), which the health cron job
+    # pushes to. See tasks/health.yml.
+    health_import_port: 30080
+    health_cron_description: Report ZFS pool and SMART health to VictoriaMetrics
+    health_cron_schedule:
+      minute: "*"
+      hour: "*"
+      dom: "*"
+      month: "*"
+      dow: "*"
+    health_script: "{{ playbook_dir }}/../health/truenas-health.py"
 
   tasks:
     - name: Observability (metrics exporter and remote syslog)
       ansible.builtin.import_tasks: tasks/observability.yml
       tags: [observability]
+
+    - name: Health reporting (ZFS pool, vdev and SMART metrics)
+      ansible.builtin.import_tasks: tasks/health.yml
+      tags: [health]

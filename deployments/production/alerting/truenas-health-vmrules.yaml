@@ -1,0 +1,217 @@
+---
+# TrueNAS health rules: ZFS pools, vdevs, disks and SMART. They read the
+# truenas_pool_*, truenas_smart_* and truenas_health_* series that the cron job
+# from apps/truenas (src/health/truenas-health.py) pushes into VictoriaMetrics
+# every minute. These are separate from the performance rules in
+# truenas-vmrules.yaml, which read the Graphite reporting exporter and cannot
+# see pool or disk health.
+#
+# The text names the pool, the vdev and the disk by serial number (and kernel
+# name), so the push says what to pull. A removed disk keeps the serial the
+# TrueNAS middleware remembers for it.
+#
+# The job runs on a schedule and the Graphite exporter pushes with gaps, so no
+# rule reads a bare selector for "the current value" or for presence: a missed
+# run or a gap must not fire or mute an alert. Every current value goes through
+# last_over_time over 5 minutes (5 runs), the heartbeat and the uptime check
+# through absent_over_time over 10 minutes, and the 7 day sector rules use
+# delta over a range. The price is that an alert resolves up to 5 minutes after
+# the state it reports has changed.
+#
+# In the production overlay only: staging receives no TrueNAS metrics, so the
+# missing-data rules would fire there forever.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: truenas-health
+spec:
+  groups:
+    # If the job stops, a bad pool or disk would go unnoticed, so its own
+    # heartbeat and failures are alerts too.
+    - name: truenas-health-source
+      rules:
+        # Silent when the whole host stopped reporting: TrueNASMetricsMissing
+        # already covers that.
+        - alert: TrueNASHealthMetricsMissing
+          expr: >-
+            absent_over_time(truenas_health_push_timestamp_seconds[10m])
+            unless absent_over_time({__name__="truenas.nas.system.uptime.uptime"}[10m])
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS pool and disk health is not being reported"
+            description: "TrueNAS is reporting performance metrics, but its health cron job has not pushed for 15 minutes. A degraded pool or a failing disk would go unnoticed. Check that the 'Report ZFS pool and SMART health' cron job exists and is enabled in the TrueNAS UI (System, Advanced Settings, Cron Jobs), run it by hand, and run `nx run truenas:deploy` to put it back."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # source is disks (disk.query), pool (pool.query) or boot_pool
+        # (boot.get_state). A change in the middleware after an upgrade shows
+        # up here.
+        - alert: TrueNASHealthSourceFailing
+          expr: last_over_time(truenas_health_collect_ok[5m]) == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS health cron job cannot read {{ $labels.source }}"
+            description: "The health cron job could not read '{{ $labels.source }}' from the TrueNAS middleware for 10 minutes, so the pool or disk alerts that depend on it cannot fire. This usually follows a TrueNAS upgrade that changed the middleware's output. Run the script by hand to see the error (see the apps/truenas README)."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        - alert: TrueNASSmartReadFailing
+          expr: last_over_time(truenas_smart_collect_ok[5m]) == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS cannot read SMART from disk {{ $labels.serial }} ({{ $labels.disk }})"
+            description: "smartctl could not read disk {{ $labels.serial }} ({{ $labels.disk }}) for 10 minutes, so the SMART alerts cannot see it. The disk may have failed or dropped off its controller. Check the pool in the TrueNAS UI."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+    - name: truenas-pool-health
+      rules:
+        - alert: TrueNASPoolNotOnline
+          expr: last_over_time(truenas_pool_state{state!="ONLINE"}[5m]) == 1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "TrueNAS pool {{ $labels.pool }} is {{ $labels.state }}"
+            description: "Pool {{ $labels.pool }} reports {{ $labels.state }}. ZFS keeps serving data while it can, but redundancy is reduced or gone, and another failure could lose data. The vdev and disk alerts say which one is affected; `zpool status {{ $labels.pool }}` on the NAS shows the detail."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # Every node of the pool: mirror and RAIDZ vdevs and the disks under
+        # them. Spares (AVAIL, INUSE) are expected not to be ONLINE.
+        - alert: TrueNASVdevNotOnline
+          expr: last_over_time(truenas_pool_vdev_state{state!~"ONLINE|AVAIL|INUSE"}[5m]) == 1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: >-
+              TrueNAS {{ if eq $labels.type "DISK" }}disk {{ if $labels.serial }}{{ $labels.serial }}{{ if $labels.disk }} ({{ $labels.disk }}){{ end }}{{ else }}{{ $labels.vdev }}{{ end }}{{ else }}{{ $labels.type }} vdev {{ $labels.vdev }}{{ end }}
+              in pool {{ $labels.pool }} is {{ $labels.state }}
+            description: >-
+              {{ if eq $labels.type "DISK" }}Disk {{ if $labels.serial }}{{ $labels.serial }}{{ if $labels.disk }} ({{ $labels.disk }}){{ end }}{{ else }}{{ $labels.vdev }}{{ end }}{{ if $labels.parent }} in {{ $labels.parent }}{{ end }}{{ else }}{{ $labels.type }} vdev {{ $labels.vdev }}{{ end }}
+              of pool {{ $labels.pool }} has been {{ $labels.state }} for 2 minutes. The pool is running with less redundancy, or none. Replace or reseat the disk in the TrueNAS UI (Storage, Manage Devices).
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # Cumulative since the pool was imported or the counters were cleared
+        # (`zpool clear`), so this stays on until someone looks at the disk.
+        - alert: TrueNASVdevErrors
+          expr: last_over_time(truenas_pool_vdev_errors[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              TrueNAS {{ if eq $labels.type "DISK" }}disk {{ if $labels.serial }}{{ $labels.serial }}{{ if $labels.disk }} ({{ $labels.disk }}){{ end }}{{ else }}{{ $labels.vdev }}{{ end }}{{ else }}{{ $labels.type }} vdev {{ $labels.vdev }}{{ end }}
+              in pool {{ $labels.pool }} has {{ $labels.kind }} errors
+            description: >-
+              ZFS counted {{ $value | humanize }} {{ $labels.kind }} errors on
+              {{ if eq $labels.type "DISK" }}disk {{ if $labels.serial }}{{ $labels.serial }}{{ if $labels.disk }} ({{ $labels.disk }}){{ end }}{{ else }}{{ $labels.vdev }}{{ end }}{{ else }}{{ $labels.type }} vdev {{ $labels.vdev }}{{ end }}
+              of pool {{ $labels.pool }}. A disk that keeps producing them is failing, a bad cable or controller port can too. Check SMART for the disk and clear the counters with `zpool clear` once the cause is fixed.
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # ZFS keeps only the latest scan, so this is the last scrub or
+        # resilver that finished. It stays on until the next one finishes.
+        - alert: TrueNASPoolScanErrors
+          expr: last_over_time(truenas_pool_last_scan_errors[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS pool {{ $labels.pool }} found errors in its last {{ $labels.function | toLower }}"
+            description: "The last {{ $labels.function | toLower }} of pool {{ $labels.pool }} finished with {{ $value | humanize }} errors. Check `zpool status -v {{ $labels.pool }}` for the files and devices involved."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # The scrub schedules run weekly but only scrub a pool whose last
+        # scrub is over 35 days old (boot pool: 7 days), so 45 days with no
+        # finished scan means scrubbing has stopped. A scan in progress and a
+        # pool that has never been scrubbed do not alert.
+        - alert: TrueNASScrubOverdue
+          expr: >-
+            (
+              time() - max by (pool) (last_over_time(truenas_pool_last_scan_end_timestamp_seconds[1d]))
+              > 45 * 24 * 3600
+            )
+            unless on(pool) (last_over_time(truenas_pool_scan_in_progress[5m]) == 1)
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS pool {{ $labels.pool }} has not been scrubbed for {{ $value | humanizeDuration }}"
+            description: "The last scrub or resilver of pool {{ $labels.pool }} finished {{ $value | humanizeDuration }} ago, more than the 45 days the scrub schedule allows. Check Data Protection, Scrub Tasks in the TrueNAS UI."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+    - name: truenas-smart
+      rules:
+        # The drive's own overall health self-assessment. A drive that reports
+        # FAILED is predicting its own failure.
+        - alert: TrueNASSmartHealthFailed
+          expr: last_over_time(truenas_smart_healthy[5m]) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "TrueNAS disk {{ $labels.serial }} ({{ $labels.disk }}) failed its SMART health check"
+            description: "Disk {{ $labels.serial }} ({{ $labels.disk }}) has reported a failed SMART overall health assessment for 5 minutes. It is predicting its own failure. Replace it, and check the pool in the TrueNAS UI."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # The newest short or long self-test (the weekly and monthly SMART
+        # cron jobs). TrueNAS raises the same condition in its own alerts.
+        - alert: TrueNASSmartSelfTestFailed
+          expr: last_over_time(truenas_smart_selftest_failed[5m]) == 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS disk {{ $labels.serial }} ({{ $labels.disk }}) failed its last SMART self-test"
+            description: "The most recent SMART self-test of disk {{ $labels.serial }} ({{ $labels.disk }}) did not pass. Look at the self-test log with `smartctl -l selftest /dev/{{ $labels.disk }}` and replace the disk if the failure is a read error."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # delta, not increase: these are gauges, and increase would count a
+        # disk's existing sectors as new the first time it is seen.
+        - alert: TrueNASSmartReallocatedSectorsIncreasing
+          expr: delta(truenas_smart_reallocated_sectors[7d]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS disk {{ $labels.serial }} ({{ $labels.disk }}) is reallocating sectors"
+            description: "Disk {{ $labels.serial }} ({{ $labels.disk }}) remapped bad sectors in the last 7 days (reallocated count up by {{ $value | humanize }}). A disk whose count keeps growing is wearing out; plan to replace it."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # Sectors the disk could not read and is waiting to reallocate on the
+        # next write. They clear by themselves when rewritten, so give it an
+        # hour before alerting.
+        - alert: TrueNASSmartPendingSectors
+          expr: last_over_time(truenas_smart_pending_sectors[5m]) > 0
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS disk {{ $labels.serial }} ({{ $labels.disk }}) has pending sectors"
+            description: "Disk {{ $labels.serial }} ({{ $labels.disk }}) has had unreadable sectors pending reallocation for over an hour (count {{ $value | humanize }}). A scrub or a disk replacement will resolve it; if the count grows, the disk is failing."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # Offline uncorrectable sectors (SMART 198) and reported uncorrectable
+        # errors (SMART 187). TrueNAS alerts on the latter.
+        - alert: TrueNASSmartUncorrectableErrors
+          expr: >-
+            label_replace(last_over_time(truenas_smart_offline_uncorrectable_sectors[5m]) > 0, "kind", "offline uncorrectable sectors", "", "")
+            or
+            label_replace(last_over_time(truenas_smart_reported_uncorrectable_errors[5m]) > 0, "kind", "reported uncorrectable errors", "", "")
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS disk {{ $labels.serial }} ({{ $labels.disk }}) reports uncorrectable errors"
+            description: "Disk {{ $labels.serial }} ({{ $labels.disk }}) has had a nonzero {{ $labels.kind }} count for over an hour ({{ $value | humanize }}). It could not read data it should have, and is likely to fail."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # The NVMe critical warning is a bit field: spare capacity below its
+        # threshold, temperature, reliability degraded, read-only, or the
+        # volatile memory backup failed. Any bit set is a problem.
+        - alert: TrueNASNvmeCriticalWarning
+          expr: last_over_time(truenas_smart_nvme_critical_warning[5m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "TrueNAS NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) raised a critical warning"
+            description: "NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) reports critical warning flags {{ $value | humanize }} (bit field: 1 spare capacity low, 2 temperature, 4 reliability degraded, 8 read-only, 16 volatile memory backup failed). Run `smartctl -a /dev/{{ $labels.disk }}` on the NAS for the detail."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        - alert: TrueNASNvmeMediaErrorsIncreasing
+          expr: delta(truenas_smart_nvme_media_errors[7d]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) is logging media errors"
+            description: "NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) logged {{ $value | humanize }} more media and data integrity errors in the last 7 days."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS

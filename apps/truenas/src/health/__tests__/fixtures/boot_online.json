@@ -1,0 +1,50 @@
+{
+  "name": "boot-pool",
+  "status": "ONLINE",
+  "healthy": true,
+  "warning": false,
+  "status_code": "OK",
+  "status_detail": null,
+  "scan": {
+    "function": "SCRUB",
+    "state": "FINISHED",
+    "start_time": {
+      "$date": 1794732302000
+    },
+    "end_time": {
+      "$date": 1794732307000
+    },
+    "percentage": 99.99193549156189,
+    "bytes_to_process": 3707953152,
+    "bytes_processed": 3708301312,
+    "bytes_issued": 3707097088,
+    "pause": null,
+    "errors": 0,
+    "total_secs_left": null
+  },
+  "topology": {
+    "data": [
+      {
+        "name": "nvme0n1p3",
+        "type": "DISK",
+        "path": "/dev/nvme0n1p3",
+        "guid": "547446932442103145",
+        "status": "ONLINE",
+        "stats": {
+          "read_errors": 0,
+          "write_errors": 0,
+          "checksum_errors": 0
+        },
+        "children": [],
+        "device": "nvme0n1p3",
+        "disk": "nvme0n1",
+        "unavail_disk": null
+      }
+    ],
+    "log": [],
+    "cache": [],
+    "spare": [],
+    "special": [],
+    "dedup": []
+  }
+}

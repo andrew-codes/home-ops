@@ -1,0 +1,119 @@
+[
+  {
+    "name": "nvme0n1",
+    "devname": "nvme0n1",
+    "serial": "SERIAL-NVME0N1",
+    "model": "Samsung SSD 990 PRO 4TB",
+    "type": "SSD",
+    "bus": "UNKNOWN",
+    "rotationrate": null
+  },
+  {
+    "name": "sdi",
+    "devname": "sdi",
+    "serial": "SERIAL-SDI",
+    "model": "Samsung_SSD_870_EVO_2TB",
+    "type": "SSD",
+    "bus": "ATA",
+    "rotationrate": null
+  },
+  {
+    "name": "sda",
+    "devname": "sda",
+    "serial": "SERIAL-SDA",
+    "model": "ST8000VN004-3CP101",
+    "type": "HDD",
+    "bus": "ATA",
+    "rotationrate": 7200
+  },
+  {
+    "name": "sdl",
+    "devname": "sdl",
+    "serial": "SERIAL-SDL",
+    "model": "ST8000NM0055-1RM112",
+    "type": "HDD",
+    "bus": "ATA",
+    "rotationrate": 7200
+  },
+  {
+    "name": "sdk",
+    "devname": "sdk",
+    "serial": "SERIAL-SDK",
+    "model": "ST8000NM0055-1RM112",
+    "type": "HDD",
+    "bus": "ATA",
+    "rotationrate": 7200
+  },
+  {
+    "name": "sdj",
+    "devname": "sdj",
+    "serial": "SERIAL-SDJ",
+    "model": "ST8000NM0055-1RM112",
+    "type": "HDD",
+    "bus": "ATA",
+    "rotationrate": 7200
+  },
+  {
+    "name": "sdc",
+    "devname": "sdc",
+    "serial": "SERIAL-SDC",
+    "model": "ST8000NM0055-1RM112",
+    "type": "HDD",
+    "bus": "ATA",
+    "rotationrate": 7200
+  },
+  {
+    "name": "sdb",
+    "devname": "sdb",
+    "serial": "SERIAL-SDB",
+    "model": "ST8000VN004-3CP101",
+    "type": "HDD",
+    "bus": "ATA",
+    "rotationrate": 7200
+  },
+  {
+    "name": "sdd",
+    "devname": "sdd",
+    "serial": "SERIAL-SDD",
+    "model": "Samsung_SSD_870_EVO_2TB",
+    "type": "SSD",
+    "bus": "ATA",
+    "rotationrate": null
+  },
+  {
+    "name": "sdf",
+    "devname": "sdf",
+    "serial": "SERIAL-SDF",
+    "model": "ST8000VN004-3CP101",
+    "type": "HDD",
+    "bus": "ATA",
+    "rotationrate": 7200
+  },
+  {
+    "name": "sde",
+    "devname": "sde",
+    "serial": "SERIAL-SDE",
+    "model": "ST8000VN004-3CP101",
+    "type": "HDD",
+    "bus": "ATA",
+    "rotationrate": 7200
+  },
+  {
+    "name": "sdg",
+    "devname": "sdg",
+    "serial": "SERIAL-SDG",
+    "model": "ST8000NM0055-1RM112",
+    "type": "HDD",
+    "bus": "ATA",
+    "rotationrate": 7200
+  },
+  {
+    "name": "sdh",
+    "devname": "sdh",
+    "serial": "SERIAL-SDH",
+    "model": "ST8000NM0055-1RM112",
+    "type": "HDD",
+    "bus": "ATA",
+    "rotationrate": 7200
+  }
+]
