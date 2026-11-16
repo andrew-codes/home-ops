@@ -78,7 +78,7 @@
       ansible.builtin.find:
         paths: /etc/apt/sources.list.d
         patterns: ["*.list", "*.sources"]
-        contains: 'enterprise\.proxmox\.com'
+        contains: '.*enterprise\.proxmox\.com'
       register: pbs_enterprise_sources
 
     - name: Remove PBS enterprise repository sources
@@ -96,7 +96,7 @@
       ansible.builtin.find:
         paths: /etc/apt/sources.list.d
         patterns: ["*.list", "*.sources"]
-        contains: 'pbs-no-subscription'
+        contains: '.*pbs-no-subscription'
       register: pbs_nosub_sources
 
     - name: Add the PBS no-subscription repository
