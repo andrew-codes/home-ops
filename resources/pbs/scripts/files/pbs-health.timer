@@ -1,0 +1,11 @@
+# Managed by resources/pbs (scripts/deploy.yml). Edits are overwritten.
+[Unit]
+Description=Report Proxmox Backup Server task results and backup freshness every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
