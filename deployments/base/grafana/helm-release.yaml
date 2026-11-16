@@ -30,6 +30,13 @@ spec:
             isDefault: true
             updateIntervalSeconds: 10
             editable: true
+            jsonData:
+              # Lists the vmalert rules and their state on Alerting > Alert rules
+              # (read-only, data source-managed). Grafana reads them from
+              # /api/v1/rules, which VMSingle forwards to vmalert through
+              # -vmalert.proxyURL (deployments/base/metrics/vmsingle.yaml). Keep
+              # type: prometheus, Grafana rejects the VictoriaMetrics plugin type here.
+              manageAlerts: true
           - name: victorialogs
             type: victoriametrics-logs-datasource
             orgId: 1

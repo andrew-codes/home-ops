@@ -143,13 +143,40 @@ The backup server pushes its host and datastore usage through its InfluxDB metri
 - **The usage rules use the datastore's file system.** The `nas` datastore is an NFS mount, so its total, used and free are those of the NAS volume it sits on.
 - **Unit tests.** `resources/pbs/tests/pbs-rules.test.yaml` runs the rules through `vmalert-tool` (`resources/pbs/scripts/test-rules.sh`, or `yarn nx test pbs`; needs Docker and `yq`). It covers a healthy host that fires nothing, each failure, a gap between pushes, recovery, and the exact push text. The script has its own tests in `resources/pbs/tests/test_pbs_health.py`.
 
-## Alert history
+## Alerts in Grafana
 
-Two Grafana pages show what fired, both behind the push (Alerting > Alert groups, and the `Alert history`
-dashboard at `https://grafana.smith-simms.family/d/alert-history`):
+Rules stay in git (`VMRule` objects, tested with `vmalert-tool`) and vmalert and Alertmanager keep doing the
+work. Grafana's Alerting menu is a read-only window onto them, on `https://grafana.smith-simms.family`:
 
-- **Alert groups** (the `alertmanager` data source in `deployments/base/grafana/helm-release.yaml`) shows what
-  is firing now, with the full summary, description, labels and start time. It is what the push opens.
+- **Alert rules** (Alerting > Alert rules, "Data source-managed" section) lists every vmalert rule with its
+  state: firing, pending (the `for:` timer is running) or normal. Open a rule for its query and graph, its
+  instances (labels and when it became active) and its `summary` and `description`. It is read-only: rules
+  are edited in git. It works through the `victoriametrics` data source (`type: prometheus`, `manageAlerts`
+  on): Grafana asks VMSingle for `/api/v1/rules`, and VMSingle forwards it to vmalert because of
+  `vmalert.proxyURL` in `deployments/base/metrics/vmsingle.yaml`. Without that flag VMSingle answers with an
+  empty list and the page looks empty, with no error.
+  - A group's name in the list is the path of the rule file the operator generated, followed by the group name.
+  - Watchdog always fires and counts as firing. Hide it with the search `label:severity!=none`.
+  - Do not create rules with "New alert rule" or "New recording rule" on that page. They would be Grafana-managed
+    rules, which are not used here and send no notifications (`handleGrafanaManagedAlerts: false`).
+  - Keep the data source `type: prometheus`. Grafana only reads rules from `prometheus` and `loki` data sources,
+    not from the VictoriaMetrics plugin type.
+- **Alert groups** and **Silences** (the `alertmanager` data source in
+  `deployments/base/grafana/helm-release.yaml`) show what is firing now, with the full summary, description,
+  labels and start time, and the silences. A silence can be created or expired here and goes to Alertmanager.
+  Contact points, notification policies and templates are read-only, they are in `vmalertmanager.yaml`.
+  Alert groups is what the push opens.
+- **See source** on an alert in Alert groups opens Grafana Explore on the `victoriametrics` data source with the
+  rule's expression, over a range that starts an hour before the alert became active. vmalert builds the link
+  from `external.url` and `external.alert.source` in `vmalert.yaml`. The Explore link names the data source
+  (`victoriametrics`), so keep that name stable too, like the `alertmanager` name below.
+
+### Alert history
+
+Grafana's own alert state history only records Grafana-managed rules, so it shows nothing for vmalert rules.
+What fired in the past stays on the `Alert history` dashboard at
+`https://grafana.smith-simms.family/d/alert-history`:
+
 - **Alert history** (`deployments/base/grafana/dashboards/alert-history.json`) shows what fired over a time
   range. vmalert writes alert state to VictoriaMetrics as the `ALERTS` and `ALERTS_FOR_STATE` series. They
   carry labels only (plus an `alertgroup` label), so the dashboard has no summary or description: the alert
@@ -363,11 +390,20 @@ At most a few more checks (for example backup jobs that ping on success) are exp
    `PBSBackupFailed` shows as pending, fires after 5 minutes, and everyone gets a push reading `Proxmox Backup Server backup of vm/999 failed`. The sample goes stale by itself after about 15 minutes and a resolved push follows. Also check that the health timer is alive: `pbs_health_push_timestamp_seconds` in Grafana Explore should be less than 10 minutes old.
 
 8. Failure path: stop the pings (for example seal a wrong `healthchecks-ping-url`); Healthchecks.io notifies you after the grace time.
+9. Grafana sees the rules. Through a port-forward to `svc/vmsingle-vmsingle` (8428), `curl -s localhost:8428/api/v1/rules`
+   should list the rule groups (an empty `groups` list means `vmalert.proxyURL` is missing or vmalert is down), and
+   Alerting > Alert rules should show the "Data source-managed" groups with Watchdog firing. On Alert groups, "See
+   source" on an alert opens Explore with the rule's expression.
 
 ## Known limits
 
 - Single node cluster: if the node dies, vmalert dies with it. Only the Watchdog (Healthchecks.io) can
   report that, so a node outage arrives as the Healthchecks.io email or SMS rather than a push.
-- Alertmanager keeps silences and notification history in memory. A restart forgets them.
+- Alertmanager keeps silences and notification history in memory. A restart forgets them, including silences
+  created in Grafana.
+- The Alert rules page and its source links depend on VMSingle (`vmalert.proxyURL`) and vmalert being up. If
+  vmalert is down the page shows an error for the data source, while Alert groups keeps working.
+- The alert source link uses the production Grafana URL (`external.url`), staging included, like the
+  `dashboard_url` annotations in the rules.
 - If Home Assistant is down, pushes fail (`AlertmanagerNotificationsFailing` is visible in Grafana).
   Healthchecks.io is independent of Home Assistant.
