@@ -122,20 +122,17 @@ writes the SealedSecrets.
 
 ### 2. Home Assistant
 
-Everyone who should be alerted needs the companion app with notifications allowed. Group their
-`notify.mobile_app_*` services into one notify service in `configuration.yaml`, then restart or reload:
-
-```yaml
-notify:
-  - name: alert_recipients
-    platform: group
-    services:
-      - action: mobile_app_<person one phone>
-      - action: mobile_app_<person two phone>
-```
+Everyone who should be alerted needs the phone app with notifications allowed. Alerts go through the
+Home Assistant script `script.notify_via_control4`, which sends the phone notification to the family
+members. It is the single place that decides which app delivers the push: today the Home Assistant iPhone
+app, and at the Control4 cutover only this script changes to the Control4 mobile app. The automation
+below does not change. No notify group is needed.
 
 Add this automation (UI: Settings, Automations, Create, Edit in YAML). Replace `<webhook id>` with the id
 from step 1. Alertmanager reaches Home Assistant through the in-cluster service, so `local_only` can stay on.
+
+If the automation already exists, edit it instead of pasting it again. A second paste creates a duplicate
+id, and Home Assistant silently ignores it (`ID alertmanager_push already exists`), so your change never runs.
 
 ```yaml
 alias: Alertmanager push
@@ -167,32 +164,15 @@ variables:
   link: >-
     {{ (firing + resolved) | map(attribute='annotations.dashboard_url') | reject('undefined') | first | default('') }}
 actions:
-  - choose:
-      - conditions:
-          - "{{ severity == 'critical' and firing | count > 0 }}"
-        sequence:
-          - action: notify.alert_recipients
-            data:
-              title: "{{ title }}"
-              message: "{{ message }}"
-              data:
-                tag: alertmanager-{{ severity }}
-                group: alertmanager
-                url: "{{ link }}"
-                push:
-                  sound:
-                    name: default
-                    critical: 1
-                    volume: 1.0
-    default:
-      - action: notify.alert_recipients
-        data:
-          title: "{{ title }}"
-          message: "{{ message }}"
-          data:
-            tag: alertmanager-{{ severity }}
-            group: alertmanager
-            url: "{{ link }}"
+  - action: script.notify_via_control4
+    data:
+      recipients: [andrew, dorri]
+      title: "{{ title }}"
+      message: "{{ message }}"
+      critical: "{{ severity == 'critical' and firing | count > 0 }}"
+      url: "{{ link }}"
+      tag: alertmanager-{{ severity }}
+      thread: alertmanager
 ```
 
 ### 3. Healthchecks.io (one check)
