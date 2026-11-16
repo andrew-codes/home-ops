@@ -1,0 +1,27 @@
+---
+# Rule engine. Evaluates every VMRule in the namespace against VMSingle, sends
+# firing alerts to Alertmanager and writes alert state (ALERTS and
+# ALERTS_FOR_STATE) back to VMSingle so "for:" timers survive a restart.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAlert
+metadata:
+  name: vmalert
+spec:
+  replicaCount: 1
+  evaluationInterval: 30s
+  selectAllByDefault: true
+  disableSelfServiceScrape: true
+  datasource:
+    url: http://vmsingle-vmsingle.default.svc.cluster.local:8428
+  remoteWrite:
+    url: http://vmsingle-vmsingle.default.svc.cluster.local:8428
+  remoteRead:
+    url: http://vmsingle-vmsingle.default.svc.cluster.local:8428
+  notifier:
+    url: http://vmalertmanager-vmalertmanager.default.svc.cluster.local:9093
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

@@ -1,0 +1,59 @@
+---
+# Alertmanager config. It lives in git and holds no secrets: the two receiver
+# URLs (Home Assistant webhook and Healthchecks.io ping) are read from the
+# alertmanager-receivers secret mounted under /etc/vm/secrets.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMAlertmanager
+metadata:
+  name: vmalertmanager
+spec:
+  replicaCount: 1
+  secrets:
+    - alertmanager-receivers
+  disableSelfServiceScrape: true
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+  configRawYaml: |
+    global:
+      resolve_timeout: 5m
+    route:
+      receiver: home-assistant
+      # One message per severity: an outage that trips several alerts reads as
+      # one push listing everything affected, not one push per alert.
+      group_by: ["severity"]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      routes:
+        # Heartbeat: the always-firing Watchdog goes only to Healthchecks.io.
+        # Resent about every 5 minutes (repeat_interval, rounded up to the
+        # next group_interval tick). The Healthchecks.io check period and
+        # grace must be set from this value.
+        - receiver: healthchecks
+          matchers:
+            - alertname = "Watchdog"
+          group_wait: 0s
+          group_interval: 1m
+          repeat_interval: 5m
+    inhibit_rules:
+      # A critical alert hides the warning for the same alert and target.
+      - source_matchers:
+          - severity = "critical"
+        target_matchers:
+          - severity = "warning"
+        equal: ["alertname", "job", "instance"]
+    receivers:
+      - name: home-assistant
+        webhook_configs:
+          - url_file: /etc/vm/secrets/alertmanager-receivers/home-assistant-webhook-url
+            send_resolved: true
+            max_alerts: 20
+      - name: healthchecks
+        webhook_configs:
+          - url_file: /etc/vm/secrets/alertmanager-receivers/healthchecks-ping-url
+            send_resolved: false
+            max_alerts: 1

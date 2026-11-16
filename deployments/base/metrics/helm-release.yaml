@@ -63,6 +63,18 @@ spec:
           static_configs:
             - targets:
                 - "localhost:8429"
+        - job_name: "victoria-metrics"
+          static_configs:
+            - targets:
+                - "vmsingle-vmsingle.default.svc.cluster.local:8428"
+        - job_name: "vmalert"
+          static_configs:
+            - targets:
+                - "vmalert-vmalert.default.svc.cluster.local:8080"
+        - job_name: "alertmanager"
+          static_configs:
+            - targets:
+                - "vmalertmanager-vmalertmanager.default.svc.cluster.local:9093"
         - job_name: "kubernetes-apiservers"
           kubernetes_sd_configs:
             - role: "endpoints"

@@ -77,7 +77,9 @@ export async function secrets1passwordGenerator(_tree: Tree, _options: object) {
         vault,
         `${field}[text]=`,
       ])
-      console.log(`Created item '${item}' with field '${field}' for ${secretName}.`)
+      console.log(
+        `Created item '${item}' with field '${field}' for ${secretName}.`,
+      )
     }
   }
 }

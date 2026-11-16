@@ -6,6 +6,12 @@ import path from "node:path"
 import { env } from "node:process"
 import { SecretsGeneratorSchema } from "./schema"
 
+// Every secret lives in the default namespace. It is passed explicitly because
+// `kubectl create secret --dry-run=client` only fills in a namespace from the
+// current kubeconfig context, and kubeseal (strict scope) refuses a secret
+// without one. Without this the generator fails on a machine with no context.
+const SECRET_NAMESPACE = "default"
+
 export async function secretsSealGenerator(
   tree: Tree,
   options: SecretsGeneratorSchema,
@@ -40,7 +46,7 @@ export async function secretsSealGenerator(
       let k8sSecret: string | null = null
       if (k8sName === "regcred") {
         k8sSecret = await kube.exec(
-          `kubectl create secret docker-registry ${k8sName} --docker-server=${kv.server} --docker-username=${kv.username} --docker-email=${kv.email} --docker-password=${kv.password} --dry-run=client -o yaml`,
+          `kubectl create secret docker-registry ${k8sName} --docker-server=${kv.server} --docker-username=${kv.username} --docker-email=${kv.email} --docker-password=${kv.password} --namespace ${SECRET_NAMESPACE} --dry-run=client -o yaml`,
         )
       } else {
         const values = Object.entries(kv)
@@ -52,7 +58,7 @@ export async function secretsSealGenerator(
           continue
         }
         k8sSecret = await kube.exec(
-          `kubectl create secret generic ${k8sName} ${values} --dry-run=client -o yaml`,
+          `kubectl create secret generic ${k8sName} ${values} --namespace ${SECRET_NAMESPACE} --dry-run=client -o yaml`,
         )
       }
 

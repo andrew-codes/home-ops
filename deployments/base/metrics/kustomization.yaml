@@ -7,4 +7,3 @@ resources:
   - vmsingle.yaml
   - helm-source.yaml
   - helm-release.yaml
-
