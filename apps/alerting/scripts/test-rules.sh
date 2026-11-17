@@ -14,6 +14,8 @@ yq_image="mikefarah/yq:4.54.3"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
+# mktemp -d is mode 0700; the container user must be able to read the mount.
+chmod 755 "$work"
 
 # vmrules.yaml holds several VMRule documents. Merge all their groups.
 docker run --rm -i "$yq_image" ea '{"groups": [select(.kind == "VMRule") | .spec.groups[]]}' <"$vmrules" >"$work/base-rules.yaml"

@@ -18,6 +18,8 @@ yq() { docker run --rm -i "$yq_image" "$@"; }
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
+# mktemp -d is mode 0700; the container user must be able to read the mount.
+chmod 755 "$work"
 mkdir -p "$work/secrets"
 
 yq -r '.spec.configRawYaml' <"$vmalertmanager" >"$work/alertmanager.yml"
