@@ -285,7 +285,9 @@ either way.
 LXC containers and Linux VMs on this host to VictoriaLogs. It runs the same
 [`tasks/logs.yml`](src/deploy/tasks/logs.yml) as the host: install `rsyslog` if the guest has none,
 forward everything to the cluster as RFC 5424 over TCP, check the whole rsyslog configuration with
-`rsyslogd -N1` and roll back a config that does not load. A guest's journal reaches rsyslog on
+`rsyslogd -N1` and roll back a config that does not load. In LXC containers it also comments out
+the `imklog` module in `/etc/rsyslog.conf`, because an unprivileged container cannot read
+`/proc/kmsg` and the module would log a permission error on every start. A guest's journal reaches rsyslog on
 Debian and Ubuntu by default, so services that only log to journald are forwarded too. Guests have no
 metric server, so nothing else is installed or changed.
 
