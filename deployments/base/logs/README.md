@@ -44,9 +44,12 @@ Pod logs have a `level` only when the application logs JSON that carries one. A 
 The `Logs` dashboard in Grafana (`dashboards/logs.json`, uid `logs`) is the search and filter surface:
 
 - **Filters.** Host, Source (the syslog program), Namespace, Pod, Container, Level and a Search box for a word
-  in the message. All of them start on `All`. A filter on a field a line does not have leaves the line in until
-  a value is picked for that field, so picking a namespace narrows to pods and picking a host narrows to
-  syslog. Choosing a level leaves out the lines that have none.
+  in the message. All of them start on `All`. The dashboard variables use `*` as their All value, and the
+  VictoriaLogs Grafana plugin (0.34.0) sends that as `field:in(*)`. Unlike plain `field:*`, which only matches
+  lines where the field is non-empty, `in(*)` also matches lines that lack the field. So with everything on
+  `All` both syslog lines and pod lines show, picking a namespace narrows to pods and picking a host narrows to
+  syslog. Choosing a level leaves out the lines that have none. This was checked against VictoriaLogs v1.54.0
+  with one syslog-shaped line and one pod-shaped line.
 - **Panels.** Counts (lines, errors and worse, hosts, pods), volume by source and by level, the busiest
   hosts, programs and pods, and the matching lines newest first.
 - **Search.** Use Explore on the `victorialogs` data source for anything the filters do not cover. Some
