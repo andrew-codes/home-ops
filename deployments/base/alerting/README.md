@@ -181,7 +181,7 @@ down). It stays a warning, so its push does not change. To make another rule ope
 `incident: "true"`. The routes are in `vmalertmanager.yaml`. Warnings and `info` alerts keep today's behavior.
 
 **What the work item holds.** The work item is a `Task` labelled `incident` (the HO project has no Incident
-type). Its summary is `[<alertname>] <summary annotation>`, and its priority is High for a critical alert.
+type). Its summary is `[<alertname>] <summary annotation>`, and its priority is High, whatever the alert's severity.
 The description holds:
 
 - what is wrong (the `summary` and `description` annotations);
@@ -280,7 +280,7 @@ Until the secret has both fields, the receiver cannot open work items and `incid
   is unreachable);
 - `amtool` against `vmalertmanager.yaml`: the config loads, each kind of alert reaches the right receivers
   (a critical alert and `TargetDown` both reach Jira and Home Assistant, a warning only Home Assistant), and the
-  work item's summary, labels and description render for a sample alert;
+  work item's summary, priority, labels and description render for a sample alert;
 - `vmalert-tool` tests of `TargetDown` and `IncidentAckSyncFailing`.
 
 ### Limits
@@ -292,7 +292,9 @@ Until the secret has both fields, the receiver cannot open work items and `incid
 - **The pushes resume at a repeat, not at once.** When you close a work item for an alert that still fires,
   Alertmanager notifies again 4 hours after its last push, or within 5 minutes if that is already past.
 - **Alertmanager rewrites some fields on update.** Each update sets the labels and the priority again. A label
-  you add by hand, or a priority you change, is reset the next time the alert notifies. Do not remove the
+  you add by hand, or a priority you change, is reset the next time the alert notifies (a work item you lower
+  from High goes back to High). Alertmanager v0.34 has no `enable_update: false` for the priority, unlike the
+  summary and description. Do not remove the
   `incident` and `alert-fp-` labels: the sync cannot see the work item without them.
 - **Closing as Won't Do reopens it too.** The work item reopens within 24 hours of any Done status. To stop an
   alert for a real reason, fix the rule or create a silence of your own in Grafana.
