@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "TrueNAS host metrics pushed through its Graphite reporting exporter, plus pool, vdev and SMART health pushed by the health cron job from apps/truenas.",
+  "description": "TrueNAS host metrics pushed through its Graphite reporting exporter, plus pool, vdev and SMART health and the state of scheduled tasks pushed by the health cron job from apps/truenas.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -1357,6 +1357,883 @@
     },
     {
       "type": "row",
+      "title": "Scheduled tasks",
+      "id": 51,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Tasks failed",
+      "id": 52,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 51
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(last_over_time(truenas_task_failed[5m]) == 1 and on(type, task, id) (last_over_time(truenas_task_enabled[5m]) == 1)) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Enabled cloud sync, replication, snapshot and rsync tasks whose last run failed. The result stays until the task runs again. Alert: TrueNASTaskFailed."
+    },
+    {
+      "type": "stat",
+      "title": "Tasks overdue",
+      "id": 53,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 51
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count((time() - last_over_time(truenas_task_last_scheduled_timestamp_seconds[5m]) > 15 * 60) and on(type, task, id) (last_over_time(truenas_task_last_run_timestamp_seconds[5m]) < on(type, task, id) last_over_time(truenas_task_last_scheduled_timestamp_seconds[5m])) unless on(type, task, id) (last_over_time(truenas_task_running[5m]) == 1)) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Enabled tasks that should have started over 15 minutes ago and have not, by their schedule in the NAS's time zone. A task that is running is not counted. Alert: TrueNASTaskOverdue."
+    },
+    {
+      "type": "stat",
+      "title": "Tasks running",
+      "id": 54,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 51
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(last_over_time(truenas_task_running[5m])) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Tasks running now."
+    },
+    {
+      "type": "stat",
+      "title": "Enabled tasks",
+      "id": 55,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 51
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(last_over_time(truenas_task_enabled[5m]) == 1) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "description": "Enabled cloud sync, replication, snapshot and rsync tasks the health job reports."
+    },
+    {
+      "type": "table",
+      "title": "Scheduled tasks",
+      "id": 56,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 55
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "tlast_over_time(truenas_task_state[5m]) == on(type, task, id) group_left() max by (type, task, id) (tlast_over_time(truenas_task_state[5m]))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "last_over_time(truenas_task_last_run_timestamp_seconds[5m]) * 1000",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "last_over_time(truenas_task_last_scheduled_timestamp_seconds[5m]) * 1000",
+          "legendFormat": "",
+          "refId": "C",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "last_over_time(truenas_task_enabled[5m])",
+          "legendFormat": "",
+          "refId": "D",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "description": "Every cloud sync, replication, periodic snapshot and rsync task with the result of its last run, when it last started and when its schedule last called for it. A task that has never run, or a snapshot or replication task since the last reboot, has no last run. Scrubs and SMART tests are in Pool and disk health.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Result"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "SUCCESS": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "FAILED": {
+                        "color": "red",
+                        "index": 1
+                      },
+                      "RUNNING": {
+                        "color": "blue",
+                        "index": 2
+                      },
+                      "ABORTED": {
+                        "color": "orange",
+                        "index": 3
+                      },
+                      "PENDING": {
+                        "color": "text",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last run"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last due"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Enabled"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "no",
+                        "color": "text",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "yes",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value #A": true,
+              "__name__": true,
+              "cluster": true,
+              "job": true,
+              "instance": true
+            },
+            "indexByName": {
+              "type": 0,
+              "task": 1,
+              "id": 2,
+              "state": 3,
+              "Value #D": 4,
+              "Value #B": 5,
+              "Value #C": 6
+            },
+            "renameByName": {
+              "type": "Type",
+              "task": "Task",
+              "id": "ID",
+              "state": "Result",
+              "Value #B": "Last run",
+              "Value #C": "Last due",
+              "Value #D": "Enabled"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "state-timeline",
+      "title": "Task state history",
+      "id": 57,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 65
+      },
+      "timeFrom": "7d",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max_over_time(truenas_task_failed[$__interval]) * 2 + max_over_time(truenas_task_running[$__interval])",
+          "legendFormat": "{{type}} {{task}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "description": "The last 7 days of every task: green when its last run succeeded, blue while it runs, red while its last run is a failure. A task keeps its last result until it runs again.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "fillOpacity": 70,
+            "lineWidth": 0
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "blue",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "OK"
+                },
+                "1": {
+                  "text": "RUNNING"
+                },
+                "2": {
+                  "text": "FAILED"
+                },
+                "3": {
+                  "text": "FAILED"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "alignValue": "left",
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "type": "table",
+      "title": "Middleware job history",
+      "id": 58,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 74
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "tlast_over_time(truenas_job_last_state[5m]) == on(method) group_left() max by (method) (tlast_over_time(truenas_job_last_state[5m]))",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "last_over_time(truenas_job_last_finished_timestamp_seconds[5m]) * 1000",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (method) (last_over_time(truenas_job_history_jobs{state=\"FAILED\"}[5m]))",
+          "legendFormat": "",
+          "refId": "C",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "description": "The newest result of every kind of job in the TrueNAS middleware's recent job history (a task run, a manual run, a scrub), and how many failed jobs of that kind are still in the history.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last result"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "SUCCESS": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "FAILED": {
+                        "color": "red",
+                        "index": 1
+                      },
+                      "RUNNING": {
+                        "color": "blue",
+                        "index": 2
+                      },
+                      "ABORTED": {
+                        "color": "orange",
+                        "index": 3
+                      },
+                      "PENDING": {
+                        "color": "text",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Finished"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsLocal"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed in history"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value #A": true,
+              "__name__": true,
+              "cluster": true,
+              "job": true,
+              "instance": true
+            },
+            "indexByName": {
+              "method": 0,
+              "state": 1,
+              "Value #B": 2,
+              "Value #C": 3
+            },
+            "renameByName": {
+              "method": "Method",
+              "state": "Last result",
+              "Value #B": "Finished",
+              "Value #C": "Failed in history"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Failed in history",
+                "desc": true
+              },
+              {
+                "field": "Method"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Failed jobs in history",
+      "id": 59,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 74
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (method) (last_over_time(truenas_job_history_jobs{state=\"FAILED\"}[5m])) > 0",
+          "legendFormat": "{{method}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["lastNotNull", "max"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Failed jobs still in the TrueNAS middleware's job history, by kind. Only kinds with a failure are shown, so an empty panel is good."
+    },
+    {
+      "type": "row",
       "title": "CPU and system",
       "id": 8,
       "collapsed": false,
@@ -1364,7 +2241,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 50
+        "y": 82
       },
       "panels": []
     },
@@ -1380,7 +2257,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 51
+        "y": 83
       },
       "targets": [
         {
@@ -1462,7 +2339,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 51
+        "y": 83
       },
       "targets": [
         {
@@ -1553,7 +2430,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 51
+        "y": 83
       },
       "targets": [
         {
@@ -1627,7 +2504,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 59
+        "y": 91
       },
       "panels": []
     },
@@ -1643,7 +2520,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 60
+        "y": 92
       },
       "targets": [
         {
@@ -1725,7 +2602,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 60
+        "y": 92
       },
       "targets": [
         {
@@ -1803,7 +2680,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 60
+        "y": 92
       },
       "targets": [
         {
@@ -1878,7 +2755,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 68
+        "y": 100
       },
       "panels": []
     },
@@ -1894,7 +2771,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 69
+        "y": 101
       },
       "targets": [
         {
@@ -1980,7 +2857,7 @@
         "h": 8,
         "w": 16,
         "x": 8,
-        "y": 69
+        "y": 101
       },
       "targets": [
         {
@@ -2066,7 +2943,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 77
+        "y": 109
       },
       "panels": []
     },
@@ -2082,7 +2959,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 78
+        "y": 110
       },
       "targets": [
         {
@@ -2167,7 +3044,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 78
+        "y": 110
       },
       "targets": [
         {
@@ -2245,7 +3122,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 86
+        "y": 118
       },
       "targets": [
         {
@@ -2346,7 +3223,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 86
+        "y": 118
       },
       "targets": [
         {
@@ -2444,7 +3321,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 126
       },
       "panels": []
     },
@@ -2460,7 +3337,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 95
+        "y": 127
       },
       "targets": [
         {
@@ -2561,7 +3438,7 @@
         "h": 8,
         "w": 6,
         "x": 12,
-        "y": 95
+        "y": 127
       },
       "targets": [
         {
@@ -2640,7 +3517,7 @@
         "h": 8,
         "w": 6,
         "x": 18,
-        "y": 95
+        "y": 127
       },
       "targets": [
         {
@@ -2725,7 +3602,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 103
+        "y": 135
       },
       "panels": []
     },
@@ -2741,7 +3618,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 104
+        "y": 136
       },
       "targets": [
         {
@@ -2840,7 +3717,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 104
+        "y": 136
       },
       "targets": [
         {
@@ -2941,7 +3818,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 104
+        "y": 136
       },
       "targets": [
         {
@@ -3015,7 +3892,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 112
+        "y": 144
       },
       "panels": []
     },
@@ -3031,7 +3908,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 113
+        "y": 145
       },
       "targets": [
         {
@@ -3119,7 +3996,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 113
+        "y": 145
       },
       "targets": [
         {
@@ -3197,7 +4074,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 113
+        "y": 145
       },
       "targets": [
         {
@@ -3298,7 +4175,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 121
+        "y": 153
       },
       "targets": [
         {
@@ -3396,7 +4273,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 127
+        "y": 159
       },
       "panels": []
     },
@@ -3412,7 +4289,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 128
+        "y": 160
       },
       "targets": [
         {
@@ -3489,7 +4366,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 128
+        "y": 160
       },
       "targets": [
         {

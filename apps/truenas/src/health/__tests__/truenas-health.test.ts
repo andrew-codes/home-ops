@@ -17,6 +17,11 @@ type Setup = {
   pool?: string
   boot?: string
   disks?: string
+  cloudsync?: string
+  replication?: string
+  snapshot?: string
+  rsync?: string
+  jobs?: string
   // fixture for smartctl by disk name; "default" covers the rest
   smart?: Record<string, string>
   // middleware methods that print garbage and fail
@@ -35,6 +40,11 @@ const stubs = ({
   pool = "pool_online",
   boot = "boot_online",
   disks = "disks",
+  cloudsync = "tasks/cloudsync",
+  replication = "tasks/replication",
+  snapshot = "tasks/snapshottask",
+  rsync = "tasks/rsync",
+  jobs = "tasks/jobs",
   smart = {},
   failing = [],
 }: Setup = {}): NodeJS.ProcessEnv => {
@@ -45,6 +55,11 @@ const stubs = ({
     "pool.query": pool,
     "boot.get_state": boot,
     "disk.query": disks,
+    "cloudsync.query": cloudsync,
+    "replication.query": replication,
+    "pool.snapshottask.query": snapshot,
+    "rsynctask.query": rsync,
+    "core.get_jobs": jobs,
   }
   const midclt = Object.entries(methods)
     .map(([method, name]) =>
@@ -218,7 +233,16 @@ describe("truenas-health.py", () => {
         ),
       ).toBe(true)
       expect(find(samples, "truenas_smart_collect_ok")).toHaveLength(13)
-      for (const source of ["disks", "pool", "boot_pool"]) {
+      for (const source of [
+        "disks",
+        "pool",
+        "boot_pool",
+        "tasks_cloudsync",
+        "tasks_replication",
+        "tasks_snapshot",
+        "tasks_rsync",
+        "job_history",
+      ]) {
         expect(valueOf(samples, "truenas_health_collect_ok", { source })).toBe(
           1,
         )
@@ -430,6 +454,318 @@ describe("truenas-health.py", () => {
       expect(
         valueOf(samples, "truenas_smart_collect_ok", { disk: "sda" }),
       ).toBe(1)
+    })
+  })
+
+  describe("scheduled tasks", () => {
+    const task = (type: string, name: string) => ({ type, task: name })
+    const now = Date.now() / 1000
+
+    it("reports a task that last succeeded", () => {
+      const samples = collect()
+      const labels = task("cloudsync", "Photos to B2")
+      expect(valueOf(samples, "truenas_task_enabled", labels)).toBe(1)
+      expect(
+        valueOf(samples, "truenas_task_state", { ...labels, state: "SUCCESS" }),
+      ).toBe(1)
+      expect(valueOf(samples, "truenas_task_failed", labels)).toBe(0)
+      expect(valueOf(samples, "truenas_task_running", labels)).toBe(0)
+      expect(
+        valueOf(samples, "truenas_task_last_run_timestamp_seconds", labels),
+      ).toBe(1794790000)
+    })
+
+    it("reports a failed cloud sync and a failed replication as failed", () => {
+      const samples = collect()
+      for (const labels of [
+        task("cloudsync", "Documents offsite"),
+        task("replication", "tank to backup"),
+      ]) {
+        expect(valueOf(samples, "truenas_task_failed", labels)).toBe(1)
+        expect(
+          valueOf(samples, "truenas_task_state", {
+            ...labels,
+            state: "FAILED",
+          }),
+        ).toBe(1)
+      }
+    })
+
+    it("reads replication and snapshot state, and names tasks by dataset or path", () => {
+      const samples = collect()
+      expect(
+        valueOf(
+          samples,
+          "truenas_task_running",
+          task("replication", "fast to tank"),
+        ),
+      ).toBe(1)
+      expect(
+        valueOf(samples, "truenas_task_state", {
+          ...task("snapshot", "tank/data"),
+          state: "SUCCESS",
+        }),
+      ).toBe(1)
+      // an aborted run is not a failure, but it is visible
+      const rsync = task("rsync", "/mnt/tank/share")
+      expect(
+        valueOf(samples, "truenas_task_state", { ...rsync, state: "ABORTED" }),
+      ).toBe(1)
+      expect(valueOf(samples, "truenas_task_failed", rsync)).toBe(0)
+    })
+
+    it("falls back to the last job when the replication engine has forgotten its state", () => {
+      const samples = collect()
+      const labels = task("replication", "after reboot")
+      expect(
+        valueOf(samples, "truenas_task_state", { ...labels, state: "SUCCESS" }),
+      ).toBe(1)
+      expect(
+        valueOf(samples, "truenas_task_last_run_timestamp_seconds", labels),
+      ).toBe(1794700000)
+    })
+
+    it("reports no last run for a task that has never run", () => {
+      const samples = collect()
+      const archive = task("cloudsync", "Archive")
+      expect(
+        valueOf(samples, "truenas_task_state", {
+          ...archive,
+          state: "PENDING",
+        }),
+      ).toBe(1)
+      expect(valueOf(samples, "truenas_task_enabled", archive)).toBe(0)
+      expect(
+        find(samples, "truenas_task_last_run_timestamp_seconds", archive),
+      ).toHaveLength(0)
+      const media = task("snapshot", "tank/media")
+      expect(
+        find(samples, "truenas_task_last_run_timestamp_seconds", media),
+      ).toHaveLength(0)
+    })
+
+    it("reports when each enabled task was last due, and nothing for a disabled or unscheduled one", () => {
+      const samples = collect()
+      const due = (labels: Record<string, string>) =>
+        valueOf(
+          samples,
+          "truenas_task_last_scheduled_timestamp_seconds",
+          labels,
+        )
+      const daily = due(task("cloudsync", "Photos to B2"))!
+      expect(daily).toBeLessThanOrEqual(now)
+      expect(now - daily).toBeLessThan(24 * 3600 + 60)
+      const every15 = due(task("snapshot", "tank/data"))!
+      expect(now - every15).toBeLessThan(15 * 60 + 60)
+      expect(due(task("cloudsync", "Archive"))).toBeUndefined()
+      expect(due(task("replication", "tank to backup"))).toBeUndefined()
+    })
+
+    it("summarises the job history per method", () => {
+      const samples = collect()
+      expect(
+        valueOf(samples, "truenas_job_last_state", {
+          method: "cloudsync.sync",
+          state: "FAILED",
+        }),
+      ).toBe(1)
+      expect(
+        find(samples, "truenas_job_last_state", {
+          method: "cloudsync.sync",
+          state: "SUCCESS",
+        }),
+      ).toHaveLength(0)
+      expect(
+        valueOf(samples, "truenas_job_last_finished_timestamp_seconds", {
+          method: "cloudsync.sync",
+        }),
+      ).toBe(1794799000)
+      expect(
+        valueOf(samples, "truenas_job_history_jobs", {
+          method: "cloudsync.sync",
+          state: "SUCCESS",
+        }),
+      ).toBe(2)
+      expect(
+        valueOf(samples, "truenas_job_last_state", {
+          method: "replication.run",
+          state: "RUNNING",
+        }),
+      ).toBe(1)
+      expect(
+        find(samples, "truenas_job_last_finished_timestamp_seconds", {
+          method: "replication.run",
+        }),
+      ).toHaveLength(0)
+    })
+
+    it("flags each task source that fails and keeps the rest", () => {
+      const samples = collect({
+        failing: ["cloudsync.query", "core.get_jobs"],
+      })
+      for (const source of ["tasks_cloudsync", "job_history"]) {
+        expect(valueOf(samples, "truenas_health_collect_ok", { source })).toBe(
+          0,
+        )
+      }
+      for (const source of [
+        "tasks_replication",
+        "tasks_snapshot",
+        "tasks_rsync",
+      ]) {
+        expect(valueOf(samples, "truenas_health_collect_ok", { source })).toBe(
+          1,
+        )
+      }
+      expect(
+        find(samples, "truenas_task_state", { type: "cloudsync" }),
+      ).toHaveLength(0)
+      expect(
+        find(samples, "truenas_task_state", { type: "snapshot" }),
+      ).not.toHaveLength(0)
+      expect(valueOf(samples, "truenas_pool_state", { pool: "tank" })).toBe(1)
+    })
+  })
+
+  describe("cron schedules", () => {
+    // Loads the script as a module and asks when a schedule last fired, with a
+    // fixed local time zone, so the answer does not depend on the machine.
+    const lastScheduled = (
+      schedule: Record<string, string>,
+      at: string,
+    ): string | null => {
+      const code = `
+import datetime, importlib.util, json, os, sys, time
+os.environ["TZ"] = "UTC"
+time.tzset()
+spec = importlib.util.spec_from_file_location("health", ${JSON.stringify(script)})
+health = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(health)
+result = health.last_scheduled(json.loads(sys.argv[1]), datetime.datetime.fromisoformat(sys.argv[2]))
+print(datetime.datetime.utcfromtimestamp(result).isoformat() if result else "none")
+`
+      const result = spawnSync(
+        "python3",
+        ["-c", code, JSON.stringify(schedule), at],
+        { encoding: "utf8" },
+      )
+      expect(result.stderr).toBe("")
+      expect(result.status).toBe(0)
+      const out = result.stdout.trim()
+      return out === "none" ? null : out
+    }
+    const every = {
+      minute: "*",
+      hour: "*",
+      dom: "*",
+      month: "*",
+      dow: "*",
+    }
+
+    it("finds the most recent run of a daily schedule", () => {
+      const daily = { ...every, minute: "0", hour: "3" }
+      expect(lastScheduled(daily, "2026-11-17T10:30:00")).toBe(
+        "2026-11-17T03:00:00",
+      )
+      expect(lastScheduled(daily, "2026-11-17T02:59:00")).toBe(
+        "2026-11-16T03:00:00",
+      )
+      expect(lastScheduled(daily, "2026-11-17T03:00:00")).toBe(
+        "2026-11-17T03:00:00",
+      )
+    })
+
+    it("handles steps, lists and ranges", () => {
+      expect(
+        lastScheduled({ ...every, minute: "*/15" }, "2026-11-17T10:32:10"),
+      ).toBe("2026-11-17T10:30:00")
+      expect(
+        lastScheduled(
+          { ...every, minute: "5,35", hour: "8-10" },
+          "2026-11-17T12:00:00",
+        ),
+      ).toBe("2026-11-17T10:35:00")
+      expect(
+        lastScheduled(
+          { ...every, minute: "0", hour: "*/6" },
+          "2026-11-17T17:00:00",
+        ),
+      ).toBe("2026-11-17T12:00:00")
+    })
+
+    it("reads weekday names and numbers, with 0 and 7 both Sunday", () => {
+      // 2026-11-17 is a Tuesday
+      const at = "2026-11-17T12:00:00"
+      const base = { ...every, minute: "30", hour: "2" }
+      expect(lastScheduled({ ...base, dow: "sun" }, at)).toBe(
+        "2026-11-15T02:30:00",
+      )
+      expect(lastScheduled({ ...base, dow: "7" }, at)).toBe(
+        "2026-11-15T02:30:00",
+      )
+      expect(lastScheduled({ ...base, dow: "0" }, at)).toBe(
+        "2026-11-15T02:30:00",
+      )
+      expect(lastScheduled({ ...base, dow: "mon-fri" }, at)).toBe(
+        "2026-11-17T02:30:00",
+      )
+      expect(lastScheduled({ ...base, dow: "1,3" }, at)).toBe(
+        "2026-11-16T02:30:00",
+      )
+    })
+
+    it("reads months and days of the month, and either day field when both are set", () => {
+      const at = "2026-11-17T12:00:00"
+      const base = { ...every, minute: "0", hour: "0" }
+      expect(lastScheduled({ ...base, dom: "1" }, at)).toBe(
+        "2026-11-01T00:00:00",
+      )
+      expect(lastScheduled({ ...base, dom: "1", month: "jan" }, at)).toBe(
+        "2026-01-01T00:00:00",
+      )
+      expect(lastScheduled({ ...base, dom: "1", dow: "fri" }, at)).toBe(
+        "2026-11-13T00:00:00",
+      )
+    })
+
+    it("only fires inside a snapshot window", () => {
+      const window = { ...every, minute: "0", begin: "08:00", end: "18:00" }
+      expect(lastScheduled(window, "2026-11-17T23:00:00")).toBe(
+        "2026-11-17T18:00:00",
+      )
+      expect(lastScheduled(window, "2026-11-17T06:00:00")).toBe(
+        "2026-11-16T18:00:00",
+      )
+    })
+
+    it("gives up on a schedule that never fires", () => {
+      expect(
+        lastScheduled(
+          { ...every, minute: "0", hour: "0", dom: "31", month: "feb" },
+          "2026-11-17T12:00:00",
+        ),
+      ).toBeNull()
+    })
+
+    it("rejects a field outside its range", () => {
+      const result = spawnSync(
+        "python3",
+        [
+          "-c",
+          `
+import importlib.util, datetime
+spec = importlib.util.spec_from_file_location("health", ${JSON.stringify(script)})
+health = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(health)
+try:
+    health.last_scheduled({"minute": "75"}, datetime.datetime(2026, 11, 17))
+except ValueError:
+    print("rejected")
+`,
+        ],
+        { encoding: "utf8" },
+      )
+      expect(result.stdout.trim()).toBe("rejected")
     })
   })
 

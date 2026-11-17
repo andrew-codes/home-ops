@@ -541,3 +541,129 @@ tests:
               summary: "TrueNAS pool and disk health is not being reported"
               description: "TrueNAS is reporting performance metrics, but its health cron job has not pushed for 15 minutes. A degraded pool or a failing disk would go unnoticed. Check that the 'Report ZFS pool and SMART health' cron job exists and is enabled in the TrueNAS UI (System, Advanced Settings, Cron Jobs), run it by hand, and run `nx run truenas:deploy` to put it back."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  # Scheduled tasks. time() starts at 946684800, so 946684000 is 800 s before
+  # the test starts, 946683000 is 1800 s before, and 946600000 is a day or so
+  # before that.
+  - name: tasks that succeeded and ran on schedule fire nothing
+    interval: 1m
+    input_series:
+      - series: 'truenas_task_enabled{type="cloudsync",task="Photos",id="1"}'
+        values: "1x60"
+      - series: 'truenas_task_failed{type="cloudsync",task="Photos",id="1"}'
+        values: "0x60"
+      - series: 'truenas_task_running{type="cloudsync",task="Photos",id="1"}'
+        values: "0x60"
+      # started after it was due
+      - series: 'truenas_task_last_scheduled_timestamp_seconds{type="cloudsync",task="Photos",id="1"}'
+        values: "946683000x60"
+      - series: 'truenas_task_last_run_timestamp_seconds{type="cloudsync",task="Photos",id="1"}'
+        values: "946683030x60"
+      # never ran, so there is nothing to compare: left to the dashboard
+      - series: 'truenas_task_enabled{type="snapshot",task="tank/media",id="21"}'
+        values: "1x60"
+      - series: 'truenas_task_failed{type="snapshot",task="tank/media",id="21"}'
+        values: "0x60"
+      - series: 'truenas_task_last_scheduled_timestamp_seconds{type="snapshot",task="tank/media",id="21"}'
+        values: "946683000x60"
+    alert_rule_test:
+      - { eval_time: 50m, alertname: TrueNASTaskFailed, exp_alerts: [] }
+      - { eval_time: 50m, alertname: TrueNASTaskOverdue, exp_alerts: [] }
+
+  - name: a failed task alerts until it succeeds, and a disabled one does not
+    interval: 1m
+    input_series:
+      - series: 'truenas_task_enabled{type="cloudsync",task="Documents",id="2"}'
+        values: "1x60"
+      - series: 'truenas_task_failed{type="cloudsync",task="Documents",id="2"}'
+        values: "0x5 1x20 0x35"
+      - series: 'truenas_task_enabled{type="replication",task="tank to backup",id="10"}'
+        values: "0x60"
+      - series: 'truenas_task_failed{type="replication",task="tank to backup",id="10"}'
+        values: "1x60"
+    alert_rule_test:
+      # failed at minute 5, so not yet at 9 minutes (for: 5m)
+      - { eval_time: 9m, alertname: TrueNASTaskFailed, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: TrueNASTaskFailed
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              type: cloudsync
+              task: Documents
+              id: "2"
+            exp_annotations:
+              summary: "TrueNAS cloudsync task Documents failed"
+              description: "The last run of the cloudsync task 'Documents' (id 2) failed. Open Data Protection in the TrueNAS UI for the error, and the TrueNAS dashboard for the history of every task."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+      # it succeeded at minute 25, and the 5 minute window drains by minute 31
+      - { eval_time: 45m, alertname: TrueNASTaskFailed, exp_alerts: [] }
+
+  - name: a task that missed its schedule alerts, unless it is running or still in its grace period
+    interval: 1m
+    input_series:
+      # due 30 minutes before the test started, last started a day earlier
+      - series: 'truenas_task_last_scheduled_timestamp_seconds{type="cloudsync",task="Photos",id="1"}'
+        values: "946683000x60"
+      - series: 'truenas_task_last_run_timestamp_seconds{type="cloudsync",task="Photos",id="1"}'
+        values: "946600000x60"
+      - series: 'truenas_task_running{type="cloudsync",task="Photos",id="1"}'
+        values: "0x60"
+      # missed too, but it is running now: not overdue
+      - series: 'truenas_task_last_scheduled_timestamp_seconds{type="rsync",task="/mnt/tank/share",id="30"}'
+        values: "946683000x60"
+      - series: 'truenas_task_last_run_timestamp_seconds{type="rsync",task="/mnt/tank/share",id="30"}'
+        values: "946600000x60"
+      - series: 'truenas_task_running{type="rsync",task="/mnt/tank/share",id="30"}'
+        values: "1x60"
+      # due 60 seconds before the test started: inside the 15 minute grace
+      # period at minute 10 (660 s)
+      - series: 'truenas_task_last_scheduled_timestamp_seconds{type="snapshot",task="tank/data",id="20"}'
+        values: "946684740x60"
+      - series: 'truenas_task_last_run_timestamp_seconds{type="snapshot",task="tank/data",id="20"}'
+        values: "946600000x60"
+      - series: 'truenas_task_running{type="snapshot",task="tank/data",id="20"}'
+        values: "0x60"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: TrueNASTaskOverdue
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              type: cloudsync
+              task: Photos
+              id: "1"
+            exp_annotations:
+              summary: "TrueNAS cloudsync task Photos did not run on schedule"
+              description: "The cloudsync task 'Photos' (id 1) should have started 40m 0s ago and has not. Check that the task is enabled and that TrueNAS was up at the scheduled time (Data Protection in the TrueNAS UI)."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  - name: a task that runs again after being overdue stops alerting
+    interval: 1m
+    input_series:
+      - series: 'truenas_task_last_scheduled_timestamp_seconds{type="cloudsync",task="Photos",id="1"}'
+        values: "946683000x60"
+      # started at minute 20 (946684800 + 1200)
+      - series: 'truenas_task_last_run_timestamp_seconds{type="cloudsync",task="Photos",id="1"}'
+        values: "946600000x20 946686000x40"
+      - series: 'truenas_task_running{type="cloudsync",task="Photos",id="1"}'
+        values: "0x60"
+    alert_rule_test:
+      - { eval_time: 45m, alertname: TrueNASTaskOverdue, exp_alerts: [] }
+
+  - name: a task source that cannot be read raises the existing source alert
+    interval: 1m
+    input_series:
+      - series: 'truenas_health_collect_ok{source="tasks_cloudsync"}'
+        values: "0x60"
+      - series: 'truenas_health_collect_ok{source="job_history"}'
+        values: "1x60"
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: TrueNASHealthSourceFailing
+        exp_alerts:
+          - exp_labels: { severity: warning, source: tasks_cloudsync }
+            exp_annotations:
+              summary: "TrueNAS health cron job cannot read tasks_cloudsync"
+              description: "The health cron job could not read 'tasks_cloudsync' from the TrueNAS middleware for 10 minutes, so the pool or disk alerts that depend on it cannot fire. This usually follows a TrueNAS upgrade that changed the middleware's output. Run the script by hand to see the error (see the apps/truenas README)."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS

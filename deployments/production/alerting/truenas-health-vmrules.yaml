@@ -43,9 +43,10 @@ spec:
             summary: "TrueNAS pool and disk health is not being reported"
             description: "TrueNAS is reporting performance metrics, but its health cron job has not pushed for 15 minutes. A degraded pool or a failing disk would go unnoticed. Check that the 'Report ZFS pool and SMART health' cron job exists and is enabled in the TrueNAS UI (System, Advanced Settings, Cron Jobs), run it by hand, and run `nx run truenas:deploy` to put it back."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
-        # source is disks (disk.query), pool (pool.query) or boot_pool
-        # (boot.get_state). A change in the middleware after an upgrade shows
-        # up here.
+        # source is disks (disk.query), pool (pool.query), boot_pool
+        # (boot.get_state), tasks_cloudsync, tasks_replication, tasks_snapshot,
+        # tasks_rsync (their task queries) or job_history (core.get_jobs). A
+        # change in the middleware after an upgrade shows up here.
         - alert: TrueNASHealthSourceFailing
           expr: last_over_time(truenas_health_collect_ok[5m]) == 0
           for: 10m
@@ -214,4 +215,45 @@ spec:
           annotations:
             summary: "TrueNAS NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) is logging media errors"
             description: "NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) logged {{ $value | humanize }} more media and data integrity errors in the last 7 days."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+    # Scheduled tasks: cloud sync, replication, periodic snapshot and rsync.
+    # Scrubs and SMART tests are covered by the pool and SMART groups. A task is
+    # identified by type, task (its name, dataset or path) and id.
+    - name: truenas-tasks
+      rules:
+        # The result of a task's last run is the state until it runs again, so
+        # this stays on until the task succeeds. A task that is running again
+        # is not failing for the moment, and the alert resolves then. A disabled
+        # task does not alert.
+        - alert: TrueNASTaskFailed
+          expr: >-
+            last_over_time(truenas_task_failed[5m]) == 1
+            and on(type, task, id) (last_over_time(truenas_task_enabled[5m]) == 1)
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS {{ $labels.type }} task {{ $labels.task }} failed"
+            description: "The last run of the {{ $labels.type }} task '{{ $labels.task }}' (id {{ $labels.id }}) failed. Open Data Protection in the TrueNAS UI for the error, and the TrueNAS dashboard for the history of every task."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # last_scheduled is the newest time the task's schedule should have
+        # started it, in the NAS's time zone. A task that has not started since
+        # then, 15 minutes after it was due, missed its run. A task that is
+        # running now is not overdue, and a task with no recorded run is left
+        # to the dashboard (a new task, or a snapshot or replication task after
+        # a reboot, has none until it runs).
+        - alert: TrueNASTaskOverdue
+          expr: >-
+            (time() - last_over_time(truenas_task_last_scheduled_timestamp_seconds[5m]) > 15 * 60)
+            and on(type, task, id) (
+              last_over_time(truenas_task_last_run_timestamp_seconds[5m])
+              < on(type, task, id) last_over_time(truenas_task_last_scheduled_timestamp_seconds[5m])
+            )
+            unless on(type, task, id) (last_over_time(truenas_task_running[5m]) == 1)
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS {{ $labels.type }} task {{ $labels.task }} did not run on schedule"
+            description: "The {{ $labels.type }} task '{{ $labels.task }}' (id {{ $labels.id }}) should have started {{ $value | humanizeDuration }} ago and has not. Check that the task is enabled and that TrueNAS was up at the scheduled time (Data Protection in the TrueNAS UI)."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS

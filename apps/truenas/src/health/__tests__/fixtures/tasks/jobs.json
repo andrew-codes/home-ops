@@ -1,0 +1,32 @@
+[
+  {
+    "id": 5030,
+    "method": "cloudsync.sync",
+    "state": "FAILED",
+    "time_finished": { "$date": 1794799000000 }
+  },
+  {
+    "id": 5029,
+    "method": "pool.scrub.run",
+    "state": "SUCCESS",
+    "time_finished": { "$date": 1794798000000 }
+  },
+  {
+    "id": 5028,
+    "method": "cloudsync.sync",
+    "state": "SUCCESS",
+    "time_finished": { "$date": 1794790000000 }
+  },
+  {
+    "id": 5027,
+    "method": "replication.run",
+    "state": "RUNNING",
+    "time_finished": null
+  },
+  {
+    "id": 5026,
+    "method": "cloudsync.sync",
+    "state": "SUCCESS",
+    "time_finished": { "$date": 1794780000000 }
+  }
+]
