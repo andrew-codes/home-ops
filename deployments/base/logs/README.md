@@ -49,7 +49,8 @@ The `Logs` dashboard in Grafana (`dashboards/logs.json`, uid `logs`) is the sear
   lines where the field is non-empty, `in(*)` also matches lines that lack the field. So with everything on
   `All` both syslog lines and pod lines show, picking a namespace narrows to pods and picking a host narrows to
   syslog. Choosing a level leaves out the lines that have none. This was checked against VictoriaLogs v1.54.0
-  with one syslog-shaped line and one pod-shaped line.
+  with one syslog-shaped line and one pod-shaped line, queried with the expanded `All` form, and both came
+  back. On a running Grafana 12.3.1 with plugin 0.34.0 the dashboard showed both kinds of line.
 - **Panels.** Counts (lines, errors and worse, hosts, pods), volume by source and by level, the busiest
   hosts, programs and pods, and the matching lines newest first.
 - **Search.** Use Explore on the `victorialogs` data source for anything the filters do not cover. Some
