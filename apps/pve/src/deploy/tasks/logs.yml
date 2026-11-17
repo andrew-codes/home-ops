@@ -21,6 +21,22 @@
     update_cache: yes
     cache_valid_time: 3600
 
+# Unprivileged LXC containers cannot read /proc/kmsg, so the stock imklog
+# module fails on every start ("cannot open kernel log (/proc/kmsg): Permission
+# denied") and that error lands in VictoriaLogs. The kernel messages belong to
+# the Proxmox host, which forwards its own logs, so imklog is commented out in
+# the containers only. VMs and the host keep it. A marker comment keeps the
+# edit recognisable, and the regexp only matches an active line, so re-runs
+# change nothing. A package upgrade that restores the stock rsyslog.conf is
+# fixed again on the next run.
+- name: Disable the kernel log module in LXC containers (they cannot read /proc/kmsg)
+  ansible.builtin.replace:
+    path: /etc/rsyslog.conf
+    regexp: '^([ \t]*(?:module\(load="imklog"[^\n]*\)|\$ModLoad[ \t]+imklog\b[^\n]*))$'
+    replace: '# \1 # disabled by Ansible: LXC containers cannot read /proc/kmsg'
+  when: ansible_virtualization_type | default('') == 'lxc'
+  notify: restart rsyslog
+
 # `validate: rsyslogd -N1 -f %s` fails on these hosts with "Permission denied"
 # opening the file in Ansible's temporary directory, and `-f` would only check
 # the fragment without the rest of the config anyway. So
