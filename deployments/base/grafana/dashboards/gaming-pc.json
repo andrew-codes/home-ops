@@ -501,6 +501,462 @@
     },
     {
       "type": "row",
+      "title": "Game: $game",
+      "id": 28,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "FPS",
+      "description": "Average FPS and the 1% low for the selected game, averaged over each step (never narrower than the 30 s window). Lines break where the game was not the current application, so each play session shows on its own.",
+      "id": 29,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "avg_over_time(gaming_pc_fps_average{job=\"gaming-pc\",app=\"$game\"}[$__interval])",
+          "legendFormat": "FPS average",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "avg_over_time(gaming_pc_fps_1pct_low{job=\"gaming-pc\",app=\"$game\"}[$__interval])",
+          "legendFormat": "FPS 1% low",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 6,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0,
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["mean", "max", "lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Frame time",
+      "description": "99th percentile and longest frame time for the selected game. The p99 is averaged and the max is the worst frame in each step, so a stutter stays visible on long ranges.",
+      "id": 30,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "avg_over_time(gaming_pc_frametime_p99_milliseconds{job=\"gaming-pc\",app=\"$game\"}[$__interval])",
+          "legendFormat": "Frame time p99",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max_over_time(gaming_pc_frametime_max_milliseconds{job=\"gaming-pc\",app=\"$game\"}[$__interval])",
+          "legendFormat": "Frame time max",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 6,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0,
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["mean", "max", "lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Temperature",
+      "description": "GPU core and the hottest CPU sensor, only while the selected game was the current application. The dashed lines are the 85 C and 90 C alert thresholds.",
+      "id": 31,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 14
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max(avg_over_time(windows_gpu_temperature_celsius{job=\"gaming-pc\"}[$__interval])) and on() gaming_pc_active_app_info{job=\"gaming-pc\",app=\"$game\"}",
+          "legendFormat": "GPU",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max(avg_over_time(ohm_cpu_celsius{job=\"gaming-pc\"}[$__interval])) and on() gaming_pc_active_app_info{job=\"gaming-pc\",app=\"$game\"}",
+          "legendFormat": "CPU",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 6,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 85
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 20,
+          "decimals": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["mean", "max", "lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "GPU power",
+      "description": "Board power while the selected game was the current application, as a fraction of 575 W.",
+      "id": 32,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 14
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max(avg_over_time(windows_gpu_temperature_celsius{job=\"gaming-pc\"}[$__interval])) and on() gaming_pc_active_app_info{job=\"gaming-pc\",app=\"$game\"}",
+          "legendFormat": "GPU",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 6,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["mean", "max", "lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "GPU utilisation",
+      "description": "3D engine busy % while the selected game was the current application.",
+      "id": 33,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 14
+      },
+      "interval": "30s",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "clamp_max(100 * max(sum by (luid, eng) (rate(windows_gpu_engine_time_seconds_total{job=\"gaming-pc\",engtype=\"3D\"}[$__rate_interval]))), 100) and on() gaming_pc_active_app_info{job=\"gaming-pc\",app=\"$game\"}",
+          "legendFormat": "GPU 3D",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 6,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0,
+          "decimals": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["mean", "max", "lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
       "title": "Temperatures and frame rate",
       "id": 8,
       "collapsed": false,
@@ -508,7 +964,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 5
+        "y": 22
       },
       "panels": []
     },
@@ -525,7 +981,7 @@
         "h": 4,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 23
       },
       "targets": [
         {
@@ -600,7 +1056,7 @@
         "h": 11,
         "w": 12,
         "x": 0,
-        "y": 10
+        "y": 27
       },
       "targets": [
         {
@@ -699,7 +1155,7 @@
         "h": 11,
         "w": 12,
         "x": 12,
-        "y": 10
+        "y": 27
       },
       "targets": [
         {
@@ -835,7 +1291,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 38
       },
       "panels": []
     },
@@ -852,7 +1308,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 22
+        "y": 39
       },
       "targets": [
         {
@@ -961,7 +1417,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 22
+        "y": 39
       },
       "targets": [
         {
@@ -1040,7 +1496,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 22
+        "y": 39
       },
       "targets": [
         {
@@ -1131,7 +1587,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 30
+        "y": 47
       },
       "targets": [
         {
@@ -1220,7 +1676,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 30
+        "y": 47
       },
       "targets": [
         {
@@ -1303,7 +1759,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 55
       },
       "panels": []
     },
@@ -1320,7 +1776,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 39
+        "y": 56
       },
       "targets": [
         {
@@ -1407,7 +1863,7 @@
         "h": 8,
         "w": 6,
         "x": 12,
-        "y": 39
+        "y": 56
       },
       "targets": [
         {
@@ -1497,7 +1953,7 @@
         "h": 8,
         "w": 6,
         "x": 18,
-        "y": 39
+        "y": 56
       },
       "targets": [
         {
@@ -1577,7 +2033,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 64
       },
       "targets": [
         {
@@ -1662,7 +2118,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 54
+        "y": 71
       },
       "panels": []
     },
@@ -1679,7 +2135,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 55
+        "y": 72
       },
       "targets": [
         {
@@ -1801,7 +2257,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 55
+        "y": 72
       },
       "targets": [
         {
@@ -1863,7 +2319,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 62
+        "y": 79
       },
       "panels": []
     },
@@ -1880,7 +2336,7 @@
         "h": 4,
         "w": 24,
         "x": 0,
-        "y": 63
+        "y": 80
       },
       "targets": [
         {
@@ -1966,6 +2422,29 @@
         "multi": false,
         "options": [],
         "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false
+      },
+      {
+        "name": "game",
+        "label": "Game",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(gaming_pc_fps_average{job=\"gaming-pc\"}, app)",
+        "query": {
+          "query": "label_values(gaming_pc_fps_average{job=\"gaming-pc\"}, app)",
+          "refId": "game"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "hide": 0,
+        "current": {},
+        "options": [],
         "regex": "",
         "skipUrlSync": false
       }

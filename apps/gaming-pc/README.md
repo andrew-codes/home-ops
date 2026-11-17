@@ -483,6 +483,9 @@ fails the deploy:
   `k8s/ip` only, read from 1Password by `scripts/deploy.ts`.
 - **Dashboard and alerts.** The `Gaming PC` dashboard is
   [`deployments/base/grafana/dashboards/gaming-pc.json`](../../deployments/base/grafana/dashboards/gaming-pc.json).
+  Pick a game in the **Game** filter to see its FPS, frame time, temperatures, GPU power and
+  GPU utilisation over time, only for the periods it was the current application, so you can
+  compare a session before and after a settings change.
   The thermal alert rules are in the alerting
   [README](../../deployments/base/alerting/README.md#gaming-pc). The PC is often
   off, so nothing alerts on it being down, and `TargetDown` skips the `gaming-pc` job.
