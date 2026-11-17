@@ -214,8 +214,8 @@ is its own work item, because incident alerts are grouped one per alert (`group_
 read its status. `incident-ack-sync` (`incident-sync.yaml`, script in `incident-sync/ack-sync.cjs`) does that
 part. A CronJob runs it every minute. It asks Jira for the `incident` work items in the In Progress status
 category, finds each one's alert through its `alert-fp-<fingerprint>` label, and creates a silence for exactly
-that alert (every label, exact match). It removes the silence when the work item leaves In Progress or the
-alert is gone.
+that alert (every label, exact match). It removes the silence when the work item leaves In Progress or is gone.
+While the alert is not firing the job keeps renewing the silence, so a recurrence stays silent.
 
 - **A silence is a lease.** It lasts 15 minutes and the job renews it. If the job, Jira or the API token
   breaks, the silences run out and the pushes resume. Nothing is muted for good.
