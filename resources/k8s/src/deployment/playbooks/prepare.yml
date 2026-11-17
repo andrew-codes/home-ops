@@ -109,9 +109,17 @@
     - name: Installing yq
       shell: curl -o  /usr/bin/yq  https://github.com/mikefarah/yq/releases/download/v4.6.3/yq_linux_amd64 && chmod +x /usr/bin/yq
 
+    - name: Remove stale baltocdn Helm apt source and key
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/apt/sources.list.d/helm.list
+        - /usr/share/keyrings/helm.gpg
+
     - name: Add helm official GPG key
       apt_key:
-        url: https://baltocdn.com/helm/signing.asc
+        url: https://packages.buildkite.com/helm-linux/helm-debian/gpgkey
         keyring: /usr/share/keyrings/helm.gpg
         state: present
 
@@ -123,7 +131,7 @@
 
     - name: Add Helm Repository
       apt_repository:
-        repo: deb [arch=amd64 signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main
+        repo: deb [arch=amd64 signed-by=/usr/share/keyrings/helm.gpg] https://packages.buildkite.com/helm-linux/helm-debian/any/ any main
         state: present
         filename: helm
         mode: "0600"
