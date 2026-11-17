@@ -146,7 +146,29 @@ describe("plan", () => {
     })
   })
 
-  test("Removes the silence when the alert is gone but the work item is still acknowledged.", () => {
+  test("Keeps and renews the silence, by id with its own matchers, while the alert is absent.", () => {
+    const silence = managedSilence("HO-1", kubeletLabels, 5)
+    const result = plan({
+      incidents: [{ key: "HO-1", fingerprint: "aaaa1111" }],
+      alerts: [],
+      silences: [silence],
+      now,
+      ttlMs,
+    })
+
+    expect(result.create).toEqual([])
+    expect(result.expire).toEqual([])
+    expect(result.extend).toEqual([
+      {
+        key: "HO-1",
+        id: "silence-HO-1",
+        startsAt: silence.startsAt,
+        matchers: toMatchers(kubeletLabels),
+      },
+    ])
+  })
+
+  test("Leaves a silence with most of its lease alone while the alert is absent.", () => {
     const result = plan({
       incidents: [{ key: "HO-1", fingerprint: "aaaa1111" }],
       alerts: [],
@@ -155,7 +177,55 @@ describe("plan", () => {
       ttlMs,
     })
 
-    expect(result.expire).toEqual([{ id: "silence-HO-1", key: "HO-1" }])
+    expect(result).toEqual({ create: [], extend: [], expire: [] })
+  })
+
+  test("Keeps the same silence when a cleared alert fires again, with no duplicate.", () => {
+    const silences = [managedSilence("HO-1", kubeletLabels, 12)]
+    const incidents = [{ key: "HO-1", fingerprint: "aaaa1111" }]
+    const cleared = plan({ incidents, alerts: [], silences, now, ttlMs })
+    const refired = plan({
+      incidents,
+      alerts: [kubelet],
+      silences,
+      now: now + MINUTE,
+      ttlMs,
+    })
+
+    expect(cleared).toEqual({ create: [], extend: [], expire: [] })
+    expect(refired).toEqual({ create: [], extend: [], expire: [] })
+  })
+
+  test("Removes the silence once the work item is no longer acknowledged, even with the alert absent.", () => {
+    const result = plan({
+      incidents: [],
+      alerts: [],
+      silences: [managedSilence("HO-1", kubeletLabels, 12)],
+      now,
+      ttlMs,
+    })
+
+    expect(result).toEqual({
+      create: [],
+      extend: [],
+      expire: [{ id: "silence-HO-1", key: "HO-1" }],
+    })
+  })
+
+  test("Keeps only the newest silence while the alert is absent.", () => {
+    const result = plan({
+      incidents: [{ key: "HO-1", fingerprint: "aaaa1111" }],
+      alerts: [],
+      silences: [
+        managedSilence("HO-1", kubeletLabels, 3, "old"),
+        managedSilence("HO-1", kubeletLabels, 12, "new"),
+      ],
+      now,
+      ttlMs,
+    })
+
+    expect(result.expire).toEqual([{ id: "old", key: "HO-1" }])
+    expect(result.extend).toEqual([])
     expect(result.create).toEqual([])
   })
 

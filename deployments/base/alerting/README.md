@@ -202,7 +202,7 @@ category) and the pushes for that one alert stop. The work item is the only plac
 | ---------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
 | To Do            | firing       | The push repeats every 4 hours, as today.                                                                                           |
 | In Progress      | firing       | The pushes stop. `incident-ack-sync` keeps a silence on that alert only.                                                            |
-| In Progress      | cleared      | The silence is removed. The work item stays open: closing an incident is your decision, nothing resolves it for you.                |
+| In Progress      | cleared      | The silence stays, so a recurrence is silent too. The work item stays open: closing an incident is your decision, nothing resolves it for you. |
 | Done or Won't Do | still firing | The silence is removed. The pushes resume at the next repeat. The work item reopens to To Do if it was closed in the last 24 hours. |
 | Done or Won't Do | fires again  | A work item closed in the last 24 hours is reopened to To Do. Later than that, a new work item is opened.                           |
 
@@ -282,10 +282,10 @@ Until the secret has both fields, the receiver cannot open work items and `incid
 
 ### Limits
 
-- **A resolved push can be missed while an incident is acknowledged.** The silence mutes the alert until the job
-  notices that it cleared (within a minute). If Alertmanager sends its next batch first, there is no resolved
-  push. The alert then looks as if it never cleared to Alertmanager, so a recurrence is announced at the next
-  4 hour repeat and not at once. The work item is the record, not the push.
+- **An acknowledged incident stays silenced until you move it out of In Progress.** The silence also mutes the
+  resolved push and any recurrence (a flapping service stays quiet). The job renews the silence while the work item
+  is In Progress, whether or not the alert is firing, and removes it once the work item is Done, Won't Do, back
+  in To Do or gone. The work item is the record, not the push.
 - **The pushes resume at a repeat, not at once.** When you close a work item for an alert that still fires,
   Alertmanager notifies again 4 hours after its last push, or within 5 minutes if that is already past.
 - **Alertmanager rewrites some fields on update.** Each update sets the labels and the priority again. A label
@@ -297,7 +297,8 @@ Until the secret has both fields, the receiver cannot open work items and `incid
   A rule whose labels change between firings (a pod name, for example) opens a new work item for each firing.
   The critical rules and `TargetDown` use stable labels.
 - **Alertmanager keeps its state in memory.** After a restart it forgets which alerts it notified, so open
-  incident alerts push once more. The job recreates the silences within a minute.
+  incident alerts push once more, and the silence of an incident whose alert is not firing is forgotten until
+  that alert fires again. The job recreates the silences of firing alerts within a minute.
 
 ## Alerts in Grafana
 
@@ -557,7 +558,7 @@ At most a few more checks (for example backup jobs that ping on success) are exp
 - Single node cluster: if the node dies, vmalert dies with it. Only the Watchdog (Healthchecks.io) can
   report that, so a node outage arrives as the Healthchecks.io email or SMS rather than a push.
 - Alertmanager keeps silences and notification history in memory. A restart forgets them, including silences
-  created in Grafana.
+  created in Grafana. `incident-ack-sync` recreates its own silences once the alert fires again.
 - The Alert rules page and its source links depend on VMSingle (`vmalert.proxyURL`) and vmalert being up. If
   vmalert is down the page shows an error for the data source, while Alert groups keeps working.
 - The alert source link uses the production Grafana URL (`external.url`), staging included, like the

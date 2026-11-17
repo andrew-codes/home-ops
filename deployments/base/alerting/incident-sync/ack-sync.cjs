@@ -8,7 +8,9 @@
 //
 //   - A work item that is In Progress (status category "In Progress", so also
 //     Verify) means the incident is acknowledged. The job silences that one
-//     alert in Alertmanager, so its repeat pushes stop.
+//     alert in Alertmanager, so its repeat pushes stop. The silence stays, and
+//     is renewed with its own matchers, while the alert is briefly absent
+//     (cleared, or flapping), so a recurrence stays silent too.
 //   - A work item that is back in To Do or Done is not acknowledged. The job
 //     removes the silence, so the alert pushes again at its next repeat.
 //
@@ -171,33 +173,42 @@ const plan = ({ incidents, alerts, silences, now, ttlMs }) => {
   const wantedKeys = new Set()
 
   for (const { key, fingerprint } of incidents) {
-    const alert = alertByFingerprint.get(fingerprint)
-    // The alert is not firing (it cleared, or has not fired again): nothing to
-    // silence. A silence from earlier is removed below.
-    if (!alert) {
-      continue
-    }
     wantedKeys.add(key)
-    const matchers = toMatchers(alert.labels)
+    const alert = alertByFingerprint.get(fingerprint)
     const owned = silences.filter((s) => s.key === key)
-    const current = owned.find((s) => sameMatchers(s.matchers, matchers))
+    const matchers = alert ? toMatchers(alert.labels) : undefined
+    // While the alert is live its labels decide which silence is current. While
+    // it is absent (cleared, may fire again) the newest existing silence
+    // carries the matchers, so the acknowledgement outlives a flap.
+    const current = matchers
+      ? owned.find((s) => sameMatchers(s.matchers, matchers))
+      : [...owned].sort(
+          (a, b) => Date.parse(b.endsAt) - Date.parse(a.endsAt),
+        )[0]
     for (const stale of owned) {
       if (stale !== current) {
         expire.push({ id: stale.id, key })
       }
     }
     if (!current) {
-      create.push({ key, matchers })
+      if (matchers) {
+        create.push({ key, matchers })
+      }
       continue
     }
     const remaining = Date.parse(current.endsAt) - now
     if (remaining < ttlMs / 2) {
-      extend.push({ key, id: current.id, startsAt: current.startsAt, matchers })
+      extend.push({
+        key,
+        id: current.id,
+        startsAt: current.startsAt,
+        matchers: matchers ?? current.matchers,
+      })
     }
   }
 
   // A silence with no acknowledged work item behind it: the work item went
-  // back to To Do, was resolved, or its alert is gone.
+  // back to To Do, was resolved, or no longer exists.
   for (const silence of silences) {
     if (!silence.key || !wantedKeys.has(silence.key)) {
       expire.push({ id: silence.id, key: silence.key })
