@@ -1,0 +1,55 @@
+[
+  {
+    "id": 1,
+    "description": "Photos to B2",
+    "enabled": true,
+    "schedule": {
+      "minute": "0",
+      "hour": "3",
+      "dom": "*",
+      "month": "*",
+      "dow": "*"
+    },
+    "job": {
+      "id": 5001,
+      "method": "cloudsync.sync",
+      "state": "SUCCESS",
+      "error": null,
+      "time_started": { "$date": 1794790000000 },
+      "time_finished": { "$date": 1794790900000 }
+    }
+  },
+  {
+    "id": 2,
+    "description": "Documents offsite",
+    "enabled": true,
+    "schedule": {
+      "minute": "30",
+      "hour": "2",
+      "dom": "*",
+      "month": "*",
+      "dow": "sun"
+    },
+    "job": {
+      "id": 5002,
+      "method": "cloudsync.sync",
+      "state": "FAILED",
+      "error": "Failed to connect to the remote",
+      "time_started": { "$date": 1794780000000 },
+      "time_finished": { "$date": 1794780100000 }
+    }
+  },
+  {
+    "id": 3,
+    "description": "Archive",
+    "enabled": false,
+    "schedule": {
+      "minute": "0",
+      "hour": "0",
+      "dom": "1",
+      "month": "*",
+      "dow": "*"
+    },
+    "job": null
+  }
+]

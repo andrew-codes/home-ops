@@ -1,0 +1,47 @@
+[
+  {
+    "id": 10,
+    "name": "tank to backup",
+    "enabled": true,
+    "auto": true,
+    "schedule": null,
+    "state": {
+      "state": "ERROR",
+      "datetime": { "$date": 1794795000000 },
+      "error": "cannot receive: destination is busy"
+    },
+    "job": null
+  },
+  {
+    "id": 11,
+    "name": "fast to tank",
+    "enabled": true,
+    "auto": true,
+    "schedule": {
+      "minute": "0",
+      "hour": "*",
+      "dom": "*",
+      "month": "*",
+      "dow": "*",
+      "begin": "00:00",
+      "end": "23:59"
+    },
+    "state": { "state": "RUNNING", "datetime": { "$date": 1794796000000 } },
+    "job": null
+  },
+  {
+    "id": 12,
+    "name": "after reboot",
+    "enabled": true,
+    "auto": true,
+    "schedule": null,
+    "state": { "state": "PENDING" },
+    "job": {
+      "id": 5010,
+      "method": "replication.run",
+      "state": "SUCCESS",
+      "time_started": { "$date": 1794700000000 },
+      "time_finished": { "$date": 1794700500000 }
+    }
+  }
+]

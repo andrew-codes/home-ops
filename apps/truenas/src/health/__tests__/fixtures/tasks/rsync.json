@@ -1,0 +1,22 @@
+[
+  {
+    "id": 30,
+    "desc": "",
+    "path": "/mnt/tank/share",
+    "enabled": true,
+    "schedule": {
+      "minute": "0",
+      "hour": "4",
+      "dom": "*",
+      "month": "*",
+      "dow": "*"
+    },
+    "job": {
+      "id": 5020,
+      "method": "rsynctask.run",
+      "state": "ABORTED",
+      "time_started": { "$date": 1794780000000 },
+      "time_finished": { "$date": 1794780050000 }
+    }
+  }
+]

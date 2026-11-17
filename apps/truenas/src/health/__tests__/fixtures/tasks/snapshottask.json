@@ -1,0 +1,32 @@
+[
+  {
+    "id": 20,
+    "dataset": "tank/data",
+    "enabled": true,
+    "schedule": {
+      "minute": "*/15",
+      "hour": "*",
+      "dom": "*",
+      "month": "*",
+      "dow": "*",
+      "begin": "00:00",
+      "end": "23:59"
+    },
+    "state": { "state": "FINISHED", "datetime": { "$date": 1794797000000 } }
+  },
+  {
+    "id": 21,
+    "dataset": "tank/media",
+    "enabled": true,
+    "schedule": {
+      "minute": "0",
+      "hour": "1",
+      "dom": "*",
+      "month": "*",
+      "dow": "mon",
+      "begin": "00:00",
+      "end": "23:59"
+    },
+    "state": { "state": "PENDING" }
+  }
+]
