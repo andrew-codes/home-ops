@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "name": "@ha/alerting",
+  "description": "Tests for the alerting deployment (deployments/base/alerting): the Alertmanager routes and Jira templates, the incident acknowledgement sync and the base alert rules.",
+  "version": "0.0.1",
+  "devDependencies": {
+    "@ha/configure-jest": "workspace:^0.0.1",
+    "@ha/nx-executors": "workspace:^0.1.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^18.19.76",
+    "jest": "^29.7.0",
+    "nx": "^20.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
+  }
+}

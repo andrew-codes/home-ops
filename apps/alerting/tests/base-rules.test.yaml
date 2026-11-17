@@ -1,0 +1,116 @@
+# vmalert-tool unit tests for the incident related rules in
+# deployments/base/alerting/vmrules.yaml. scripts/test-rules.sh merges the rule
+# groups into base-rules.yaml next to this file's copy and runs
+# `vmalert-tool unittest`.
+rule_files:
+  - base-rules.yaml
+
+# vmalert-tool starts its clock at 2000-01-01T00:00:00Z (unix 946684800), so the
+# CronJob timestamps below are absolute, not relative to zero.
+
+evaluation_interval: 1m
+
+tests:
+  # A down scrape target is only a warning, but it still opens an incident.
+  - name: a down target carries the incident label
+    interval: 1m
+    input_series:
+      - series: 'up{job="hass",instance="hass.default.svc:8123"}'
+        values: "1x5 0x20"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: TargetDown
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: TargetDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              incident: "true"
+              job: hass
+              instance: hass.default.svc:8123
+            exp_annotations:
+              summary: "hass is down"
+              description: "Scrape target hass.default.svc:8123 (job hass) has reported up=0 for 5 minutes. Its metrics are not being collected and the service may be down."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=VictoriaMetrics
+
+  # Critical alerts open an incident through their severity, so no label is
+  # needed and the rule must not set one.
+  - name: a critical alert needs no incident label
+    interval: 1m
+    input_series:
+      - series: 'up{job="kubernetes-nodes",kubernetes_io_hostname="k8s-main"}'
+        values: "0x20"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: KubeletDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: kubernetes-nodes
+              kubernetes_io_hostname: k8s-main
+            exp_annotations:
+              summary: "Kubernetes node k8s-main is unreachable"
+              description: "The kubelet on node k8s-main (job kubernetes-nodes) has reported up=0 for 5 minutes. The node may be down or not ready, and the pods on it may be offline."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+
+  # The sync ran a minute ago, every minute.
+  - name: a working sync stays quiet
+    interval: 1m
+    input_series:
+      - series: 'kube_cronjob_created{job="kube-state-metrics",namespace="default",cronjob="incident-ack-sync"}'
+        values: "946684800x120"
+      - series: 'kube_cronjob_status_last_successful_time{job="kube-state-metrics",namespace="default",cronjob="incident-ack-sync"}'
+        values: "946684800+60x120"
+    alert_rule_test:
+      - eval_time: 90m
+        alertname: IncidentAckSyncFailing
+        exp_alerts: []
+
+  # The last success was at the start. Half an hour later the rule is true, five
+  # more minutes and it fires.
+  - name: a sync that stopped succeeding fires
+    interval: 1m
+    input_series:
+      - series: 'kube_cronjob_created{job="kube-state-metrics",namespace="default",cronjob="incident-ack-sync"}'
+        values: "946684800x120"
+      - series: 'kube_cronjob_status_last_successful_time{job="kube-state-metrics",namespace="default",cronjob="incident-ack-sync"}'
+        values: "946684800x120"
+    alert_rule_test:
+      - eval_time: 33m
+        alertname: IncidentAckSyncFailing
+        exp_alerts: []
+      - eval_time: 40m
+        alertname: IncidentAckSyncFailing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: kube-state-metrics
+              namespace: default
+              cronjob: incident-ack-sync
+            exp_annotations:
+              summary: "Incident acknowledgement sync is failing"
+              description: "The incident-ack-sync job has not succeeded for 40m 0s. Work items moved to In Progress no longer silence their alerts, so pushes for them continue. Check the newest incident-ack-sync Job and its pod logs in the default namespace, and the jira-user and jira-api-token fields of the alertmanager-receivers secret."
+
+  # Never succeeded since the CronJob was created (a missing secret, a wrong
+  # token): there is no success time yet, so the creation time is used.
+  - name: a sync that never succeeded fires
+    interval: 1m
+    input_series:
+      - series: 'kube_cronjob_created{job="kube-state-metrics",namespace="default",cronjob="incident-ack-sync"}'
+        values: "946684800x120"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: IncidentAckSyncFailing
+        exp_alerts: []
+      - eval_time: 40m
+        alertname: IncidentAckSyncFailing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: kube-state-metrics
+              namespace: default
+              cronjob: incident-ack-sync
+            exp_annotations:
+              summary: "Incident acknowledgement sync is failing"
+              description: "The incident-ack-sync job has not succeeded for 40m 0s. Work items moved to In Progress no longer silence their alerts, so pushes for them continue. Check the newest incident-ack-sync Job and its pod logs in the default namespace, and the jira-user and jira-api-token fields of the alertmanager-receivers secret."

@@ -1,0 +1,26 @@
+{
+  "name": "alerting",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "{projectRoot}/src",
+  "projectType": "application",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/.test-runs/unit"],
+      "options": {
+        "command": "jest && scripts/test-alertmanager.sh && scripts/test-rules.sh",
+        "cwd": "apps/alerting"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/.test-runs/unit"],
+      "options": {
+        "command": "rm -rf dist .test-runs",
+        "cwd": "apps/alerting"
+      }
+    }
+  },
+  "tags": [],
+  "implicitDependencies": []
+}

@@ -5,3 +5,10 @@ resources:
   - vmalertmanager.yaml
   - vmalert.yaml
   - vmrules.yaml
+  - incident-sync.yaml
+# The script is a file so it can be tested (apps/alerting) and linted. kustomize
+# adds a hash to the name, so a changed script starts the next run on the new one.
+configMapGenerator:
+  - name: incident-ack-sync
+    files:
+      - ack-sync.cjs=incident-sync/ack-sync.cjs

@@ -2336,6 +2336,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ha/alerting@workspace:apps/alerting":
+  version: 0.0.0-use.local
+  resolution: "@ha/alerting@workspace:apps/alerting"
+  dependencies:
+    "@ha/configure-jest": "workspace:^0.0.1"
+    "@ha/nx-executors": "workspace:^0.1.0"
+    "@types/jest": "npm:^29.5.14"
+    "@types/node": "npm:^18.19.76"
+    jest: "npm:^29.7.0"
+    nx: "npm:^20.7.0"
+    ts-jest: "npm:^29.2.5"
+    typescript: "npm:^5.7.3"
+  languageName: unknown
+  linkType: soft
+
 "@ha/alexa@workspace:apps/alexa":
   version: 0.0.0-use.local
   resolution: "@ha/alexa@workspace:apps/alexa"

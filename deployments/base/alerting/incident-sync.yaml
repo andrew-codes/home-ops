@@ -1,0 +1,81 @@
+---
+# Acknowledgement sync for incident work items. Alertmanager opens a Jira work
+# item per incident alert but cannot read it back, so this job copies the work
+# item status into Alertmanager once a minute: In Progress silences that alert,
+# anything else removes the silence. The script, its rules and why it is built
+# this way are in incident-sync/ack-sync.cjs and the README.
+#
+# It reads the Jira user and API token from the same alertmanager-receivers
+# secret as the receiver. Alertmanager has no authentication, the job reaches it
+# on the in-cluster Service like vmalert does.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: incident-ack-sync
+spec:
+  schedule: "* * * * *"
+  # A run that is still going when the next is due (Jira slow) makes that next run
+  # wait, it does not overlap. The deadline below ends a stuck run first.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 120
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 50
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: ack-sync
+              image: node:22.23.5-alpine
+              command: ["node", "/scripts/ack-sync.cjs"]
+              env:
+                - name: JIRA_URL
+                  value: https://smithsimms.atlassian.net
+                - name: JIRA_PROJECT
+                  value: HO
+                - name: JIRA_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: alertmanager-receivers
+                      key: jira-user
+                - name: JIRA_API_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: alertmanager-receivers
+                      key: jira-api-token
+                - name: ALERTMANAGER_URL
+                  value: http://vmalertmanager-vmalertmanager.default.svc.cluster.local:9093
+                # How long a silence lasts without being renewed. The job renews it
+                # every run, so this is how long an acknowledgement outlives a dead
+                # job, Jira or token.
+                - name: SILENCE_TTL_MINUTES
+                  value: "15"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 128Mi
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+          volumes:
+            - name: scripts
+              configMap:
+                name: incident-ack-sync

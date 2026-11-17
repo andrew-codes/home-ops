@@ -80,6 +80,8 @@ const sealedSecretNames = [
   "voice-agent/langsmith-api-key",
   "alertmanager-receivers/home-assistant-webhook-url",
   "alertmanager-receivers/healthchecks-ping-url",
+  "alertmanager-receivers/jira-user",
+  "alertmanager-receivers/jira-api-token",
 ] as const
 
 const secretNames = [
@@ -157,6 +159,8 @@ const secretNames = [
   "voice-agent/langsmith-api-key",
   "alertmanager-receivers/home-assistant-webhook-url",
   "alertmanager-receivers/healthchecks-ping-url",
+  "alertmanager-receivers/jira-user",
+  "alertmanager-receivers/jira-api-token",
 ] as const
 
 const onePasswordConfiguration = createOnePasswordConfigurationApi(secretNames)
