@@ -5,88 +5,15 @@
 # variables (see index.yml). Nothing here touches the network, GRUB or the
 # hypervisor's guests, so it is safe to re-run on its own with --tags
 # observability or through observability.yml.
-- name: Check that the observability node address is set
-  ansible.builtin.assert:
-    that:
-      - observability_host is defined
-      - observability_host | string | length > 0
-    fail_msg: observability_host must be the address of the Kubernetes node.
-    quiet: true
 
-- name: Install rsyslog (Proxmox VE logs to journald only by default)
-  ansible.builtin.apt:
-    name: rsyslog
-    state: present
-    update_cache: yes
-    cache_valid_time: 3600
-
-# `validate: rsyslogd -N1 -f %s` fails on these hosts with "Permission denied"
-# opening the file in Ansible's temporary directory, and `-f` would only check
-# the fragment without the rest of the config anyway. So
-# the config is installed at its real path, `rsyslogd -N1` checks the whole
-# configuration (/etc/rsyslog.conf plus /etc/rsyslog.d), and a config that
-# fails is rolled back and fails the play. The restart handler only runs at
-# the end of a successful play, so rsyslog never restarts onto a config it
-# cannot load.
+# Logs: rsyslog forwarding to VictoriaLogs, shared with the guests.
 - name: Forward logs to VictoriaLogs
-  block:
-    - name: Install the VictoriaLogs forwarding config
-      ansible.builtin.template:
-        src: victorialogs-rsyslog.conf.j2
-        dest: /etc/rsyslog.d/90-victorialogs.conf
-        owner: root
-        group: root
-        mode: "0644"
-        backup: yes
-      register: victorialogs_rsyslog_conf
-      notify: restart rsyslog
+  ansible.builtin.import_tasks: logs.yml
 
-    - name: Check the full rsyslog configuration loads
-      ansible.builtin.command: rsyslogd -N1
-      register: victorialogs_rsyslog_check
-      changed_when: false
-      when: victorialogs_rsyslog_conf is changed
-  rescue:
-    - name: Restore the previous forwarding config
-      ansible.builtin.copy:
-        src: "{{ victorialogs_rsyslog_conf.backup_file }}"
-        dest: /etc/rsyslog.d/90-victorialogs.conf
-        remote_src: yes
-        owner: root
-        group: root
-        mode: "0644"
-      when: victorialogs_rsyslog_conf.backup_file | default('') | length > 0
-
-    - name: Remove the new forwarding config when there was no previous one
-      ansible.builtin.file:
-        path: /etc/rsyslog.d/90-victorialogs.conf
-        state: absent
-      when:
-        - victorialogs_rsyslog_conf is changed
-        - victorialogs_rsyslog_conf.backup_file | default('') | length == 0
-
-    - name: Fail because rsyslog cannot load the forwarding config
-      ansible.builtin.fail:
-        msg: >-
-          rsyslogd -N1 rejected the configuration, so the forwarding config
-          was rolled back and rsyslog was not restarted:
-          {{ victorialogs_rsyslog_check.stderr | default(ansible_failed_result.msg | default('')) }}
-  always:
-    - name: Remove the forwarding config backup
-      ansible.builtin.file:
-        path: "{{ victorialogs_rsyslog_conf.backup_file }}"
-        state: absent
-      when: victorialogs_rsyslog_conf.backup_file | default('') | length > 0
-
-- name: Ensure rsyslog is enabled and running
-  ansible.builtin.systemd:
-    name: rsyslog
-    enabled: yes
-    state: started
-
-# Metric servers are cluster-wide (/cluster/metrics/server). Hosts in one
-# cluster share a single entry, so only the first host of each cluster manages
-# it; a standalone host manages its own.
+# Metrics: the cluster's VictoriaMetrics InfluxDB endpoint. Metric servers are
+# cluster-wide (/cluster/metrics/server). Hosts in one cluster share a single
+# entry, so only the first host of each cluster manages it; a standalone host
+# manages its own.
 - name: Detect Proxmox cluster membership
   ansible.builtin.stat:
     path: "{{ pve_corosync_conf | default('/etc/pve/corosync.conf') }}"

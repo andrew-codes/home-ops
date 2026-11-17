@@ -1,0 +1,26 @@
+---
+# Sends the logs of the Proxmox guests (LXC containers and Linux VMs) to the
+# cluster's VictoriaLogs. It runs the same tasks/logs.yml as the host, so a
+# guest's journal and syslog land in VictoriaLogs with the same hostname,
+# app_name and level fields. Guests only forward logs: they have no metric
+# server of their own, and nothing here changes their network, packages other
+# than rsyslog, or services other than rsyslog. See
+# scripts/deploy-guest-observability.ts for which guests it targets.
+- name: Send Proxmox guest logs to the cluster
+  hosts: all
+  become: yes
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: yes
+  remote_user: root
+  vars:
+    # Where VictoriaLogs (syslog) is published on the Kubernetes node.
+    # observability_host is passed in by scripts/deploy-guest-observability.ts.
+    observability_syslog_port: 30514
+  handlers:
+    - import_tasks: handlers/main.yml
+
+  tasks:
+    - name: Forward logs to VictoriaLogs
+      ansible.builtin.import_tasks: tasks/logs.yml
+      tags: [observability]
