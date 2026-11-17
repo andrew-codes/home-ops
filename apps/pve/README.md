@@ -295,6 +295,16 @@ metric server, so nothing else is installed or changed. Each guest's logs carry 
 guest whose OS hostname is `localhost` or blank still shows as a distinct host. OS hostnames are not
 changed, and the Proxmox host's logs keep its own hostname.
 
+On the Kubernetes node only, the same target also runs
+[`quiet-pod-link-events.yml`](../../resources/k8s/src/deployment/tasks/quiet-pod-link-events.yml)
+(shared with the node prep playbook, `prepare.yml`). Every pod start creates and deletes a veth link, and
+a short-lived pod such as the `incident-ack-sync` CronJob (once a minute) made `networkd-dispatcher` run
+`networkctl` on a link that was already gone, logging `Interface "vethXXXX" not found.` plus
+`systemd-networkd` link lines. The task masks `networkd-dispatcher` (nothing on the node uses it) and caps
+`systemd-networkd` at `LogLevelMax=notice`, so warnings and errors for the real uplink still log. It
+restarts `systemd-networkd` only when the drop-in changes; the netplan addresses and routes stay in place.
+`Unmanaged=yes` on the veth links does not help, because they are already unmanaged and the dispatcher still fires.
+
 `nx run pve:deploy-guest-observability` targets the guests this repo manages: the two Pi-hole
 containers (`pihole/ip`, `pihole2/ip`), the Tailscale container (`tailscale/ip`) and the Kubernetes
 node VM (`k8s/ip`). It is safe to run any time and again after provisioning a guest. Not from an agent

@@ -29,3 +29,19 @@
     - name: Forward logs to VictoriaLogs
       ansible.builtin.import_tasks: tasks/logs.yml
       tags: [observability]
+
+# Only the Kubernetes node: its pods create and delete veth links, and
+# networkd-dispatcher logs an error for each one that is gone by the time it
+# looks. The other guests have no such links, so they are left alone.
+- name: Quiet pod network link logs on the Kubernetes node
+  hosts: all
+  become: yes
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: no
+  remote_user: root
+  tasks:
+    - name: Stop pod veth churn from logging
+      ansible.builtin.import_tasks: ../../../../resources/k8s/src/deployment/tasks/quiet-pod-link-events.yml
+      when: inventory_hostname == observability_host
+      tags: [observability]

@@ -1,0 +1,54 @@
+---
+# Keeps the Kubernetes node's journal free of pod network link churn. Every
+# pod sandbox creates and deletes a veth pair, and a short-lived pod (the
+# incident-ack-sync CronJob starts one every minute) makes systemd-networkd log
+# the link coming and going while networkd-dispatcher runs `networkctl status`
+# on a link that is already gone, which logs `Interface "vethXXXX" not found.`
+# (and an ERROR from networkd-dispatcher itself) on every pod start.
+#
+# networkd-dispatcher cannot be told to skip links, and Unmanaged=yes does not
+# stop it: the pod veths are already unmanaged and it still fires its off state
+# for them. So the fix is to stop the dispatcher and to keep systemd-networkd
+# at notice and above, which still logs warnings and errors for the real
+# uplink. The dispatcher only runs scripts in /etc/networkd-dispatcher and
+# /usr/lib/networkd-dispatcher (the stock netplan ifup hook, unused here
+# because ifupdown is not installed). The uplink is configured by netplan and
+# keeps its addresses and routes when systemd-networkd restarts.
+#
+# Shared by the in-place path (apps/pve guest-observability.yml) and the node
+# prep playbook (playbooks/prepare.yml), so there is one copy. Safe to re-run:
+# it only restarts systemd-networkd when the drop-in changes.
+- name: Create the systemd-networkd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/systemd-networkd.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Keep systemd-networkd at notice and above
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/systemd-networkd.service.d/10-quiet-pod-links.conf
+    content: |
+      # Managed by Ansible. Pod veth links come and go once a minute and
+      # networkd logs each at info level.
+      [Service]
+      LogLevelMax=notice
+    owner: root
+    group: root
+    mode: "0644"
+  register: quiet_pod_links_dropin
+
+- name: Restart systemd-networkd to apply the log level (static addresses and routes stay)
+  ansible.builtin.systemd:
+    name: systemd-networkd
+    state: restarted
+    daemon_reload: yes
+  when: quiet_pod_links_dropin is changed
+
+- name: Stop and mask networkd-dispatcher (it runs networkctl on pod veths that are already gone)
+  ansible.builtin.systemd:
+    name: networkd-dispatcher
+    state: stopped
+    enabled: no
+    masked: yes
