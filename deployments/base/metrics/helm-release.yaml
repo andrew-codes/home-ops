@@ -63,6 +63,25 @@ spec:
           static_configs:
             - targets:
                 - "vmalertmanager-vmalertmanager.default.svc.cluster.local:9093"
+        # VictoriaLogs and its pod log collector (deployments/base/logs), so a
+        # log pipeline that stops shows up in TargetDown.
+        - job_name: "victoria-logs"
+          static_configs:
+            - targets:
+                - "vlsingle-vlsingle.default.svc.cluster.local:9428"
+        - job_name: "vlagent"
+          kubernetes_sd_configs:
+            - role: "endpoints"
+          relabel_configs:
+            - source_labels:
+                - "__meta_kubernetes_namespace"
+                - "__meta_kubernetes_service_name"
+                - "__meta_kubernetes_endpoint_port_name"
+              action: "keep"
+              regex: "default;vlagent-vlagent;http"
+            - source_labels:
+                - "__meta_kubernetes_endpoint_node_name"
+              target_label: "node"
         - job_name: "kubernetes-apiservers"
           kubernetes_sd_configs:
             - role: "endpoints"

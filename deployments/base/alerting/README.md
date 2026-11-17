@@ -294,8 +294,22 @@ variables:
     {{ grafana }}/alerting/groups?alertmanager=alertmanager{% if names | count == 1 %}&queryString={{ ('alertname="' ~ names[0] ~ '"') | urlencode }}{% endif %}
   dashboard: >-
     {{ alerts | map(attribute='annotations.dashboard_url') | reject('undefined') | select | first | default('') }}
+  logs_from: >-
+    {{ (((alerts | map(attribute='startsAt') | map('as_timestamp') | min) - 900) | int) * 1000 }}
+  logs_to: >-
+    {%- if firing | count > 0 -%}now{%- else -%}
+    {{ (((resolved | map(attribute='endsAt') | map('as_timestamp') | max) + 300) | int) * 1000 }}
+    {%- endif -%}
+  logs_namespaces: "{{ alerts | map(attribute='labels.namespace', default='') | unique | list }}"
+  logs_pods: "{{ alerts | map(attribute='labels.pod', default='') | unique | list }}"
+  logs_units: "{{ alerts | map(attribute='labels.unit', default='') | unique | list }}"
+  logs: >-
+    {{ grafana }}/d/logs/logs?orgId=1&from={{ logs_from }}&to={{ logs_to }}
+    {%- if logs_namespaces | count == 1 and logs_namespaces[0] %}&var-namespace={{ logs_namespaces[0] | urlencode }}{% endif %}
+    {%- if logs_pods | count == 1 and logs_pods[0] %}&var-pod={{ logs_pods[0] | urlencode }}{% endif %}
+    {%- if logs_units | count == 1 and logs_units[0] %}&var-app={{ logs_units[0] | urlencode }}{% endif %}
   buttons: >-
-    {{ [{'action': 'URI', 'title': 'Details', 'uri': details}] + ([{'action': 'URI', 'title': 'Dashboard', 'uri': dashboard}] if dashboard else []) }}
+    {{ [{'action': 'URI', 'title': 'Details', 'uri': details}] + ([{'action': 'URI', 'title': 'Dashboard', 'uri': dashboard}] if dashboard else []) + [{'action': 'URI', 'title': 'Logs', 'uri': logs}] }}
 actions:
   - action: script.notify_via_control4
     data:
@@ -320,7 +334,8 @@ The push is kept short on purpose (iOS shows about four lines collapsed), and th
   Otherwise it is the unfiltered list. The `alertmanager` parameter is the data source name, not its uid, so
   do not rename the data source.
 - **Buttons.** `Details` opens the same alert groups page. `Dashboard` opens the first alert's `dashboard_url`
-  and is left out when no alert has one.
+  and is left out when no alert has one. `Logs` opens the [Logs dashboard](../logs/README.md#logs-dashboard) on the time frame of the
+  alerts, so the log lines from when it fired are one tap away.
 
 `script.notify_via_control4` documents `actions` as a list of `{action, title}`. The companion app opens a
 link from a button only when the action is `URI` and carries a `uri`, so the script must pass `uri`
@@ -334,6 +349,9 @@ actions:
   - action: URI
     title: Dashboard
     uri: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+  - action: URI
+    title: Logs
+    uri: https://grafana.smith-simms.family/d/logs/logs?orgId=1&from=1794922200000&to=now&var-namespace=default&var-pod=web-1
 ```
 
 and the script must hand them to the phone notification as `data.actions`, next to `data.url` (the tap

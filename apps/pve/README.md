@@ -51,8 +51,7 @@ isn't on exactly the pinned version.
 
 ### 1. Network ([`tasks/network.yml`](src/deploy/tasks/network.yml))
 
-> [!WARNING]
-> **This step can lock out SSH access to `pve` and everything it hosts.** Read
+> [!WARNING] > **This step can lock out SSH access to `pve` and everything it hosts.** Read
 > [Network rollback](#network-rollback-if-this-goes-wrong) before running it.
 
 Sets the host to static IP `10.1.0.100/24`, gateway `10.1.0.1`, DNS `1.1.1.1` and
@@ -118,8 +117,7 @@ storage-id `nas-iso` - not a literal `/pve/mnt/...` path). Content types `iso,vz
 absent, `pvesm set` reconciles settings if it's already there (a cheap no-op when
 nothing changed).
 
-> [!IMPORTANT]
-> **The NAS credentials for this share do not exist in 1Password yet.** See
+> [!IMPORTANT] > **The NAS credentials for this share do not exist in 1Password yet.** See
 > [Secrets](#secrets-that-do-not-exist-yet).
 
 ### 5. Proxmox Backup Server storage ([`tasks/storage-pbs.yml`](src/deploy/tasks/storage-pbs.yml))
@@ -210,8 +208,7 @@ PCIe slot for one card first if that's an option on this board.
 
 ### 7. NUT UPS monitoring ([`tasks/nut-client.yml`](src/deploy/tasks/nut-client.yml))
 
-> [!WARNING]
-> **A misconfigured client here can shut this host down unexpectedly.** Verify the
+> [!WARNING] > **A misconfigured client here can shut this host down unexpectedly.** Verify the
 > NUT server address, UPS name and thresholds below against the real Synology NAS
 > before relying on this, or before merging a change to it.
 
@@ -246,13 +243,14 @@ settings before the first run, and populate `nut/monitor-username` /
 have this host's IP allow-listed as a permitted client, the same as
 [gaming-pc's equivalent step](../gaming-pc/README.md#nut-ups-monitoring).
 
-### 8. Observability ([`tasks/observability.yml`](src/deploy/tasks/observability.yml))
+### 8. Observability ([`tasks/observability.yml`](src/deploy/tasks/observability.yml), [`tasks/logs.yml`](src/deploy/tasks/logs.yml))
 
 Sends this host's logs and metrics to the cluster, so nothing is typed into the Proxmox UI.
 The destination is the Kubernetes node (`k8s/ip`) on the NodePorts the `logs` and `metrics`
-deployments publish.
+deployments publish. The log half is [`tasks/logs.yml`](src/deploy/tasks/logs.yml), which the
+[guests](#proxmox-guests) run too, so the host and every guest send the same stream.
 
-- Installs `rsyslog` (Proxmox VE logs to journald only) and templates
+- Installs `rsyslog` (Proxmox VE logs to journald only until rsyslog is installed) and templates
   `/etc/rsyslog.d/90-victorialogs.conf`, which forwards everything to VictoriaLogs over TCP in
   RFC 5424 format (port `30514`) with a 100MB disk queue. The file is installed at its real path
   and then `rsyslogd -N1` checks the whole configuration (`/etc/rsyslog.conf` plus
@@ -277,6 +275,29 @@ cluster name is the `cluster_name:` line in that file. Hosts that share a cluste
 metric server entry, and only the first of them in play order lists, creates and reconciles it.
 A standalone host (no `corosync.conf`) manages its own entry. rsyslog is configured on every host
 either way.
+
+### Proxmox guests
+
+[`src/deploy/guest-observability.yml`](src/deploy/guest-observability.yml) sends the logs of the
+LXC containers and Linux VMs on this host to VictoriaLogs. It runs the same
+[`tasks/logs.yml`](src/deploy/tasks/logs.yml) as the host: install `rsyslog` if the guest has none,
+forward everything to the cluster as RFC 5424 over TCP, check the whole rsyslog configuration with
+`rsyslogd -N1` and roll back a config that does not load. A guest's journal reaches rsyslog on
+Debian and Ubuntu by default, so services that only log to journald are forwarded too. Guests have no
+metric server, so nothing else is installed or changed.
+
+`nx run pve:deploy-guest-observability` targets the guests this repo manages: the two Pi-hole
+containers (`pihole/ip`, `pihole2/ip`), the Tailscale container (`tailscale/ip`) and the Kubernetes
+node VM (`k8s/ip`). It is safe to run any time and again after provisioning a guest. Not from an agent
+session. These guests need a manual step:
+
+| Guest                               | Why                                                                                                      | What to do                                                                                       |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| OpenClaw container                  | Its address is set in [`resources/openclaw`](../../resources/openclaw/scripts/deploy.ts), not 1Password. | Add its address to the guest list in `scripts/deploy-guest-observability.ts` and run the target. |
+| Any guest created in the Proxmox UI | The repo does not manage it.                                                                             | Add its address to the guest list in `scripts/deploy-guest-observability.ts` and run the target. |
+
+A guest that is not a Debian or Ubuntu system with `apt` (an appliance image, for one) needs its own
+rsyslog or syslog forwarder, pointed at the same node and port.
 
 ## Manual steps that cannot be automated
 
@@ -380,8 +401,7 @@ already exists, since the Kubernetes provisioning reads it.
 nx run pve:deploy
 ```
 
-> [!CAUTION]
-> **Do not run this from an agent session.** See [AGENTS.md](AGENTS.md). This is a
+> [!CAUTION] > **Do not run this from an agent session.** See [AGENTS.md](AGENTS.md). This is a
 > manually supervised action, ideally with physical console access on hand, taken
 > after this automation has been reviewed - not something to run casually while
 > iterating on the playbook.
@@ -398,11 +418,12 @@ with console access available as a fallback per
 
 ## Nx targets
 
-| Target                 | What it does                                                                                                                                              |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lint`                 | `ansible-playbook --syntax-check` against both playbooks - no host contact, safe to run anytime.                                                          |
-| `deploy`               | Runs the full playbook against `pve` over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md).                                                    |
-| `deploy-observability` | Runs only the [observability](#8-observability-tasksobservabilityyml) tasks against `proxmox/ip` and, when set, `proxmox2/ip`. Not from an agent session. |
+| Target                       | What it does                                                                                                                                              |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lint`                       | `ansible-playbook --syntax-check` against all three playbooks - no host contact, safe to run anytime.                                                     |
+| `deploy`                     | Runs the full playbook against `pve` over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md).                                                    |
+| `deploy-observability`       | Runs only the [observability](#8-observability-tasksobservabilityyml) tasks against `proxmox/ip` and, when set, `proxmox2/ip`. Not from an agent session. |
+| `deploy-guest-observability` | Runs only the log forwarding against the [Proxmox guests](#proxmox-guests) this repo manages. Not from an agent session.                                  |
 
 `deploy` is deliberately excluded from `yarn deploy/all` in the root `package.json`,
 alongside `andrew-mbp`, `dorri-mbp` and `gaming-pc` - see

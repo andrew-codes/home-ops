@@ -1,0 +1,46 @@
+---
+# Collects the stdout and stderr of every container on every node and writes
+# it to VictoriaLogs. With k8sCollector the operator runs this as a DaemonSet,
+# mounts the node's /var/log and /var/lib read-only (the container log files and
+# the symlinks that point at them), keeps its read position and an on-disk
+# buffer in /var/lib/vlagent-data on the node, and grants the cluster-wide read
+# access to pods, namespaces and nodes that it needs for metadata.
+#
+# Every log line is stored with the fields below, so one search can narrow by
+# namespace, workload, container or node:
+#   kubernetes.pod_namespace, kubernetes.pod_name, kubernetes.container_name,
+#   kubernetes.pod_node_name, kubernetes.pod_ip, kubernetes.pod_labels.*
+#   output_stream (stdout or stderr)
+# There is no level field unless the application logs JSON with one.
+#
+# The host, appliance and guest logs arrive through the syslog listeners in
+# vlsingle.yaml instead. See README.md.
+apiVersion: operator.victoriametrics.com/v1
+kind: VLAgent
+metadata:
+  name: vlagent
+spec:
+  # Keep in step with the VictoriaLogs version in vlsingle.yaml. The operator
+  # would otherwise pick the agent version of its own release.
+  image:
+    repository: victoriametrics/vlagent
+    tag: v1.54.0
+  k8sCollector:
+    enabled: true
+  remoteWrite:
+    # The native protocol vlagent sends. VLSingle serves it on its HTTP port.
+    - url: http://vlsingle-vlsingle.default.svc.cluster.local:9428/insert/native
+      # Caps the buffer on the node's disk that holds logs while VictoriaLogs
+      # is down or restarting.
+      maxDiskUsage: 2GB
+  # vmagent scrapes it (job "vlagent" in deployments/base/metrics/helm-release.yaml).
+  disableSelfServiceScrape: true
+  # Collect on every node, including a tainted control plane node.
+  tolerations:
+    - operator: Exists
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
