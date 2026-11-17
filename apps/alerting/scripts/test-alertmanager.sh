@@ -76,6 +76,10 @@ echo "jira summary"
 summary="$(render '.summary.template')"
 [[ "$summary" == "[TargetDown] hass is down" ]] || fail "summary was: $summary"
 
+echo "jira priority"
+priority="$(render '.priority')"
+[[ "$priority" == "High" ]] || fail "priority was: $priority"
+
 echo "jira labels"
 for index in 0 1 2 3; do
   labels+="$(render ".labels[$index]")"$'\n'

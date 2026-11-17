@@ -101,6 +101,10 @@ spec:
               # Ties the work item to the alert for the acknowledgement sync. Each
               # group holds one alert, so this is that alert's fingerprint.
               - "alert-fp-{{ (index .Alerts 0).Fingerprint }}"
+            # Every incident is High. A plain default, not a severity mapping. Unlike
+            # the summary and description, Alertmanager v0.34 cannot set the priority
+            # once on create: it is sent on every update too.
+            priority: High
             # Set once, when the work item is created. People edit these and the
             # description afterwards.
             summary:
