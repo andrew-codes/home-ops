@@ -1,0 +1,37 @@
+{
+  "receiver": "jira-incidents",
+  "status": "firing",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "TargetDown",
+        "severity": "warning",
+        "incident": "true",
+        "job": "hass",
+        "instance": "hass.default.svc:8123"
+      },
+      "annotations": {
+        "summary": "hass is down",
+        "description": "Scrape target hass is down.",
+        "dashboard_url": "https://grafana.smith-simms.family/dashboards?query=VictoriaMetrics",
+        "runbook_url": "https://example.test/runbook",
+        "logs_query": "_stream:{app=\"hass\"}"
+      },
+      "startsAt": "2026-11-17T13:49:11Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "https://grafana.smith-simms.family/explore?schemaVersion=1&orgId=1",
+      "fingerprint": "60773b8b339d9395"
+    }
+  ],
+  "groupLabels": { "alertname": "TargetDown" },
+  "commonLabels": {
+    "alertname": "TargetDown",
+    "severity": "warning",
+    "incident": "true",
+    "job": "hass",
+    "instance": "hass.default.svc:8123"
+  },
+  "commonAnnotations": { "summary": "hass is down" },
+  "externalURL": "http://alertmanager"
+}

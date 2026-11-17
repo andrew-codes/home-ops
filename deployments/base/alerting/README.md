@@ -7,7 +7,10 @@ blocks `metrics` or `grafana`.
 
 ```text
 vmagent -> VMSingle <- vmalert -> Alertmanager -+-> Home Assistant webhook -> companion app push (everyone)
+                                                +-> Jira work item (critical and service-down alerts only)
                                                 +-> Healthchecks.io ping (Watchdog only, dead-man's switch)
+
+Jira (status In Progress) -> incident-ack-sync (every minute) -> Alertmanager silence for that one alert
 ```
 
 - Rules are `VMRule` objects in `vmrules.yaml`. Every rule needs a `summary` (what is wrong, naming the
@@ -15,11 +18,12 @@ vmagent -> VMSingle <- vmalert -> Alertmanager -+-> Home Assistant webhook -> co
   built from them: the title is the first alert's `summary` (plus a count of the rest) and the body is one
   `summary` line per alert. The `description` is not in the push, it is on the Grafana alert groups page
   the push opens. `dashboard_url` is optional and becomes the push's Dashboard button.
-- Alertmanager config is in `vmalertmanager.yaml`. It contains no secrets: the receiver URLs are read
-  from the `alertmanager-receivers` secret (`url_file`).
+- Alertmanager config is in `vmalertmanager.yaml`. It contains no secrets: the receiver URLs, the Jira user
+  and the Jira API token are read from the `alertmanager-receivers` secret (`url_file`, `username_file`,
+  `password_file`).
 - Alerts are grouped by severity, so one outage reads as one push listing everything affected. A
   `critical` push is an iOS critical alert (bypasses silent mode and Do Not Disturb). A resolved push is
-  sent when the alerts clear.
+  sent when the alerts clear. Incident alerts also open a Jira work item, see [Incidents in Jira](#incidents-in-jira).
 - Per-machine and per-service checks are vmalert rules. They do not use Healthchecks.io checks. Only the
   Watchdog heartbeat does, so the 20 free checks are not a limit on how much is monitored.
 - The Watchdog covers what in-cluster alerting cannot: if the cluster, the node, vmalert, VMSingle or the
@@ -162,6 +166,139 @@ The gaming PC (`apps/gaming-pc`, see its [README](../../../apps/gaming-pc/README
 - **What the GPU sensor cannot see.** NVIDIA does not expose the hotspot on Blackwell, and a standard RTX 5090 has no sensor on its 12V-2x6 power connector, which can run hotter than the core. These rules protect the core and the fans.
 - **Unit tests.** `apps/gaming-pc/tests/gaming-pc-rules.test.yaml` runs the rules through `vmalert-tool` (`apps/gaming-pc/scripts/test.sh`, or `yarn nx test gaming-pc`; needs Docker and `yq`). It covers a sustained warning and critical, a spike that stays quiet, the game name appearing and disappearing, fan stop while cool and while hot, the CPU thresholds and an off PC firing nothing.
 
+## Incidents in Jira
+
+A push says something is wrong. It does not say who is on it or whether it is fixed. So a critical alert, and
+a service that is down, also open a work item in the `HO` Jira project (site `smithsimms.atlassian.net`). The
+work item is the incident. The push still goes to Home Assistant as before.
+
+**Which alerts open an incident.** Every alert with `severity: critical`, plus any alert labelled
+`incident: "true"`. Today that second group is `TargetDown` (a scrape target is down, so the service may be
+down). It stays a warning, so its push does not change. To make another rule open incidents, label it
+`incident: "true"`. The routes are in `vmalertmanager.yaml`. Warnings and `info` alerts keep today's behavior.
+
+**What the work item holds.** The work item is a `Task` labelled `incident` (the HO project has no Incident
+type). Its summary is `[<alertname>] <summary annotation>`, and its priority is High for a critical alert.
+The description holds:
+
+- what is wrong (the `summary` and `description` annotations);
+- the alert name and severity, the affected job, instance or node, and when the alert was first seen (UTC);
+- a link to the Grafana dashboard (the `dashboard_url` annotation);
+- a link to Grafana Explore on the `victorialogs` data source, from 15 minutes before first seen until now;
+- a link to the alert in Grafana Alert groups, and the alert's own query in Grafana Explore;
+- a link to a runbook, when the rule has a `runbook_url` annotation;
+- every label of the alert.
+
+The log link runs the LogsQL query in the rule's `logs_query` annotation. A rule without one gets
+`error OR fail* OR critical OR fault* OR degraded`. VictoriaLogs holds the syslog of Proxmox, Proxmox Backup
+Server and TrueNAS, not the logs of the pods in the cluster. For a rule on one of those machines, set
+`logs_query` to narrow the link, for example to the machine's `hostname`. The summary and description are
+written once. People can edit them without Alertmanager overwriting the text.
+
+**Acknowledged means In Progress.** Move the work item to In Progress (or Verify, which is in the same status
+category) and the pushes for that one alert stop. The work item is the only place you do this.
+
+| Work item        | Alert        | What happens                                                                                                                        |
+| ---------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| To Do            | firing       | The push repeats every 4 hours, as today.                                                                                           |
+| In Progress      | firing       | The pushes stop. `incident-ack-sync` keeps a silence on that alert only.                                                            |
+| In Progress      | cleared      | The silence is removed. The work item stays open: closing an incident is your decision, nothing resolves it for you.                |
+| Done or Won't Do | still firing | The silence is removed. The pushes resume at the next repeat. The work item reopens to To Do if it was closed in the last 24 hours. |
+| Done or Won't Do | fires again  | A work item closed in the last 24 hours is reopened to To Do. Later than that, a new work item is opened.                           |
+
+While the alert keeps firing, Alertmanager keeps one work item for it. It finds the work item by a label
+(`ALERT{<hash>}`) that it adds, so a repeat notification or a restart of Alertmanager never opens a duplicate. Each alert
+is its own work item, because incident alerts are grouped one per alert (`group_by: ["..."]`) for Jira.
+
+**How the acknowledgement reaches Alertmanager.** Alertmanager can create and reopen a work item but it cannot
+read its status. `incident-ack-sync` (`incident-sync.yaml`, script in `incident-sync/ack-sync.cjs`) does that
+part. A CronJob runs it every minute. It asks Jira for the `incident` work items in the In Progress status
+category, finds each one's alert through its `alert-fp-<fingerprint>` label, and creates a silence for exactly
+that alert (every label, exact match). It removes the silence when the work item leaves In Progress or the
+alert is gone.
+
+- **A silence is a lease.** It lasts 15 minutes and the job renews it. If the job, Jira or the API token
+  breaks, the silences run out and the pushes resume. Nothing is muted for good.
+  `IncidentAckSyncFailing` warns when the job has not succeeded for 30 minutes.
+- **The silences are visible.** Grafana, Alerting, Silences lists them. Each is created by `incident-ack-sync`
+  and its comment names the work item. Do not edit or expire them there, the job puts them back.
+- **A silence mutes the alert in every receiver.** An acknowledged alert does not update its work item either,
+  which is what you want while you are working it.
+
+### Why this design
+
+The request was one work item per incident, no duplicates while it stays open, an acknowledgement that stops
+the repeats, and pushes that resume when the work item is resolved while the alert still fires.
+
+- **Alertmanager's own Jira receiver (`jira_configs`) opens the work item.** It searches for the alert's work
+  item, updates it, reopens it after it was closed and opens a new one otherwise. It is part of Alertmanager,
+  which the cluster already runs (v0.34 from the operator, the receiver needs v0.33 or later), so there is no
+  extra service to run.
+- **Not jiralert.** The `prometheus-community/jiralert` adapter does the same job, but the project was deprecated
+  in April 2026 (its last release is 1.4.1) because Alertmanager gained this receiver. It would be a dead
+  dependency.
+- **Not a Jira automation rule.** An incoming webhook rule would have to be created by hand in Jira, cannot be
+  tested here, and keeps the rules out of git.
+- **The status sync is the one extra piece.** No Alertmanager setting reads Jira, so a small job copies the
+  status over. It reads Jira and writes silences, so it needs no inbound access from the internet and, if it
+  fails, it fails towards more pushes and not fewer.
+- **Silences, not a changed route.** A silence is how Alertmanager already says "do not notify for this alert".
+  It leaves the alert firing in Grafana and the push unchanged for every other alert.
+
+### Setup
+
+The Jira user and API token go in the `alertmanager-receivers` item, next to the two receiver URLs, and sealed
+the same way (see [One-time setup](#one-time-setup)).
+
+1. In Jira, create (or reuse) the user that the work items are reported by. It needs Browse Projects, Create
+   Issues, Edit Issues and Transition Issues in `HO`. Create an API token for it at
+   `https://id.atlassian.com/manage-profile/security/api-tokens`. Atlassian API tokens expire after at most a
+   year, so note the date.
+2. Add the two fields to the 1Password item `alertmanager-receivers` in the `home-ops` vault:
+
+   ```sh
+   export OP_VAULT=home-ops
+   yarn nx g @ha/secrets:1password
+   op item edit alertmanager-receivers --vault "$OP_VAULT" \
+     'jira-user=<Atlassian account email>' \
+     'jira-api-token=<API token>'
+   ```
+
+3. Seal and commit, as in step 1 of One-time setup: `yarn nx g @ha/secrets:seal production`.
+
+Until the secret has both fields, the receiver cannot open work items and `incident-ack-sync` pods stay in
+`CreateContainerConfigError`. Pushes to Home Assistant are not affected.
+
+### Tests
+
+`yarn nx test alerting` runs, from `apps/alerting` (it needs Docker):
+
+- the unit tests of `ack-sync.cjs` (what it silences, renews and removes, and that it changes nothing when Jira
+  is unreachable);
+- `amtool` against `vmalertmanager.yaml`: the config loads, each kind of alert reaches the right receivers
+  (a critical alert and `TargetDown` both reach Jira and Home Assistant, a warning only Home Assistant), and the
+  work item's summary, labels and description render for a sample alert;
+- `vmalert-tool` tests of `TargetDown` and `IncidentAckSyncFailing`.
+
+### Limits
+
+- **A resolved push can be missed while an incident is acknowledged.** The silence mutes the alert until the job
+  notices that it cleared (within a minute). If Alertmanager sends its next batch first, there is no resolved
+  push. The alert then looks as if it never cleared to Alertmanager, so a recurrence is announced at the next
+  4 hour repeat and not at once. The work item is the record, not the push.
+- **The pushes resume at a repeat, not at once.** When you close a work item for an alert that still fires,
+  Alertmanager notifies again 4 hours after its last push, or within 5 minutes if that is already past.
+- **Alertmanager rewrites some fields on update.** Each update sets the labels and the priority again. A label
+  you add by hand, or a priority you change, is reset the next time the alert notifies. Do not remove the
+  `incident` and `alert-fp-` labels: the sync cannot see the work item without them.
+- **Closing as Won't Do reopens it too.** The work item reopens within 24 hours of any Done status. To stop an
+  alert for a real reason, fix the rule or create a silence of your own in Grafana.
+- **An alert whose labels change opens a new work item.** The work item is tied to the alert's full label set.
+  A rule whose labels change between firings (a pod name, for example) opens a new work item for each firing.
+  The critical rules and `TargetDown` use stable labels.
+- **Alertmanager keeps its state in memory.** After a restart it forgets which alerts it notified, so open
+  incident alerts push once more. The job recreates the silences within a minute.
+
 ## Alerts in Grafana
 
 Rules stay in git (`VMRule` objects, tested with `vmalert-tool`) and vmalert and Alertmanager keep doing the
@@ -212,7 +349,7 @@ What fired in the past stays on the `Alert history` dashboard at
 
 ## One-time setup
 
-### 1. Put the two receiver URLs in 1Password and seal them
+### 1. Put the receiver URLs in 1Password and seal them
 
 No receiver values are committed. Alertmanager mounts the `alertmanager-receivers` secret, which does not
 exist until you seal and commit it, so its pod waits (`ContainerCreating`) until you do. Until then only
@@ -230,7 +367,8 @@ writes the SealedSecrets.
    yarn nx g @ha/secrets:1password
    ```
 
-3. Fill in the two fields of the item `alertmanager-receivers`:
+3. Fill in the first two fields of the item `alertmanager-receivers`. The Jira user and token are added in
+   [Incidents in Jira, Setup](#setup):
 
    ```sh
    op item edit alertmanager-receivers --vault "$OP_VAULT" \

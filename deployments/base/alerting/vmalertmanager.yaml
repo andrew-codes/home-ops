@@ -1,7 +1,7 @@
 ---
-# Alertmanager config. It lives in git and holds no secrets: the two receiver
-# URLs (Home Assistant webhook and Healthchecks.io ping) are read from the
-# alertmanager-receivers secret mounted under /etc/vm/secrets.
+# Alertmanager config. It lives in git and holds no secrets: the receiver URLs
+# (Home Assistant webhook, Healthchecks.io ping) and the Jira user and API token
+# are read from the alertmanager-receivers secret mounted under /etc/vm/secrets.
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMAlertmanager
 metadata:
@@ -39,6 +39,26 @@ spec:
           group_wait: 0s
           group_interval: 1m
           repeat_interval: 5m
+        # Incidents: a critical alert, and any alert labelled incident="true"
+        # (TargetDown, the service-down alert), also opens a Jira work item. One
+        # group per alert (group_by "..."), because every incident is its own work
+        # item. continue sends the alert on to the Home Assistant route below as
+        # well, so the push is unchanged. The second route excludes critical so an
+        # alert that is both does not open two work items.
+        - receiver: jira-incidents
+          matchers:
+            - severity = "critical"
+          group_by: ["..."]
+          continue: true
+        - receiver: jira-incidents
+          matchers:
+            - incident = "true"
+            - severity != "critical"
+          group_by: ["..."]
+          continue: true
+        # Everything else, and every incident alert again: the push. This route
+        # must stay last, a matching child route replaces the default receiver.
+        - receiver: home-assistant
     inhibit_rules:
       # A critical alert hides the warning for the same alert and target.
       - source_matchers:
@@ -57,3 +77,74 @@ spec:
           - url_file: /etc/vm/secrets/alertmanager-receivers/healthchecks-ping-url
             send_resolved: false
             max_alerts: 1
+      # One Jira work item per incident alert. Alertmanager finds the work item of
+      # an alert by a label it sets (ALERT{<group hash>}), so an alert that keeps
+      # firing updates its one work item instead of opening more, and one that fires
+      # again after the work item was resolved reopens it (within reopen_duration)
+      # or, later, opens a new one. Nothing resolves the work item when the alert
+      # clears: closing the incident is a person's decision.
+      # The description is wiki markup (REST API v2). Alertmanager searches with the
+      # v3 search/jql endpoint on atlassian.net by itself (api_type auto), the old
+      # search endpoint is gone from Jira Cloud.
+      - name: jira-incidents
+        jira_configs:
+          - api_url: https://smithsimms.atlassian.net/rest/api/2/
+            send_resolved: true
+            project: HO
+            # HO has no Incident issue type. The incident label marks these and
+            # is what the acknowledgement sync (incident-sync) searches for.
+            issue_type: Task
+            labels:
+              - incident
+              - alertmanager
+              - "{{ .CommonLabels.alertname }}"
+              # Ties the work item to the alert for the acknowledgement sync. Each
+              # group holds one alert, so this is that alert's fingerprint.
+              - "alert-fp-{{ (index .Alerts 0).Fingerprint }}"
+            # Set once, when the work item is created. People edit these and the
+            # description afterwards.
+            summary:
+              enable_update: false
+              template: "[{{ .CommonLabels.alertname }}] {{ (index .Alerts 0).Annotations.summary }}"
+            description:
+              enable_update: false
+              template: |-
+                {{- range .Alerts -}}
+                {{- $logs := "error OR fail* OR critical OR fault* OR degraded" -}}
+                {{- with .Annotations.logs_query }}{{ $logs = . }}{{ end -}}
+                {{- $from := (.StartsAt.Add -900000000000).UnixMilli -}}
+                {{- $explore := toJson (dict "p" (dict "datasource" "victorialogs" "queries" (list (dict "refId" "A" "expr" $logs)) "range" (dict "from" (printf "%d" $from) "to" "now"))) -}}
+                h3. What is wrong
+                {{ .Annotations.summary }}
+
+                {{ .Annotations.description }}
+
+                h3. Incident
+                * *Alert:* {{ .Labels.alertname }} ({{ .Labels.severity }})
+                * *Affected:* {{ if or .Labels.job .Labels.instance .Labels.node }}{{ with .Labels.job }}job {{ . }} {{ end }}{{ with .Labels.instance }}instance {{ . }} {{ end }}{{ with .Labels.node }}node {{ . }}{{ end }}{{ else }}{{ .Annotations.summary }}{{ end }}
+                * *First seen:* {{ .StartsAt.UTC.Format "2006-01-02 15:04:05" }} UTC
+
+                h3. Links
+                {{ with .Annotations.dashboard_url }}* [Grafana dashboard|{{ . }}]
+                {{ end -}}
+                * [Logs in Grafana Explore (VictoriaLogs), from 15 minutes before first seen|https://grafana.smith-simms.family/explore?schemaVersion=1&panes={{ urlquery $explore }}&orgId=1]
+                * [This alert in Grafana Alert groups|https://grafana.smith-simms.family/alerting/groups?alertmanager=alertmanager&queryString={{ urlquery (printf "alertname=%q" .Labels.alertname) }}]
+                {{ with .GeneratorURL }}* [The alert's query in Grafana Explore|{{ . }}]
+                {{ end -}}
+                {{ with .Annotations.runbook_url }}* [Runbook|{{ . }}]
+                {{ end }}
+                h3. Alert labels
+                {code}
+                {{ range .Labels.SortedPairs }}{{ .Name }}="{{ .Value }}"
+                {{ end }}{code}
+                {{ end }}
+            # Acknowledged is the work item being In Progress, see incident-sync. When
+            # the alert notifies again and its work item was closed less than
+            # reopen_duration ago, the work item goes back to To Do (a status that is
+            # not acknowledged). Closed longer ago, a new work item is opened.
+            reopen_transition: "To Do"
+            reopen_duration: 24h
+            http_config:
+              basic_auth:
+                username_file: /etc/vm/secrets/alertmanager-receivers/jira-user
+                password_file: /etc/vm/secrets/alertmanager-receivers/jira-api-token
