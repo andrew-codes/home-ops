@@ -289,17 +289,21 @@ forward everything to the cluster as RFC 5424 over TCP, check the whole rsyslog 
 the `imklog` module in `/etc/rsyslog.conf`, because an unprivileged container cannot read
 `/proc/kmsg` and the module would log a permission error on every start. A guest's journal reaches rsyslog on
 Debian and Ubuntu by default, so services that only log to journald are forwarded too. Guests have no
-metric server, so nothing else is installed or changed.
+metric server, so nothing else is installed or changed. Each guest's logs carry a display name
+(`pihole-1`, `pihole-2`, `tailscale`, `k8s-node`) from `guestNames` in
+`scripts/deploy-guest-observability.ts` as their `hostname`, through rsyslog's `localHostname`, so a
+guest whose OS hostname is `localhost` or blank still shows as a distinct host. OS hostnames are not
+changed, and the Proxmox host's logs keep its own hostname.
 
 `nx run pve:deploy-guest-observability` targets the guests this repo manages: the two Pi-hole
 containers (`pihole/ip`, `pihole2/ip`), the Tailscale container (`tailscale/ip`) and the Kubernetes
 node VM (`k8s/ip`). It is safe to run any time and again after provisioning a guest. Not from an agent
 session. These guests need a manual step:
 
-| Guest                               | Why                                                                                                      | What to do                                                                                       |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| OpenClaw container                  | Its address is set in [`resources/openclaw`](../../resources/openclaw/scripts/deploy.ts), not 1Password. | Add its address to the guest list in `scripts/deploy-guest-observability.ts` and run the target. |
-| Any guest created in the Proxmox UI | The repo does not manage it.                                                                             | Add its address to the guest list in `scripts/deploy-guest-observability.ts` and run the target. |
+| Guest                               | Why                                                                                                      | What to do                                                                                                      |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| OpenClaw container                  | Its address is set in [`resources/openclaw`](../../resources/openclaw/scripts/deploy.ts), not 1Password. | Add its address and display name to `guestNames` in `scripts/deploy-guest-observability.ts` and run the target. |
+| Any guest created in the Proxmox UI | The repo does not manage it.                                                                             | Add its address and display name to `guestNames` in `scripts/deploy-guest-observability.ts` and run the target. |
 
 A guest that is not a Debian or Ubuntu system with `apt` (an appliance image, for one) needs its own
 rsyslog or syslog forwarder, pointed at the same node and port.
