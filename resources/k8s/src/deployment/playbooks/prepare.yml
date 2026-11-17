@@ -168,6 +168,9 @@
         curl -O -L https://github.com/containernetworking/plugins/releases/download/v1.6.2/cni-plugins-linux-amd64-v1.6.2.tgz
         tar -C /opt/cni/bin -xzf cni-plugins-linux-amd64-v1.6.2.tgz
 
+    - name: Stop pod veth churn from logging
+      ansible.builtin.import_tasks: ../tasks/quiet-pod-link-events.yml
+
     - name: Enable service containerd, and enable persistently
       service:
         name: containerd
