@@ -120,6 +120,7 @@
     - name: Add helm official GPG key
       apt_key:
         url: https://packages.buildkite.com/helm-linux/helm-debian/gpgkey
+        id: DDF78C3E6EBB2D2CC223C95C62BA89D07698DBC6 # fingerprint published at helm.sh/docs/intro/install
         keyring: /usr/share/keyrings/helm.gpg
         state: present
 
