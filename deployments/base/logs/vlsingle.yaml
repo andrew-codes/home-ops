@@ -5,10 +5,13 @@ metadata:
   name: vlsingle
 spec:
   retentionPeriod: "14d"
-  # Safety limit. When the data reaches this size VictoriaLogs stops accepting
-  # new logs (it goes read-only) instead of filling the NFS volume. The size is
-  # in bytes, not a percentage, because a percentage would be measured against
-  # the whole NFS pool rather than this volume.
+  # Safety limit. When the data exceeds this size VictoriaLogs drops the oldest
+  # per-day partitions and keeps ingesting. It only goes read-only if the disk
+  # itself runs out of space, so the cap sits well under the 50Gi volume: usage
+  # is checked periodically and VictoriaLogs recommends at least 20% free. See
+  # https://docs.victoriametrics.com/victorialogs/#retention-by-disk-space-usage
+  # The size is in bytes, not a percentage, because a percentage would be
+  # measured against the whole NFS pool rather than this volume.
   retentionMaxDiskSpaceUsageBytes: "40GiB"
   image:
     repository: victoriametrics/victoria-logs

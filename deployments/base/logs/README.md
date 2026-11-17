@@ -68,9 +68,13 @@ annotation. The Grafana, VictoriaMetrics and Alertmanager side stays as it was.
 
 ## Retention and disk
 
-Retention is 14 days and the data size is capped at 40 GiB (`vlsingle.yaml`). When the cap is reached
-VictoriaLogs stops accepting new logs (goes read-only) rather than filling the NFS volume. Both are
-unchanged by pod log collection: a single node cluster's pod logs are small next to what the cap allows,
+Retention is 14 days and the data size is capped at 40 GiB (`vlsingle.yaml`). When the data exceeds the cap
+VictoriaLogs drops the oldest per-day partitions and keeps ingesting, so storage cannot grow unbounded.
+VictoriaLogs only goes read-only if the disk itself runs out of space. The 10 GiB of headroom between the cap
+and the 50Gi volume guards against that, because usage is checked periodically and VictoriaLogs recommends at
+least 20% free (see
+[retention by disk space usage](https://docs.victoriametrics.com/victorialogs/#retention-by-disk-space-usage)).
+Both are unchanged by pod log collection: a single node cluster's pod logs are small next to what the cap allows,
 and logs compress well. Check `vl_data_size_bytes` for the `victoria-logs` job in Grafana Explore after a week.
 If it is near the cap, shorten the retention, or leave a noisy namespace out with
 `spec.k8sCollector.excludeFilter` in `vlagent.yaml`.
