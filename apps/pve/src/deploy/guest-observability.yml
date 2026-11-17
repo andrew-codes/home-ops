@@ -17,6 +17,11 @@
     # Where VictoriaLogs (syslog) is published on the Kubernetes node.
     # observability_host is passed in by scripts/deploy-guest-observability.ts.
     observability_syslog_port: 30514
+    # Display name the guest's logs carry in VictoriaLogs, looked up by the
+    # guest's address. observability_guest_names is passed in by
+    # scripts/deploy-guest-observability.ts. It replaces the OS hostname, which
+    # can be localhost or blank, and the OS hostname itself is left alone.
+    observability_hostname: "{{ observability_guest_names[inventory_hostname] }}"
   handlers:
     - import_tasks: handlers/main.yml
 

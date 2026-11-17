@@ -11,7 +11,7 @@ import path from "path"
  * container and any guest the repo does not manage (Home Assistant OS, for one)
  * need the same rsyslog forwarding by hand; see README.md#proxmox-guests.
  *
- * Run it again after provisioning a new guest, and add the guest's address here.
+ * Run it again after provisioning a new guest, and add the guest's address and display name to `guestNames` here.
  */
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
@@ -19,12 +19,15 @@ const run = async (
   logger.info("Deploying guest observability configuration")
 
   const observabilityHost = await configurationApi.get("k8s/ip")
-  const guests = [
-    await configurationApi.get("pihole/ip"),
-    await configurationApi.get("pihole2/ip"),
-    await configurationApi.get("tailscale/ip"),
-    observabilityHost,
-  ]
+  // Each guest's logs are stamped with this display name instead of its OS
+  // hostname, which can be localhost or blank. The OS hostnames are not changed.
+  const guestNames: Record<string, string> = {
+    [await configurationApi.get("pihole/ip")]: "pihole-1",
+    [await configurationApi.get("pihole2/ip")]: "pihole-2",
+    [await configurationApi.get("tailscale/ip")]: "tailscale",
+    [observabilityHost]: "k8s-node",
+  }
+  const guests = Object.keys(guestNames)
 
   const playbook = path.join(
     __dirname,
@@ -35,6 +38,7 @@ const run = async (
   )
   await runPlaybook(playbook, guests, {
     observability_host: observabilityHost,
+    observability_guest_names: guestNames,
   })
 }
 
