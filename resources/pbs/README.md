@@ -21,6 +21,7 @@ Ansible-driven configuration for the [Proxmox Backup Server](https://www.proxmox
 | apt sources: no enterprise source, one no-subscription source (see [below](#package-and-repositories))                                      | [`scripts/deploy.yml`](scripts/deploy.yml) |
 | Proxmox Backup Server package: installed only when absent, never pinned or held                                                             | [`scripts/deploy.yml`](scripts/deploy.yml) |
 | Backup user, its ACL, prune and verify jobs and the GC schedule of datastore `main`, each added only when missing (see [Storage](#storage)) | [`scripts/deploy.yml`](scripts/deploy.yml) |
+| QXL display driver kept from loading (see [below](#qxl-display-driver))                                                                     | [`scripts/deploy.yml`](scripts/deploy.yml) |
 | Firewall (`ufw`: SSH and the PBS web UI)                                                                                                    | [`scripts/deploy.yml`](scripts/deploy.yml) |
 | NUT UPS monitoring, opt-in and off by default (see [below](#nut-ups-monitoring))                                                            | [`scripts/deploy.yml`](scripts/deploy.yml) |
 | Logs and metrics sent to the cluster (see [below](#observability))                                                                          | [`scripts/deploy.yml`](scripts/deploy.yml) |
