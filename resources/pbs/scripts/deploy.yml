@@ -33,6 +33,9 @@
         name: rsyslog
         state: restarted
 
+    - name: update initramfs
+      ansible.builtin.command: update-initramfs -u -k all
+
   tasks:
     - name: Set timezone to Eastern
       community.general.timezone:
@@ -143,6 +146,24 @@
         name: proxmox-backup-server
         selection: install
       when: "'hold' in pbs_selection.stdout.split()"
+
+    # The PBS VM runs on TrueNAS with a QXL display adapter. The qxl DRM driver
+    # then floods the kernel log with "[TTM] Buffer eviction failed" at level
+    # error, which lands in the centralized logs. PBS is headless, so the driver
+    # is kept from loading. `install qxl /bin/false` also stops it being pulled
+    # in as a dependency or by modalias. The initramfs is rebuilt only when the
+    # file changes (it can load qxl early); the play never reboots, so the
+    # driver stays loaded until the next reboot.
+    - name: Keep the QXL DRM driver from loading
+      ansible.builtin.copy:
+        dest: /etc/modprobe.d/blacklist-qxl.conf
+        content: |
+          blacklist qxl
+          install qxl /bin/false
+        owner: root
+        group: root
+        mode: "0644"
+      notify: update initramfs
 
     - name: Install the firewall
       ansible.builtin.apt:

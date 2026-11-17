@@ -177,8 +177,12 @@ An older host can still carry an NFS mount at `/mnt/pbs` and a `proxmox-backup.s
 ## Manual steps - not run by this task
 
 - The PBS install itself and the creation of datastore `main` (see [Prerequisites](#prerequisites---not-automated)).
-- Any reboot - the play never reboots the host on its own.
+- Any reboot - the play never reboots the host on its own. After the first run that installs the QXL blacklist (see [QXL display driver](#qxl-display-driver)), reboot the VM once to unload `qxl`.
 - Turning on NUT, once TrueNAS runs a NUT server (see [NUT UPS monitoring](#nut-ups-monitoring)).
+
+## QXL display driver
+
+The PBS VM runs on TrueNAS with a QXL display adapter, and the `qxl` DRM driver floods the kernel log with `[TTM] Buffer eviction failed` at level error, which reaches the centralized logs. PBS is headless, so the play writes `/etc/modprobe.d/blacklist-qxl.conf` (`blacklist qxl` and `install qxl /bin/false`, so the module is not pulled in by modalias or as a dependency) and rebuilds the initramfs with `update-initramfs -u -k all` only when that file changes. The play does not reboot: `qxl` stays loaded until the next reboot, so reboot the VM once after the first run and confirm `lsmod | grep qxl` prints nothing. The VM display settings on TrueNAS are not changed.
 
 ## Package and repositories
 
