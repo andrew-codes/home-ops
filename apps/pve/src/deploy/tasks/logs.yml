@@ -32,7 +32,7 @@
 - name: Disable the kernel log module in LXC containers (they cannot read /proc/kmsg)
   ansible.builtin.replace:
     path: /etc/rsyslog.conf
-    regexp: '^(\s*(?:module\(load="imklog"[^\n]*\)|\$ModLoad\s+imklog\b[^\n]*))$'
+    regexp: '^([ \t]*(?:module\(load="imklog"[^\n]*\)|\$ModLoad[ \t]+imklog\b[^\n]*))$'
     replace: '# \1 # disabled by Ansible: LXC containers cannot read /proc/kmsg'
   when: ansible_virtualization_type | default('') == 'lxc'
   notify: restart rsyslog
