@@ -98,6 +98,13 @@ expect_contains "description" "$description" "[Grafana dashboard|https://grafana
 expect_contains "description" "$description" "https://grafana.smith-simms.family/explore?schemaVersion=1&panes="
 expect_contains "description" "$description" "queryString=alertname%3D%22TargetDown%22"
 expect_contains "description" "$description" "[Runbook|https://example.test/runbook]"
+# The alert's own query link carries vmalert's generator URL, which holds raw JSON
+# ({ } [ ] "). A bare ] ends the wiki link early and Jira shows the rest as text,
+# so every one of those must come out percent-encoded, as one link.
+query_link="$(grep -F "The alert's query in Grafana Explore" <<<"$description")"
+[[ "$query_link" =~ ^\*\ \[The\ alert\'s\ query\ in\ Grafana\ Explore\|https://grafana\.smith-simms\.family/explore\?schemaVersion=1\&panes=[^][{}\"\|\ ]+\]$ ]] ||
+  fail "the alert query link is not one well-formed wiki link: $query_link"
+expect_contains "description" "$description" "panes=%7B%22p%22:%7B%22datasource%22:%22victoriametrics%22"
 expect_contains "description" "$description" 'job="hass"'
 # The log link opens VictoriaLogs from 15 minutes before first seen (13:34:11 UTC),
 # with the query from the logs_query annotation.

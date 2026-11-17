@@ -20,7 +20,7 @@
       },
       "startsAt": "2026-11-17T13:49:11Z",
       "endsAt": "0001-01-01T00:00:00Z",
-      "generatorURL": "https://grafana.smith-simms.family/explore?schemaVersion=1&orgId=1",
+      "generatorURL": "https://grafana.smith-simms.family/explore?schemaVersion=1&panes={\"p\":{\"datasource\":\"victoriametrics\",\"queries\":[{\"refId\":\"A\",\"expr\":%22up%7Bjob%3D%5C%22hass%5C%22%7D+%3D%3D+0%22}],\"range\":{\"from\":\"1794919751000\",\"to\":\"now\"}}}&orgId=1",
       "fingerprint": "60773b8b339d9395"
     }
   ],
