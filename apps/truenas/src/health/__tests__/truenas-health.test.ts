@@ -642,7 +642,7 @@ spec = importlib.util.spec_from_file_location("health", ${JSON.stringify(script)
 health = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(health)
 result = health.last_scheduled(json.loads(sys.argv[1]), datetime.datetime.fromisoformat(sys.argv[2]))
-print(datetime.datetime.utcfromtimestamp(result).isoformat() if result else "none")
+print(datetime.datetime.fromtimestamp(result, datetime.timezone.utc).replace(tzinfo=None).isoformat() if result else "none")
 `
       const result = spawnSync(
         "python3",
