@@ -817,7 +817,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "max(avg_over_time(windows_gpu_temperature_celsius{job=\"gaming-pc\"}[$__interval])) and on() gaming_pc_active_app_info{job=\"gaming-pc\",app=\"$game\"}",
+          "expr": "575 * max(avg_over_time(windows_gpu_power_usage_ratio{job=\"gaming-pc\"}[$__interval])) and on() gaming_pc_active_app_info{job=\"gaming-pc\",app=\"$game\"}",
           "legendFormat": "GPU",
           "refId": "A",
           "range": true
