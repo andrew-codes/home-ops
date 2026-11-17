@@ -35,12 +35,26 @@ spec:
       maxDiskUsage: 2GB
   # vmagent scrapes it (job "vlagent" in deployments/base/metrics/helm-release.yaml).
   disableSelfServiceScrape: true
+  remoteWriteSettings:
+    # vlagent opens two sending queues per CPU core of the node by default, and
+    # each one buffers up to 8MiB blocks in memory. On a many-core node that is
+    # enough to exhaust the memory limit while the first start reads the whole
+    # backlog of container logs, and the container is OOM killed (HO-330). Two
+    # queues move far more than this cluster logs.
+    queues: 2
   # Collect on every node, including a tainted control plane node.
   tolerations:
     - operator: Exists
+  # Go does not see the container's memory limit. Without GOMEMLIMIT the garbage
+  # collector lets the heap grow to twice what is live, so the first start, which
+  # reads every container log from the beginning, goes past the limit before a
+  # collection runs. Keep this about 80% of the memory limit below.
+  extraEnvs:
+    - name: GOMEMLIMIT
+      value: 400MiB
   resources:
     requests:
       cpu: 20m
-      memory: 64Mi
-    limits:
       memory: 256Mi
+    limits:
+      memory: 512Mi

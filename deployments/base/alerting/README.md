@@ -188,7 +188,8 @@ The description holds:
 - the alert name and severity, the affected job, instance or node, and when the alert was first seen (UTC);
 - a link to the Grafana dashboard (the `dashboard_url` annotation);
 - a link to Grafana Explore on the `victorialogs` data source, from 15 minutes before first seen until now;
-- a link to the alert in Grafana Alert groups, and the alert's own query in Grafana Explore;
+- a link to the alert in Grafana Alert groups, and the alert's own query in Grafana Explore
+  (the second link is vmalert's generator URL, which holds raw JSON, so the template percent-encodes `[ ] { } " |` in it, otherwise a `]` ends the wiki link early and Jira shows broken text);
 - a link to a runbook, when the rule has a `runbook_url` annotation;
 - every label of the alert.
 
@@ -201,13 +202,13 @@ written once. People can edit them without Alertmanager overwriting the text.
 **Acknowledged means In Progress.** Move the work item to In Progress (or Verify, which is in the same status
 category) and the pushes for that one alert stop. The work item is the only place you do this.
 
-| Work item        | Alert        | What happens                                                                                                                        |
-| ---------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| To Do            | firing       | The push repeats every 4 hours, as today.                                                                                           |
-| In Progress      | firing       | The pushes stop. `incident-ack-sync` keeps a silence on that alert only.                                                            |
+| Work item        | Alert        | What happens                                                                                                                                   |
+| ---------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| To Do            | firing       | The push repeats every 4 hours, as today.                                                                                                      |
+| In Progress      | firing       | The pushes stop. `incident-ack-sync` keeps a silence on that alert only.                                                                       |
 | In Progress      | cleared      | The silence stays, so a recurrence is silent too. The work item stays open: closing an incident is your decision, nothing resolves it for you. |
-| Done or Won't Do | still firing | The silence is removed. The pushes resume at the next repeat. The work item reopens to To Do if it was closed in the last 24 hours. |
-| Done or Won't Do | fires again  | A work item closed in the last 24 hours is reopened to To Do. Later than that, a new work item is opened.                           |
+| Done or Won't Do | still firing | The silence is removed. The pushes resume at the next repeat. The work item reopens to To Do if it was closed in the last 24 hours.            |
+| Done or Won't Do | fires again  | A work item closed in the last 24 hours is reopened to To Do. Later than that, a new work item is opened.                                      |
 
 While the alert keeps firing, Alertmanager keeps one work item for it. It finds the work item by a label
 (`ALERT{<hash>}`) that it adds, so a repeat notification or a restart of Alertmanager never opens a duplicate. Each alert

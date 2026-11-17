@@ -106,7 +106,10 @@ spec:
             # once on create: it is sent on every update too.
             priority: High
             # Set once, when the work item is created. People edit these and the
-            # description afterwards.
+            # description afterwards. In the description, the alert query link is
+            # vmalert's generator URL, which holds raw JSON. A ] in it would end the
+            # wiki link early and Jira would show the rest as text, so the characters
+            # that break wiki markup or JSON are percent-encoded.
             summary:
               enable_update: false
               template: "[{{ .CommonLabels.alertname }}] {{ (index .Alerts 0).Annotations.summary }}"
@@ -133,7 +136,7 @@ spec:
                 {{ end -}}
                 * [Logs in Grafana Explore (VictoriaLogs), from 15 minutes before first seen|https://grafana.smith-simms.family/explore?schemaVersion=1&panes={{ urlquery $explore }}&orgId=1]
                 * [This alert in Grafana Alert groups|https://grafana.smith-simms.family/alerting/groups?alertmanager=alertmanager&queryString={{ urlquery (printf "alertname=%q" .Labels.alertname) }}]
-                {{ with .GeneratorURL }}* [The alert's query in Grafana Explore|{{ . }}]
+                {{ with .GeneratorURL }}* [The alert's query in Grafana Explore|{{ . | reReplaceAll `\[` "%5B" | reReplaceAll `\]` "%5D" | reReplaceAll `\{` "%7B" | reReplaceAll `\}` "%7D" | reReplaceAll `"` "%22" | reReplaceAll `\|` "%7C" }}]
                 {{ end -}}
                 {{ with .Annotations.runbook_url }}* [Runbook|{{ . }}]
                 {{ end }}

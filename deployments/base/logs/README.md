@@ -79,6 +79,20 @@ and logs compress well. Check `vl_data_size_bytes` for the `victoria-logs` job i
 If it is near the cap, shorten the retention, or leave a noisy namespace out with
 `spec.k8sCollector.excludeFilter` in `vlagent.yaml`.
 
+## vlagent memory and restarts
+
+`vlagent` reads every container log file from the beginning on its first start on a node, then keeps its read
+position in `/var/lib/vlagent-data/vlagent-kubernetes-checkpoints.json` on the node (a `hostPath` the operator
+mounts). It writes that file about once a minute, so a container that dies in its first seconds never writes it
+and starts over each time. That is what happened in HO-330: with the default of two sending queues per CPU core,
+each buffering 8MiB blocks, and no `GOMEMLIMIT`, the first backlog read went past the old 256Mi limit and the
+container was OOM killed on every start (`CrashLoopBackOff`, no endpoints, `TargetDown`).
+
+`vlagent.yaml` now sets `remoteWriteSettings.queues: 2`, `GOMEMLIMIT=400MiB` and a 512Mi memory limit. Keep
+`GOMEMLIMIT` at about 80% of the limit if you change either. Checked with vlagent v1.54.0 on a 512Mi limit and
+2GB of container logs (200 files of 10MB): it reads everything, peaks near 310MiB, and after a `kill -9` it
+resumes from the checkpoints instead of reading again.
+
 vmagent scrapes VictoriaLogs and `vlagent` (jobs `victoria-logs` and `vlagent`), so the `TargetDown` rule
 covers a log pipeline that stops.
 
@@ -86,6 +100,8 @@ covers a log pipeline that stops.
 
 1. After Flux applies: `kubectl get vlagent,vlsingle -n default` shows both ready, and
    `kubectl get daemonset vlagent-vlagent -n default` has a pod on every node.
+   The `vlagent-vlagent` pods are `Running` with no restarts, `kubectl get endpoints vlagent-vlagent` lists
+   them, and `kubectl describe pod` shows no `OOMKilled` in Last State.
 2. In Grafana open the `Logs` dashboard. `Pods logging` is above zero, and picking a namespace lists its pods'
    lines.
 3. A host or guest: run `logger -t smoke "hello from $(hostname)"` on it, then search
