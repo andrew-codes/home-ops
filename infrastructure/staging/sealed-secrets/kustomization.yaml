@@ -1,3 +1,0 @@
-namespace: default
-resources:
-  - ../../base/sealed-secrets

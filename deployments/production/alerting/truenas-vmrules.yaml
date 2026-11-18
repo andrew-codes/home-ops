@@ -9,9 +9,6 @@
 # Pool health, vdev state and SMART results are not part of these metrics, so
 # no rule here can see a degraded pool or a failing disk. See the alerting
 # README for how that gap is covered.
-#
-# These live in the production overlay, not in base: staging receives no
-# TrueNAS metrics, so the missing-data rules would fire there forever.
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMRule
 metadata:

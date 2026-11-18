@@ -38,7 +38,7 @@ describe("fluxcd", () => {
 
   describe("exec", () => {
     test(`runs with the needed environment variables`, async () => {
-      when(configApi.get).calledWith("env").mockResolvedValue("staging")
+      when(configApi.get).calledWith("env").mockResolvedValue("production")
       when(configApi.get)
         .calledWith("github/username")
         .mockResolvedValue("github/username")
@@ -50,7 +50,7 @@ describe("fluxcd", () => {
 
       const kubePath = path.resolve(
         __dirname,
-        "../../../../resources/k8s/._secrets/staging/.kube/config",
+        "../../../../resources/k8s/._secrets/production/.kube/config",
       )
       expect(sh.exec).toHaveBeenCalledWith(
         "echo hello",

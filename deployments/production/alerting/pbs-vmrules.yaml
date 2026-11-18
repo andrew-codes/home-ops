@@ -16,9 +16,6 @@
 # for presence. Every current value goes through last_over_time, and presence
 # through absent_over_time, so a missed run or a gap neither fires nor mutes an
 # alert.
-#
-# In the production overlay only: staging receives no PBS metrics, so the
-# missing-data rules would fire there forever.
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMRule
 metadata:
