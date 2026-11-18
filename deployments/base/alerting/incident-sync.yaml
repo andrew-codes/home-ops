@@ -2,7 +2,8 @@
 # Acknowledgement sync for incident work items. Alertmanager opens a Jira work
 # item per incident alert but cannot read it back, so this job copies the work
 # item status into Alertmanager once a minute: In Progress silences that alert,
-# anything else removes the silence. The script, its rules and why it is built
+# anything else removes the silence. It also moves new incident work items from
+# the board's backlog onto the board. The script, its rules and why it is built
 # this way are in incident-sync/ack-sync.cjs and the README.
 #
 # It reads the Jira user and API token from the same alertmanager-receivers
@@ -43,6 +44,10 @@ spec:
                   value: https://smithsimms.atlassian.net
                 - name: JIRA_PROJECT
                   value: HO
+                # The board incidents are moved onto. The HO project has one board
+                # ("HO board"), a kanban board with a backlog.
+                - name: JIRA_BOARD_ID
+                  value: "100"
                 - name: JIRA_USER
                   valueFrom:
                     secretKeyRef:
