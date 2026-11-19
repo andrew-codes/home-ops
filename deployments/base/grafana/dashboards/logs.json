@@ -57,7 +57,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:$host app_name:$app kubernetes.pod_namespace:$namespace kubernetes.pod_name:$pod kubernetes.container_name:$container level:$level $search | stats count() as lines",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search | stats count() as lines",
           "queryType": "stats",
           "refId": "A",
           "legendFormat": ""
@@ -120,7 +120,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:$host app_name:$app kubernetes.pod_namespace:$namespace kubernetes.pod_name:$pod kubernetes.container_name:$container level:$level $search level:in(error, critical, alert, emerg) | stats count() as lines",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search level:in(error, critical, alert, emerg) | stats count() as lines",
           "queryType": "stats",
           "refId": "A",
           "legendFormat": ""
@@ -183,7 +183,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:$host app_name:$app kubernetes.pod_namespace:$namespace kubernetes.pod_name:$pod kubernetes.container_name:$container level:$level $search hostname:* | stats count_uniq(hostname) as hosts",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search hostname:* | stats count_uniq(hostname) as hosts",
           "queryType": "stats",
           "refId": "A",
           "legendFormat": ""
@@ -246,7 +246,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:$host app_name:$app kubernetes.pod_namespace:$namespace kubernetes.pod_name:$pod kubernetes.container_name:$container level:$level $search kubernetes.pod_name:* | stats count_uniq(kubernetes.pod_name) as pods",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search kubernetes.pod_name:* | stats count_uniq(kubernetes.pod_name) as pods",
           "queryType": "stats",
           "refId": "A",
           "legendFormat": ""
@@ -322,7 +322,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:$host app_name:$app kubernetes.pod_namespace:$namespace kubernetes.pod_name:$pod kubernetes.container_name:$container level:$level $search kubernetes.pod_namespace:* | stats count() as lines",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search kubernetes.pod_namespace:* | stats count() as lines",
           "queryType": "statsRange",
           "refId": "A",
           "legendFormat": "Kubernetes pods"
@@ -333,7 +333,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:$host app_name:$app kubernetes.pod_namespace:$namespace kubernetes.pod_name:$pod kubernetes.container_name:$container level:$level $search -kubernetes.pod_namespace:* | stats count() as lines",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search -kubernetes.pod_namespace:* | stats count() as lines",
           "queryType": "statsRange",
           "refId": "B",
           "legendFormat": "Hosts and appliances"
@@ -399,7 +399,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:$host app_name:$app kubernetes.pod_namespace:$namespace kubernetes.pod_name:$pod kubernetes.container_name:$container level:$level $search | format if (level:\"\") \"none\" as level | stats by (level) count() as lines",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search | format if (level:\"\") \"none\" as level | stats by (level) count() as lines",
           "queryType": "statsRange",
           "refId": "A",
           "legendFormat": "{{level}}"
@@ -614,7 +614,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:$host app_name:$app kubernetes.pod_namespace:$namespace kubernetes.pod_name:$pod kubernetes.container_name:$container level:$level $search hostname:* | stats by (hostname) count() as lines | sort by (lines desc) | limit 15",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search hostname:* | stats by (hostname) count() as lines | sort by (lines desc) | limit 15",
           "queryType": "stats",
           "refId": "A",
           "legendFormat": ""
@@ -713,7 +713,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:$host app_name:$app kubernetes.pod_namespace:$namespace kubernetes.pod_name:$pod kubernetes.container_name:$container level:$level $search hostname:* | stats by (hostname, app_name) count() as lines | sort by (lines desc) | limit 15",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search hostname:* | stats by (hostname, app_name) count() as lines | sort by (lines desc) | limit 15",
           "queryType": "stats",
           "refId": "A",
           "legendFormat": ""
@@ -814,7 +814,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:$host app_name:$app kubernetes.pod_namespace:$namespace kubernetes.pod_name:$pod kubernetes.container_name:$container level:$level $search kubernetes.pod_name:* | stats by (kubernetes.pod_namespace, kubernetes.pod_name) count() as lines | sort by (lines desc) | limit 15",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search kubernetes.pod_name:* | stats by (kubernetes.pod_namespace, kubernetes.pod_name) count() as lines | sort by (lines desc) | limit 15",
           "queryType": "stats",
           "refId": "A",
           "legendFormat": ""
@@ -928,7 +928,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:$host app_name:$app kubernetes.pod_namespace:$namespace kubernetes.pod_name:$pod kubernetes.container_name:$container level:$level $search",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search",
           "queryType": "instant",
           "refId": "A",
           "legendFormat": "",
@@ -984,7 +984,7 @@
         },
         "refresh": 2,
         "includeAll": true,
-        "allValue": "*",
+        "allValue": ".*",
         "multi": true,
         "current": {
           "selected": true,
@@ -1014,7 +1014,7 @@
         },
         "refresh": 2,
         "includeAll": true,
-        "allValue": "*",
+        "allValue": ".*",
         "multi": true,
         "current": {
           "selected": true,
@@ -1044,7 +1044,7 @@
         },
         "refresh": 2,
         "includeAll": true,
-        "allValue": "*",
+        "allValue": ".*",
         "multi": true,
         "current": {
           "selected": true,
@@ -1074,7 +1074,7 @@
         },
         "refresh": 2,
         "includeAll": true,
-        "allValue": "*",
+        "allValue": ".*",
         "multi": true,
         "current": {
           "selected": true,
@@ -1104,7 +1104,7 @@
         },
         "refresh": 2,
         "includeAll": true,
-        "allValue": "*",
+        "allValue": ".*",
         "multi": true,
         "current": {
           "selected": true,
@@ -1134,7 +1134,7 @@
         },
         "refresh": 2,
         "includeAll": true,
-        "allValue": "*",
+        "allValue": ".*",
         "multi": true,
         "current": {
           "selected": true,

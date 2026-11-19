@@ -44,13 +44,18 @@ Pod logs have a `level` only when the application logs JSON that carries one. A 
 The `Logs` dashboard in Grafana (`dashboards/logs.json`, uid `logs`) is the search and filter surface:
 
 - **Filters.** Host, Source (the syslog program), Namespace, Pod, Container, Level and a Search box for a word
-  in the message. All of them start on `All`. The dashboard variables use `*` as their All value, and the
-  VictoriaLogs Grafana plugin (0.34.0) sends that as `field:in(*)`. Unlike plain `field:*`, which only matches
-  lines where the field is non-empty, `in(*)` also matches lines that lack the field. So with everything on
-  `All` both syslog lines and pod lines show, picking a namespace narrows to pods and picking a host narrows to
-  syslog. Choosing a level leaves out the lines that have none. This was checked against VictoriaLogs v1.54.0
-  with one syslog-shaped line and one pod-shaped line, queried with the expanded `All` form, and both came
-  back. On a running Grafana 12.3.1 with plugin 0.34.0 the dashboard showed both kinds of line.
+  in the message. All of them start on `All`. Every filter is an anchored regular expression in a raw string,
+  ``field:~`^${var:regex}$` ``, and the variables use `.*` as their All value. Grafana escapes the selected
+  values through `:regex` (so `(sd-pam)` is matched as that exact program name) and leaves the All value
+  alone. `.*` matches any value, including no value, so with everything on `All` both syslog lines and pod
+  lines show, picking a namespace narrows to pods and picking a host narrows to syslog. Choosing a level
+  leaves out the lines that have none. Keep the backquotes: a double-quoted LogsQL string rejects the
+  backslashes that `:regex` adds. Do not change the All value back to `*`: plain `field:*` only matches lines
+  where the field is non-empty, and no line has both a `hostname` and a `kubernetes.*` field, so a client that
+  puts the All value into the query as it is returns nothing. The Grafana mobile app Gaugely does exactly
+  that (HO-332: it showed 0 log lines while the same dashboard worked in a browser). A client that does its
+  own variable substitution must also support the `:regex` format. Checked on Grafana 12.3.1 and on 11.6.0
+  (what the pinned chart deploys) against VictoriaLogs v1.54.0.
 - **Panels.** Counts (lines, errors and worse, hosts, pods), volume by source and by level, the busiest
   hosts, programs and pods, and the matching lines newest first.
 - **Search.** Use Explore on the `victorialogs` data source for anything the filters do not cover. Some
