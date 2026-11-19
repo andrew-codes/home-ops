@@ -20,7 +20,7 @@ spec:
   chart:
     spec:
       chart: telepresence-oss
-      version: 2.22.4
+      version: 2.33.3
       sourceRef:
         kind: OCIRepository
         name: telepresence-oss
@@ -28,3 +28,11 @@ spec:
   values:
     trafficManager:
       enabled: true
+    agentInjector:
+      certificate:
+        # The default (helm) method generates a 365 day certificate once and then
+        # reuses the existing Secret on every upgrade, so it silently expires.
+        # cert-manager issues a 90 day certificate and renews it on its own. The
+        # chart creates the self-signed Issuer and Certificate and injects the CA
+        # into the MutatingWebhookConfiguration.
+        method: certmanager
