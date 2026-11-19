@@ -153,6 +153,29 @@ describe("truenas-health.py", () => {
       expect(find(samples, "truenas_pool_state")).toHaveLength(3)
     })
 
+    it("reports the capacity of every pool in bytes, the boot pool included", () => {
+      expect(
+        valueOf(samples, "truenas_pool_size_bytes", { pool: "tank" }),
+      ).toBe(87000000000000)
+      expect(
+        valueOf(samples, "truenas_pool_allocated_bytes", { pool: "tank" }),
+      ).toBe(35000000000000)
+      expect(
+        valueOf(samples, "truenas_pool_free_bytes", { pool: "tank" }),
+      ).toBe(52000000000000)
+      for (const metric of [
+        "truenas_pool_size_bytes",
+        "truenas_pool_allocated_bytes",
+        "truenas_pool_free_bytes",
+      ]) {
+        expect(
+          find(samples, metric)
+            .map((sample) => sample.labels.pool)
+            .sort(),
+        ).toEqual(["boot-pool", "fast", "tank"])
+      }
+    })
+
     it("reports the state of each vdev and the disk under it, named by serial", () => {
       expect(
         valueOf(samples, "truenas_pool_vdev_state", {
@@ -766,6 +789,34 @@ except ValueError:
         { encoding: "utf8" },
       )
       expect(result.stdout.trim()).toBe("rejected")
+    })
+  })
+
+  describe("a pool whose capacity cannot be read", () => {
+    it("leaves out the capacity series, never reports a zero, and keeps everything else", () => {
+      const samples = collect({ pool: "pool_no_capacity" })
+      // fast has null fields and tank has none: neither gets a capacity series.
+      for (const metric of [
+        "truenas_pool_size_bytes",
+        "truenas_pool_allocated_bytes",
+        "truenas_pool_free_bytes",
+      ]) {
+        expect(
+          find(samples, metric).map((sample) => sample.labels.pool),
+        ).toEqual(["boot-pool"])
+      }
+      expect(
+        valueOf(samples, "truenas_health_collect_ok", { source: "pool" }),
+      ).toBe(1)
+      expect(
+        valueOf(samples, "truenas_pool_state", {
+          pool: "tank",
+          state: "ONLINE",
+        }),
+      ).toBe(1)
+      expect(
+        find(samples, "truenas_pool_vdev_state", { pool: "fast" }).length,
+      ).toBeGreaterThan(0)
     })
   })
 

@@ -90,10 +90,30 @@ def collect_vdev(out, pool, device_class, node, parent, disks) -> None:
         collect_vdev(out, pool, device_class, child, node["name"], disks)
 
 
+# pool.query and boot.get_state field -> metric name. The values are bytes of
+# the whole pool as ZFS counts it (zpool list), so a RAIDZ pool's size includes
+# parity. The middleware returns null for a value it cannot read, and the
+# field may be absent on another TrueNAS version; either leaves its series out
+# rather than reporting a zero.
+POOL_CAPACITY = {
+    "size": "truenas_pool_size_bytes",
+    "allocated": "truenas_pool_allocated_bytes",
+    "free": "truenas_pool_free_bytes",
+}
+
+
+def collect_pool_capacity(out, pool) -> None:
+    for field, metric in POOL_CAPACITY.items():
+        value = pool.get(field)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            out.add(metric, value, pool=pool["name"])
+
+
 def collect_pool(out, pool, disks) -> None:
     name = pool["name"]
     out.add("truenas_pool_state", 1, pool=name, state=pool["status"])
     out.add("truenas_pool_healthy", int(bool(pool["healthy"])), pool=name)
+    collect_pool_capacity(out, pool)
     scan = pool.get("scan") or {}
     out.add(
         "truenas_pool_scan_in_progress", int(scan.get("state") == "SCANNING"), pool=name
