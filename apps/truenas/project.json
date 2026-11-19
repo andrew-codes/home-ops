@@ -15,7 +15,7 @@
       "executor": "nx:run-commands",
       "outputs": ["{projectRoot}/.test-runs/unit"],
       "options": {
-        "command": "jest && scripts/test-rules.sh",
+        "command": "jest && scripts/test-rules.sh && src/health/rules/test-rules.sh",
         "cwd": "apps/truenas"
       }
     },

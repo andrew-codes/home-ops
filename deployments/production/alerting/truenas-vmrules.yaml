@@ -6,15 +6,18 @@
 # or interface in its text pulls it out of __name__ with label_replace first.
 # The disk label is shortened to the serial number.
 #
-# The disk temperature series (and the pool series) reach VictoriaMetrics about
-# 15 minutes after the time they carry: a sample stamped 19:30 lands at 19:45,
-# one every 5 minutes. At any moment the newest disk temperature is therefore
-# 15 to 20 minutes old, and a default 5 minute lookback never sees it. The disk
-# temperature rules look back 30 to 45 minutes to cover the lag.
+# The disk temperature series reach VictoriaMetrics about 15 minutes after the
+# time they carry: a sample stamped 19:30 lands at 19:45, one every 5 minutes.
+# At any moment the newest disk temperature is therefore 15 to 20 minutes old,
+# and a default 5 minute lookback never sees it. The disk temperature rules look
+# back 30 to 45 minutes to cover the lag.
 #
-# Pool health, vdev state and SMART results are not part of these metrics, so
-# no rule here can see a degraded pool or a failing disk. See the alerting
-# README for how that gap is covered.
+# Pool health, vdev state, SMART results and pool capacity are not usable from
+# these metrics: the exporter drops the pool name, so the used, total and
+# available series each mix every pool into one series, and it pushes them with
+# the same lag. No rule here can see a degraded pool, a failing disk or a full
+# pool. See the alerting README for how that gap is covered
+# (truenas-health-vmrules.yaml).
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMRule
 metadata:
@@ -34,49 +37,6 @@ spec:
           annotations:
             summary: "TrueNAS is not reporting metrics"
             description: "No TrueNAS series has arrived in VictoriaMetrics for 10 minutes. The NAS may be down or unreachable, its Graphite reporting exporter may be disabled or pointed at the wrong port, or VictoriaMetrics is not accepting Graphite. The NFS shares the cluster uses may be offline, and the other TrueNAS alerts cannot fire."
-            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
-    - name: truenas-pool
-      rules:
-        # Pool usage is one series with no pool name in it: the exporter reports
-        # the pool as a whole.
-        - alert: TrueNASPoolUsageHigh
-          expr: >-
-            {__name__="truenas.nas.truenas_pool.usage.used"}
-            / {__name__="truenas.nas.truenas_pool.usage.total"} > 0.80
-          for: 30m
-          labels:
-            severity: warning
-          annotations:
-            summary: "TrueNAS pool is {{ $value | humanizePercentage }} full"
-            description: "The TrueNAS pool is {{ $value | humanizePercentage }} full, above the 80% threshold for 30 minutes. ZFS slows down as a pool fills up, so free space or add capacity before it reaches 90%."
-            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
-        - alert: TrueNASPoolAlmostFull
-          expr: >-
-            {__name__="truenas.nas.truenas_pool.usage.used"}
-            / {__name__="truenas.nas.truenas_pool.usage.total"} > 0.90
-          for: 15m
-          labels:
-            severity: critical
-          annotations:
-            summary: "TrueNAS pool is nearly out of space"
-            description: "The TrueNAS pool is {{ $value | humanizePercentage }} full, above the 90% threshold for 15 minutes. Writes will slow down and then fail once it fills, which affects everything that stores data on the NAS."
-            dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
-        # Above 70% used, and the 24 hour trend of the free space reaches zero
-        # within 7 days.
-        - alert: TrueNASPoolFillingUp
-          expr: >-
-            (
-              {__name__="truenas.nas.truenas_pool.usage.used"}
-              / {__name__="truenas.nas.truenas_pool.usage.total"} > 0.70
-            and
-              predict_linear({__name__="truenas.nas.truenas_pool.usage.available"}[1d], 7 * 24 * 3600) < 0
-            )
-          for: 1h
-          labels:
-            severity: warning
-          annotations:
-            summary: "TrueNAS pool will fill up within a week"
-            description: "The TrueNAS pool is {{ $value | humanizePercentage }} full and, at the rate of the last 24 hours, will run out of space within 7 days."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
     - name: truenas-disks
       rules:

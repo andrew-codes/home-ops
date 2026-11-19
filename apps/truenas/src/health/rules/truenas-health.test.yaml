@@ -27,6 +27,19 @@ tests:
         values: "1x180"
       - series: 'truenas_pool_state{pool="tank",state="ONLINE"}'
         values: "1x180"
+      # tank is 40% full and not growing; fast is 60% full.
+      - series: 'truenas_pool_size_bytes{pool="tank"}'
+        values: "100x180"
+      - series: 'truenas_pool_allocated_bytes{pool="tank"}'
+        values: "40x180"
+      - series: 'truenas_pool_free_bytes{pool="tank"}'
+        values: "60x180"
+      - series: 'truenas_pool_size_bytes{pool="fast"}'
+        values: "100x180"
+      - series: 'truenas_pool_allocated_bytes{pool="fast"}'
+        values: "60x180"
+      - series: 'truenas_pool_free_bytes{pool="fast"}'
+        values: "40x180"
       - series: 'truenas_pool_vdev_state{pool="tank",class="data",type="RAIDZ3",vdev="raidz3-0",state="ONLINE"}'
         values: "1x180"
       - series: 'truenas_pool_vdev_state{pool="tank",class="data",type="DISK",vdev="uuid-a",parent="raidz3-0",disk="sda",serial="SERIAL-SDA",state="ONLINE"}'
@@ -72,6 +85,9 @@ tests:
         }
       - { eval_time: 170m, alertname: TrueNASSmartReadFailing, exp_alerts: [] }
       - { eval_time: 170m, alertname: TrueNASPoolNotOnline, exp_alerts: [] }
+      - { eval_time: 170m, alertname: TrueNASPoolUsageHigh, exp_alerts: [] }
+      - { eval_time: 170m, alertname: TrueNASPoolAlmostFull, exp_alerts: [] }
+      - { eval_time: 170m, alertname: TrueNASPoolFillingUp, exp_alerts: [] }
       - { eval_time: 170m, alertname: TrueNASVdevNotOnline, exp_alerts: [] }
       - { eval_time: 170m, alertname: TrueNASVdevErrors, exp_alerts: [] }
       - { eval_time: 170m, alertname: TrueNASPoolScanErrors, exp_alerts: [] }
@@ -666,4 +682,118 @@ tests:
             exp_annotations:
               summary: "TrueNAS health cron job cannot read tasks_cloudsync"
               description: "The health cron job could not read 'tasks_cloudsync' from the TrueNAS middleware for 10 minutes, so the pool or disk alerts that depend on it cannot fire. This usually follows a TrueNAS upgrade that changed the middleware's output. Run the script by hand to see the error (see the apps/truenas README)."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  # Pool capacity. Each pool is judged on its own series, so a pool that is
+  # nearly full alerts by name while a roomy one beside it stays quiet. These
+  # series carry the pool label, unlike the Graphite pool usage series, which
+  # mixes every pool into one series.
+  - name: a full pool alerts by name and a roomy one does not
+    interval: 1m
+    input_series:
+      - series: 'truenas_pool_size_bytes{pool="tank"}'
+        values: "100x60"
+      - series: 'truenas_pool_allocated_bytes{pool="tank"}'
+        values: "85x60"
+      - series: 'truenas_pool_free_bytes{pool="tank"}'
+        values: "15x60"
+      - series: 'truenas_pool_size_bytes{pool="fast"}'
+        values: "100x60"
+      - series: 'truenas_pool_allocated_bytes{pool="fast"}'
+        values: "30x60"
+      - series: 'truenas_pool_free_bytes{pool="fast"}'
+        values: "70x60"
+      # The boot pool is judged like the others.
+      - series: 'truenas_pool_size_bytes{pool="boot-pool"}'
+        values: "100x60"
+      - series: 'truenas_pool_allocated_bytes{pool="boot-pool"}'
+        values: "95x60"
+      - series: 'truenas_pool_free_bytes{pool="boot-pool"}'
+        values: "5x60"
+    alert_rule_test:
+      # Not yet: the rule waits 30 minutes.
+      - { eval_time: 10m, alertname: TrueNASPoolUsageHigh, exp_alerts: [] }
+      - eval_time: 40m
+        alertname: TrueNASPoolUsageHigh
+        exp_alerts:
+          - exp_labels: { severity: warning, pool: tank }
+            exp_annotations:
+              summary: "TrueNAS pool tank is 85% full"
+              description: "Pool tank is 85% full, above the 80% threshold for 30 minutes. ZFS slows down as a pool fills up, so free space or add capacity before it reaches 90%."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+          - exp_labels: { severity: warning, pool: boot-pool }
+            exp_annotations:
+              summary: "TrueNAS pool boot-pool is 95% full"
+              description: "Pool boot-pool is 95% full, above the 80% threshold for 30 minutes. ZFS slows down as a pool fills up, so free space or add capacity before it reaches 90%."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+      - eval_time: 40m
+        alertname: TrueNASPoolAlmostFull
+        exp_alerts:
+          - exp_labels: { severity: critical, pool: boot-pool }
+            exp_annotations:
+              summary: "TrueNAS pool boot-pool is nearly out of space"
+              description: "Pool boot-pool is 95% full, above the 90% threshold for 15 minutes. Writes will slow down and then fail once it fills, which affects everything that stores data on it."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  # The collector pushes every minute, but a missed run must not reset the
+  # wait or mute a firing alert.
+  - name: gaps between pushes do not mute a pool capacity alert
+    interval: 1m
+    input_series:
+      - series: 'truenas_pool_size_bytes{pool="tank"}'
+        values: "100 _x3 100 _x3 100 _x3 100 _x3 100 _x3 100 _x3 100 _x3 100 _x3 100 _x3 100 _x3 100 _x3 100 _x3"
+      - series: 'truenas_pool_allocated_bytes{pool="tank"}'
+        values: "92 _x3 92 _x3 92 _x3 92 _x3 92 _x3 92 _x3 92 _x3 92 _x3 92 _x3 92 _x3 92 _x3 92 _x3"
+    alert_rule_test:
+      # Evaluated in the middle of a gap, after the wait has passed.
+      - eval_time: 30m
+        alertname: TrueNASPoolAlmostFull
+        exp_alerts:
+          - exp_labels: { severity: critical, pool: tank }
+            exp_annotations:
+              summary: "TrueNAS pool tank is nearly out of space"
+              description: "Pool tank is 92% full, above the 90% threshold for 15 minutes. Writes will slow down and then fail once it fills, which affects everything that stores data on it."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  # A pool whose capacity the collector could not read has no capacity series,
+  # so there is nothing to divide and nothing fires. The health source alert
+  # covers a pool.query that fails outright.
+  - name: a pool with no capacity series cannot alert
+    interval: 1m
+    input_series:
+      - series: 'truenas_pool_state{pool="tank",state="ONLINE"}'
+        values: "1x60"
+      - series: 'truenas_pool_size_bytes{pool="fast"}'
+        values: "100x60"
+    alert_rule_test:
+      - { eval_time: 50m, alertname: TrueNASPoolUsageHigh, exp_alerts: [] }
+      - { eval_time: 50m, alertname: TrueNASPoolAlmostFull, exp_alerts: [] }
+      - { eval_time: 50m, alertname: TrueNASPoolFillingUp, exp_alerts: [] }
+
+  # 72% full and growing 5 points a day: the free space (28 to 23 over the
+  # last day) reaches zero in about 5 days, so the pool will fill within a
+  # week. A stable pool at the same fullness does not alert.
+  - name: a pool that fills within a week alerts and a stable one does not
+    interval: 1m
+    input_series:
+      - series: 'truenas_pool_size_bytes{pool="tank"}'
+        values: "100x1800"
+      - series: 'truenas_pool_allocated_bytes{pool="tank"}'
+        values: "72+0.003472x1800"
+      - series: 'truenas_pool_free_bytes{pool="tank"}'
+        values: "28-0.003472x1800"
+      - series: 'truenas_pool_size_bytes{pool="fast"}'
+        values: "100x1800"
+      - series: 'truenas_pool_allocated_bytes{pool="fast"}'
+        values: "72x1800"
+      - series: 'truenas_pool_free_bytes{pool="fast"}'
+        values: "28x1800"
+    alert_rule_test:
+      - eval_time: 30h
+        alertname: TrueNASPoolFillingUp
+        exp_alerts:
+          - exp_labels: { severity: warning, pool: tank }
+            exp_annotations:
+              summary: "TrueNAS pool tank will fill up within a week"
+              description: "Pool tank is 78.25% full and, at the rate of the last 24 hours, will run out of space within 7 days."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS

@@ -6,6 +6,9 @@
     "warning": false,
     "status_code": "OK",
     "status_detail": null,
+    "size": 3862000000000,
+    "allocated": 67000000000,
+    "free": 3795000000000,
     "scan": {
       "function": null,
       "state": null,
@@ -83,6 +86,9 @@
     "warning": false,
     "status_code": "OK",
     "status_detail": null,
+    "size": 87000000000000,
+    "allocated": 35000000000000,
+    "free": 52000000000000,
     "scan": {
       "function": null,
       "state": null,

@@ -5,6 +5,9 @@
   "warning": false,
   "status_code": "OK",
   "status_detail": null,
+  "size": 1931000000000,
+  "allocated": 67000000000,
+  "free": 1864000000000,
   "scan": {
     "function": "SCRUB",
     "state": "FINISHED",
