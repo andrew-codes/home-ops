@@ -2,6 +2,12 @@
 # scripts/test-rules.sh extracts the rule groups into truenas-rules.yaml next to
 # this file's copy and runs `vmalert-tool unittest`. Series are named the way
 # the Graphite exporter delivers them: dotted names, no labels.
+#
+# The disk temperature series reach VictoriaMetrics 15 to 20 minutes after the
+# time they carry, so at any moment the newest sample is that old. The tests
+# below model that lag with samples that stop 15 to 40 minutes before the
+# evaluation time. A series that ends and never comes back stands for a
+# collector that stopped.
 rule_files:
   - truenas-rules.yaml
 
@@ -28,7 +34,7 @@ tests:
               disk: diska
             exp_annotations:
               summary: "TrueNAS disk diska stopped reporting"
-              description: "Disk diska reported a temperature in the last day but has had no sample for 15 minutes, while the other disks still report (last value 40°C). The disk may have failed or dropped off its controller. Check the pool in the TrueNAS UI."
+              description: "Disk diska reported a temperature in the last day but has had no sample for 45 minutes, while the other disks still report (last value 40°C). The disk may have failed or dropped off its controller. Check the pool in the TrueNAS UI."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
 
   # The whole push stream pauses for 20 minutes, as it does when VictoriaMetrics
@@ -139,3 +145,91 @@ tests:
               summary: "TrueNAS network link enp1s0 is down"
               description: "Interface enp1s0 on the NAS has had no carrier for 5 minutes, after being up in the last 7 days. Check the cable, the switch port and the NIC."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  # Disk temperatures lag 15 to 20 minutes, with the odd 10 minute hole on top.
+  # The newest sample is 25 to 40 minutes old here (the series ends at minute
+  # 30, a sample every 5 minutes) and the collector is still working: the
+  # missing-metrics alert stays quiet. The old 5 minute lookback fired here.
+  - name: lagging disk temperatures do not alert
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diska.temp"}'
+        values: "40 _x4 40 _x4 40 _x4 40 _x4 40 _x4 40 _x4 40"
+      - series: '{__name__="truenas.nas.system.uptime.uptime"}'
+        values: "1x200"
+    alert_rule_test:
+      - eval_time: 50m
+        alertname: TrueNASDiskTemperatureMetricsMissing
+        exp_alerts: []
+      - eval_time: 65m
+        alertname: TrueNASDiskTemperatureMetricsMissing
+        exp_alerts: []
+
+  # The collector stops for good: no sample for 45 minutes while the host keeps
+  # reporting, so the alert fires.
+  - name: disk temperature collector stops
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diska.temp"}'
+        values: "40 _x4 40 _x4 40 _x4 40 _x4 40 _x4 40 _x4 40"
+      - series: '{__name__="truenas.nas.system.uptime.uptime"}'
+        values: "1x200"
+    alert_rule_test:
+      - eval_time: 100m
+        alertname: TrueNASDiskTemperatureMetricsMissing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "TrueNAS disk temperatures are not being reported"
+              description: "TrueNAS is reporting metrics, but no disk temperature series has arrived for 45 minutes, when a working collector is at most 20 minutes behind. The disk temperature alerts cannot fire."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  # The host is gone too: TrueNASMetricsMissing owns that, not this alert.
+  - name: whole host gone is not a collector problem
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diska.temp"}'
+        values: "40 _x4 40 _x4 40 _x4 40"
+      - series: '{__name__="truenas.nas.system.uptime.uptime"}'
+        values: "1x30"
+    alert_rule_test:
+      - eval_time: 100m
+        alertname: TrueNASDiskTemperatureMetricsMissing
+        exp_alerts: []
+
+  # A hot disk alerts although its newest sample is 15 to 20 minutes old: the
+  # last sample is at minute 60 and the alert is still up at minute 76.
+  - name: hot disk with lagging samples
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diska.temp"}'
+        values: "55 _x4 55 _x4 55 _x4 55 _x4 55 _x4 55 _x4 55 _x4 55 _x4 55 _x4 55 _x4 55 _x4 55 _x4 55"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: TrueNASDiskTemperatureHigh
+        exp_alerts: []
+      - eval_time: 76m
+        alertname: TrueNASDiskTemperatureHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              disk: diska
+            exp_annotations:
+              summary: "TrueNAS disk diska is running hot"
+              description: "Disk diska has been at 55°C or more for 15 minutes (warning threshold 50°C). Check the fans and airflow in the NAS."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+
+  # One disk is 40 minutes behind the others, within what a lagging collector
+  # does: the per-disk alert stays quiet until it is 45 minutes behind.
+  - name: disk a little behind the others does not alert
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diska.temp"}'
+        values: "40 _x4 40 _x4 40 _x4 40 _x4 40 _x4 40 _x4 40"
+      - series: '{__name__="truenas.nas.truenas_disk_temp.diskb.temp"}'
+        values: "41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41 _x4 41"
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: TrueNASDiskMissing
+        exp_alerts: []
