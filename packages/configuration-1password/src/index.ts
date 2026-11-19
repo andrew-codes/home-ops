@@ -82,6 +82,11 @@ const sealedSecretNames = [
   "alertmanager-receivers/healthchecks-ping-url",
   "alertmanager-receivers/jira-user",
   "alertmanager-receivers/jira-api-token",
+  // The OAuth client of the Tailscale Kubernetes operator
+  // (infrastructure/base/tailscale-operator). Sealed into the tailscale namespace,
+  // see tools/nx-secrets-generators/src/generators/secrets-seal.ts.
+  "tailscale-operator-oauth/client-id",
+  "tailscale-operator-oauth/client-secret",
 ] as const
 
 const secretNames = [
@@ -161,6 +166,8 @@ const secretNames = [
   "alertmanager-receivers/healthchecks-ping-url",
   "alertmanager-receivers/jira-user",
   "alertmanager-receivers/jira-api-token",
+  "tailscale-operator-oauth/client-id",
+  "tailscale-operator-oauth/client-secret",
 ] as const
 
 const onePasswordConfiguration = createOnePasswordConfigurationApi(secretNames)

@@ -14,6 +14,8 @@ jest.mock("@ha/configuration-1password", () => {
     "regcred/password",
     "regcred/server",
     "regcred/username",
+    "tailscale-operator-oauth/client-id",
+    "tailscale-operator-oauth/client-secret",
   ]
   return {
     sealedOnePasswordConfiguration: {
@@ -91,6 +93,10 @@ describeWithBinaries("secrets-seal generator without a kubeconfig", () => {
     "seals every secret into the default namespace for %s.",
     async (env) => {
       const tree = createTreeWithEmptyWorkspace()
+      tree.write(
+        `infrastructure/${env}/tailscale-operator/kustomization.yaml`,
+        "resources:\n  - ../../base/tailscale-operator\n",
+      )
       await secretsSealGenerator(tree, { env })
 
       // kubeseal refuses a secret that does not declare a namespace, in which
@@ -109,4 +115,52 @@ describeWithBinaries("secrets-seal generator without a kubeconfig", () => {
       }
     },
   )
+
+  test("seals a secret for another namespace next to the Kustomization that creates it.", async () => {
+    const env = "production"
+    const tree = createTreeWithEmptyWorkspace()
+    const kustomizationPath = `infrastructure/${env}/tailscale-operator/kustomization.yaml`
+    tree.write(
+      kustomizationPath,
+      `# A comment.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base/tailscale-operator
+`,
+    )
+    await secretsSealGenerator(tree, { env })
+    // A second run must not list the sealed file twice.
+    await secretsSealGenerator(tree, { env })
+
+    expect(consoleError).not.toHaveBeenCalled()
+    const sealed = tree
+      .read(
+        `infrastructure/${env}/tailscale-operator/tailscale-operator-oauth-sealed.yaml`,
+      )
+      ?.toString()
+    expect(sealed).toMatch(/^kind: SealedSecret$/m)
+    expect(sealed).toMatch(/^ {2}name: tailscale-operator-oauth$/m)
+    expect(sealed?.match(/^ {2,6}namespace: tailscale$/gm)).toHaveLength(2)
+    expect(sealed).toMatch(/^ {4}client-id: /m)
+    expect(sealed).toMatch(/^ {4}client-secret: /m)
+    expect(tree.read(kustomizationPath)?.toString()).toEqual(`# A comment.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base/tailscale-operator
+  - tailscale-operator-oauth-sealed.yaml
+`)
+
+    // The shared secrets directory must not apply a secret whose namespace is
+    // created by another Kustomization.
+    expect(
+      tree.exists(
+        `infrastructure/${env}/secrets/tailscale-operator-oauth-sealed.yaml`,
+      ),
+    ).toBe(false)
+    expect(
+      tree.read(`infrastructure/${env}/secrets/kustomization.yaml`)?.toString(),
+    ).not.toContain("tailscale-operator-oauth")
+  })
 })

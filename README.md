@@ -4,6 +4,7 @@ This mono-repo consists of all the applications and services used in my home lab
 
 - automated provisioning and deployment of services on Proxmox and K8s cluster
 - select services from k8s cluster are exposed and accessible via the Internet; secured by Cloudflare tunnel
+- Grafana is also reachable on the tailnet through the [Tailscale Kubernetes operator](infrastructure/base/tailscale-operator/README.md), for CLI and agent use
 - service configuration and secrets are managed by a 1Password vault
 - centralized logging, metrics, and monitoring
 
