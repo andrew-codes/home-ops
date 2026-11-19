@@ -29,7 +29,7 @@ const hasBinary = (name: string) => spawnSync("which", [name]).status === 0
 //  These tests can only be run locally as they require a kubectl context and 1Password CLI.
 describe("secrets-seal generator", () => {
   let tree: Tree
-  const options: SecretsGeneratorSchema = { env: "staging" }
+  const options: SecretsGeneratorSchema = { env: "production" }
 
   beforeEach(() => {
     tree = createTreeWithEmptyWorkspace()
@@ -87,7 +87,7 @@ describeWithBinaries("secrets-seal generator without a kubeconfig", () => {
     consoleError.mockRestore()
   })
 
-  test.each(["staging", "production"])(
+  test.each(["production"])(
     "seals every secret into the default namespace for %s.",
     async (env) => {
       const tree = createTreeWithEmptyWorkspace()

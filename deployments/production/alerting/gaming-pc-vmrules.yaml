@@ -11,8 +11,6 @@
 # names the game when the FPS summary reports one: the thermal question is "what
 # was running when it got hot". The `query` template reads the application at
 # the moment the alert fires.
-#
-# In the production overlay, not base: staging has no gaming PC.
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMRule
 metadata:

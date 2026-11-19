@@ -71,7 +71,7 @@ the day (see [Gaming PC](#gaming-pc)).
 
 The NAS pushes its metrics through the Graphite reporting exporter that `apps/truenas` configures. They arrive as dotted names with no labels (`truenas.nas.<family>.<...>`), and the rules read the disk or interface name out of `__name__` with `label_replace`. The `TrueNAS` dashboard in Grafana shows the same series.
 
-The rules are the `truenas` VMRule in `deployments/production/alerting/truenas-vmrules.yaml`. They are in the production overlay, not base, because staging receives no TrueNAS metrics and the missing-data rules would fire there forever. Disks in the text are shown by serial number.
+The rules are the `truenas` VMRule in `deployments/production/alerting/truenas-vmrules.yaml`. Disks in the text are shown by serial number.
 
 | Rule                                   | Severity | Fires when                                                                                                        |
 | -------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -126,7 +126,7 @@ A cron job on the NAS (`apps/truenas`, see its [README](../../../apps/truenas/RE
 
 ## Proxmox Backup Server
 
-The backup server pushes its host and datastore usage through its InfluxDB metric server (`resources/pbs`), and a systemd timer on the same host (`resources/pbs/scripts/files/pbs-health.py`, see its [README](../../../resources/pbs/README.md#backup-and-task-health)) pushes what the metric server cannot carry: backup and job results, the age of each guest's last good backup, datastore availability and a heartbeat. The `Proxmox Backup Server` dashboard in Grafana shows both. The rules are the `pbs` VMRule in `deployments/production/alerting/pbs-vmrules.yaml`, in the production overlay only because staging receives no PBS metrics and the missing-data rules would fire there forever. Guests are named as Proxmox does, `vm/100` or `ct/101`.
+The backup server pushes its host and datastore usage through its InfluxDB metric server (`resources/pbs`), and a systemd timer on the same host (`resources/pbs/scripts/files/pbs-health.py`, see its [README](../../../resources/pbs/README.md#backup-and-task-health)) pushes what the metric server cannot carry: backup and job results, the age of each guest's last good backup, datastore availability and a heartbeat. The `Proxmox Backup Server` dashboard in Grafana shows both. The rules are the `pbs` VMRule in `deployments/production/alerting/pbs-vmrules.yaml`. Guests are named as Proxmox does, `vm/100` or `ct/101`.
 
 | Rule                         | Severity | Fires when                                                                                                                                                                               |
 | ---------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -154,7 +154,7 @@ The backup server pushes its host and datastore usage through its InfluxDB metri
 
 ## Gaming PC
 
-The gaming PC (`apps/gaming-pc`, see its [README](../../../apps/gaming-pc/README.md#metrics-and-sensors)) is scraped by vmagent as the `gaming-pc` job: `windows_exporter` for the RTX 5090's temperature, fan and power and the frame rate, and OhmGraphite for the Ryzen 9 9950X3D's temperature. The `Gaming PC` dashboard in Grafana shows both. The rules are the `gaming-pc` VMRule in `deployments/production/alerting/gaming-pc-vmrules.yaml`, in the production overlay only because staging has no gaming PC.
+The gaming PC (`apps/gaming-pc`, see its [README](../../../apps/gaming-pc/README.md#metrics-and-sensors)) is scraped by vmagent as the `gaming-pc` job: `windows_exporter` for the RTX 5090's temperature, fan and power and the frame rate, and OhmGraphite for the Ryzen 9 9950X3D's temperature. The `Gaming PC` dashboard in Grafana shows both. The rules are the `gaming-pc` VMRule in `deployments/production/alerting/gaming-pc-vmrules.yaml`.
 
 | Rule                             | Severity | Fires when                                                                                                                         |
 | -------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -393,12 +393,11 @@ writes the SealedSecrets.
      'healthchecks-ping-url=https://hc-ping.com/<check uuid>'
    ```
 
-4. Seal for each environment and commit the result. The generator rewrites every sealed secret and the
+4. Seal and commit the result. The generator rewrites every sealed secret and the
    `kustomization.yaml` in `infrastructure/<env>/secrets`, so expect all of those files to change:
 
    ```sh
    yarn nx g @ha/secrets:seal production
-   yarn nx g @ha/secrets:seal staging
    ```
 
 ### 2. Home Assistant
@@ -595,7 +594,7 @@ At most a few more checks (for example backup jobs that ping on success) are exp
   created in Grafana. `incident-ack-sync` recreates its own silences once the alert fires again.
 - The Alert rules page and its source links depend on VMSingle (`vmalert.proxyURL`) and vmalert being up. If
   vmalert is down the page shows an error for the data source, while Alert groups keeps working.
-- The alert source link uses the production Grafana URL (`external.url`), staging included, like the
+- The alert source link uses the production Grafana URL (`external.url`), like the
   `dashboard_url` annotations in the rules.
 - If Home Assistant is down, pushes fail (`AlertmanagerNotificationsFailing` is visible in Grafana).
   Healthchecks.io is independent of Home Assistant.

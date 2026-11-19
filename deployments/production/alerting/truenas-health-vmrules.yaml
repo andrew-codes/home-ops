@@ -17,9 +17,6 @@
 # through absent_over_time over 10 minutes, and the 7 day sector rules use
 # delta over a range. The price is that an alert resolves up to 5 minutes after
 # the state it reports has changed.
-#
-# In the production overlay only: staging receives no TrueNAS metrics, so the
-# missing-data rules would fire there forever.
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMRule
 metadata:
