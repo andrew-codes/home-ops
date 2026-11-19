@@ -14,6 +14,12 @@
 //   - A work item that is back in To Do or Done is not acknowledged. The job
 //     removes the silence, so the alert pushes again at its next repeat.
 //
+// The same run also puts new incidents on the board. Alertmanager creates the
+// work item in the backlog of the project's board, where nobody looks, so the
+// job moves every open incident work item that is in the backlog onto the board
+// (Jira Agile "Move issues to board"). Board or backlog placement is separate
+// from status, so this changes neither the status nor the acknowledgement.
+//
 // Every silence is a short lease (SILENCE_TTL_MINUTES) that this job renews.
 // If the job, Jira or the token breaks, the silences lapse and the pushes
 // resume. Nothing here can mute an alert for good.
@@ -40,12 +46,17 @@ const readConfig = (env) => {
   if (!Number.isFinite(ttlMinutes) || ttlMinutes < 2) {
     throw new Error("SILENCE_TTL_MINUTES must be a number of at least 2")
   }
+  const boardId = env.JIRA_BOARD_ID || "100"
+  if (!/^\d+$/.test(boardId)) {
+    throw new Error("JIRA_BOARD_ID must be a Jira board id (digits)")
+  }
   return {
     jiraUrl: required("JIRA_URL").replace(/\/+$/, ""),
     jiraUser: required("JIRA_USER"),
     jiraApiToken: required("JIRA_API_TOKEN"),
     jiraProject: required("JIRA_PROJECT"),
     incidentLabel: env.INCIDENT_LABEL || "incident",
+    jiraBoardId: boardId,
     alertmanagerUrl: required("ALERTMANAGER_URL").replace(/\/+$/, ""),
     ttlMs: ttlMinutes * 60 * 1000,
   }
@@ -63,13 +74,63 @@ const request = async (fetchImpl, url, options, what) => {
   return text ? JSON.parse(text) : null
 }
 
+const jiraHeaders = (config) => ({
+  Authorization: `Basic ${Buffer.from(
+    `${config.jiraUser}:${config.jiraApiToken}`,
+  ).toString("base64")}`,
+  "Content-Type": "application/json",
+  Accept: "application/json",
+})
+
+// The Agile API moves at most 50 work items per request and returns at most 50
+// from the backlog by default.
+const BOARD_BATCH = 50
+
+// Open incident work items that are in the board's backlog. One page is enough:
+// a run moves them, and anything beyond the page is picked up by the next run.
+const findBacklogIncidents = async (config, fetchImpl) => {
+  const jql = `project = "${config.jiraProject}" AND labels = "${config.incidentLabel}" AND statusCategory != "Done"`
+  const query = new URLSearchParams({
+    jql,
+    fields: "key",
+    maxResults: String(BOARD_BATCH),
+  })
+  const page = await request(
+    fetchImpl,
+    `${config.jiraUrl}/rest/agile/1.0/board/${config.jiraBoardId}/backlog?${query}`,
+    { headers: jiraHeaders(config) },
+    "Jira board backlog",
+  )
+  return (page?.issues ?? []).map((issue) => issue.key)
+}
+
+// Moves every open incident work item in the board's backlog onto the board.
+// Returns the keys it moved.
+const moveIncidentsToBoard = async (config, fetchImpl) => {
+  const keys = await findBacklogIncidents(config, fetchImpl)
+  for (let i = 0; i < keys.length; i += BOARD_BATCH) {
+    const batch = keys.slice(i, i + BOARD_BATCH)
+    await request(
+      fetchImpl,
+      `${config.jiraUrl}/rest/agile/1.0/board/${config.jiraBoardId}/issue`,
+      {
+        method: "POST",
+        headers: jiraHeaders(config),
+        body: JSON.stringify({ issues: batch }),
+      },
+      "Jira move to board",
+    )
+    for (const key of batch) {
+      console.log(JSON.stringify({ action: "board", issue: key }))
+    }
+  }
+  return keys
+}
+
 // Work items that are acknowledged: In Progress status category, labelled as
 // incidents. Returns [{ key, fingerprint }]. A work item with no fingerprint
 // label (made by hand) cannot be matched to an alert and is skipped.
 const findAcknowledgedIncidents = async (config, fetchImpl) => {
-  const auth = Buffer.from(
-    `${config.jiraUser}:${config.jiraApiToken}`,
-  ).toString("base64")
   const jql = `project = "${config.jiraProject}" AND labels = "${config.incidentLabel}" AND statusCategory = "In Progress"`
   const incidents = []
   let nextPageToken
@@ -79,11 +140,7 @@ const findAcknowledgedIncidents = async (config, fetchImpl) => {
       `${config.jiraUrl}/rest/api/3/search/jql`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Basic ${auth}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        headers: jiraHeaders(config),
         body: JSON.stringify({
           jql,
           fields: ["labels"],
@@ -231,6 +288,38 @@ const run = async (
   config,
   { fetch: fetchImpl = fetch, now = Date.now() } = {},
 ) => {
+  // The board step is independent of the acknowledgement sync: a failure in
+  // either does not stop the other, then the run fails so the
+  // IncidentAckSyncFailing alert still sees it.
+  const failures = []
+  const attempt = async (step) => {
+    try {
+      return await step()
+    } catch (error) {
+      failures.push(error)
+      return undefined
+    }
+  }
+
+  const moved = await attempt(() => moveIncidentsToBoard(config, fetchImpl))
+  const changes = await attempt(() =>
+    syncAcknowledgements(config, fetchImpl, now),
+  )
+
+  console.log(
+    JSON.stringify({ action: "board-done", moved: moved?.length ?? 0 }),
+  )
+  if (failures.length > 0) {
+    // The caller reports the first failure, so log the others here.
+    for (const error of failures.slice(1)) {
+      console.error(error.message)
+    }
+    throw failures[0]
+  }
+  return changes
+}
+
+const syncAcknowledgements = async (config, fetchImpl, now) => {
   // Read everything first. If Jira or Alertmanager is unreachable this throws
   // before anything changes, and the silences already in place simply run out.
   const incidents = await findAcknowledgedIncidents(config, fetchImpl)
@@ -289,7 +378,14 @@ const run = async (
   return changes
 }
 
-module.exports = { readConfig, run, plan, toMatchers, SILENCE_CREATOR }
+module.exports = {
+  readConfig,
+  run,
+  plan,
+  moveIncidentsToBoard,
+  toMatchers,
+  SILENCE_CREATOR,
+}
 
 if (require.main === module) {
   run(readConfig(process.env)).catch((error) => {

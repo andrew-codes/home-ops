@@ -11,6 +11,7 @@ vmagent -> VMSingle <- vmalert -> Alertmanager -+-> Home Assistant webhook -> co
                                                 +-> Healthchecks.io ping (Watchdog only, dead-man's switch)
 
 Jira (status In Progress) -> incident-ack-sync (every minute) -> Alertmanager silence for that one alert
+                                                  \-> moves new incident work items from the backlog onto the board
 ```
 
 - Rules are `VMRule` objects in `vmrules.yaml`. Every rule needs a `summary` (what is wrong, naming the
@@ -221,6 +222,15 @@ category, finds each one's alert through its `alert-fp-<fingerprint>` label, and
 that alert (every label, exact match). It removes the silence when the work item leaves In Progress or is gone.
 While the alert is not firing the job keeps renewing the silence, so a recurrence stays silent.
 
+- **New incidents land on the board.** Alertmanager creates the work item in the backlog of the HO board,
+  where it is easy to miss. Each run also asks Jira's Agile API for the open (not Done or Won't Do) `incident`
+  work items in the backlog of board `JIRA_BOARD_ID` (default `100`, the HO board) and moves them onto the board
+  (`GET /rest/agile/1.0/board/{boardId}/backlog`, then `POST /rest/agile/1.0/board/{boardId}/issue` with
+  `{"issues": [...]}`, 50 per request). Placement does not change the status, so it does not affect the
+  acknowledgement. The `jira-user` account needs the **Assign issues** project permission on HO for the move
+  (Jira answers 403 "does not have permission to assign issues" without it), on top of Browse, Create, Edit and
+  Transition. A failure here is logged and does not stop the silence sync (and the reverse), but the run still
+  exits non-zero, so `IncidentAckSyncFailing` reports it.
 - **A silence is a lease.** It lasts 15 minutes and the job renews it. If the job, Jira or the API token
   breaks, the silences run out and the pushes resume. Nothing is muted for good.
   `IncidentAckSyncFailing` warns when the job has not succeeded for 30 minutes.
@@ -277,8 +287,8 @@ Until the secret has both fields, the receiver cannot open work items and `incid
 
 `yarn nx test alerting` runs, from `apps/alerting` (it needs Docker):
 
-- the unit tests of `ack-sync.cjs` (what it silences, renews and removes, and that it changes nothing when Jira
-  is unreachable);
+- the unit tests of `ack-sync.cjs` (what it silences, renews and removes, that it changes nothing when Jira
+  is unreachable, and that it moves backlog incidents onto the board and tolerates a board API error);
 - `amtool` against `vmalertmanager.yaml`: the config loads, each kind of alert reaches the right receivers
   (a critical alert and `TargetDown` both reach Jira and Home Assistant, a warning only Home Assistant), and the
   work item's summary, priority, labels and description render for a sample alert;
