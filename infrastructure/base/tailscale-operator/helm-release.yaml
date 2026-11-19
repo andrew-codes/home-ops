@@ -1,0 +1,45 @@
+# The Tailscale Kubernetes operator. It gives a Service or Ingress its own
+# tailnet device, MagicDNS name and Tailscale-issued HTTPS certificate. The
+# Grafana Ingress (deployments/base/grafana/ingress.yaml) is the first consumer.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tailscale-operator
+  namespace: tailscale
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: tailscale-operator
+      version: 1.104.7
+      sourceRef:
+        kind: HelmRepository
+        name: tailscale
+        namespace: default
+  # The chart renders its CRDs from templates (installCRDs: true), so Helm
+  # upgrades them with the release. CreateReplace also covers a plain crds/
+  # directory, which Helm never upgrades on its own.
+  install:
+    crds: CreateReplace
+    # Until the OAuth secret is sealed and committed the operator pod cannot
+    # start, so the install fails its readiness wait. Keep retrying instead of
+    # stalling, so the operator comes up on its own once the secret lands.
+    remediation:
+      retries: -1
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    # The OAuth client lives in the tailscale-operator-oauth Secret, sealed by
+    # `OP_VAULT=home-ops yarn nx g @ha/secrets:seal production`. The chart reads
+    # the files client_id and client_secret from the volume, and the Secret
+    # keys are the hyphenated 1Password field names.
+    oauthSecretVolume:
+      secret:
+        secretName: tailscale-operator-oauth
+        items:
+          - key: client-id
+            path: client_id
+          - key: client-secret
+            path: client_secret

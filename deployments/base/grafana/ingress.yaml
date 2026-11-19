@@ -1,0 +1,20 @@
+# Exposes Grafana on the tailnet through the Tailscale operator
+# (infrastructure/base/tailscale-operator). The operator creates a tailnet device
+# named after the TLS host, so Grafana answers on https://grafana.<tailnet>.ts.net
+# with a Tailscale-issued certificate. The Cloudflare tunnel route for browsers
+# (infrastructure/production/cloudflared/config.yaml) is separate and unchanged.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-tailscale
+  namespace: default
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: grafana
+      port:
+        number: 80
+  tls:
+    - hosts:
+        - grafana
