@@ -37,14 +37,14 @@ Run it as the captain, not from an agent session - see [AGENTS.md](AGENTS.md). [
 
 The metrics this play turns on feed a Grafana dashboard and sets of alert rules in the cluster:
 
-- **Dashboard.** `TrueNAS`, authored in [`deployments/base/grafana/dashboards/truenas.json`](../../deployments/base/grafana/dashboards/truenas.json) and mounted through the Grafana HelmRelease. It covers CPU usage and temperature, memory, ZFS ARC size and hit ratio, pool usage, per-disk temperature, busy %, IOPS and throughput, network per interface, the NFS server, the backup server VM and the host services, plus `Pool and disk health` and `Scheduled tasks` rows fed by the health cron job.
+- **Dashboard.** `TrueNAS`, authored in [`deployments/base/grafana/dashboards/truenas.json`](../../deployments/base/grafana/dashboards/truenas.json) and mounted through the Grafana HelmRelease. It covers CPU usage and temperature, memory, ZFS ARC size and hit ratio, pool used and capacity per pool (read from the health job's labelled `truenas_pool_*_bytes` series, empty until the collector is deployed), per-disk temperature, busy %, IOPS and throughput, network per interface, the NFS server, the backup server VM and the host services, plus `Pool and disk health` and `Scheduled tasks` rows fed by the health cron job.
 - **Alerts.** The `truenas` VMRule in [`deployments/production/alerting/truenas-vmrules.yaml`](../../deployments/production/alerting/truenas-vmrules.yaml) for the Graphite metrics, and the `truenas-health` VMRule in [`deployments/production/alerting/truenas-health-vmrules.yaml`](../../deployments/production/alerting/truenas-health-vmrules.yaml) for pool, vdev and SMART health. The thresholds and what each rule does are in the [alerting README](../../deployments/base/alerting/README.md#truenas).
 
 VictoriaMetrics stores the exporter's metrics as dotted Graphite names with no labels, for example `truenas.nas.truenas_disk_temp.<disk>.temp`. Queries select them with `{__name__=~"..."}` and pull the disk or interface name out of `__name__` with `label_replace`. If you change the exporter's `prefix` or `namespace` (the play variables), update the `truenas.nas.` part of every query in the dashboard and the rules.
 
 ### What the Graphite metrics cannot tell you
 
-The Graphite exporter has no pool health, vdev state or SMART result, and its pool usage series (`truenas.nas.truenas_pool.usage.*`) carries no pool name: with several pools, each of used, total and available is one series holding every pool's value, so the dashboard's pool usage panels and any ratio of them mix pools. It also pushes them about 15 minutes after their own timestamps. Pool health and pool capacity come from a separate source, the health cron job below.
+The Graphite exporter has no pool health, vdev state or SMART result, and its pool usage series (`truenas.nas.truenas_pool.usage.*`) carries no pool name: with several pools, each of used, total and available is one series holding every pool's value, so any ratio of them mixes pools. It also pushes them about 15 minutes after their own timestamps. Pool health and pool capacity come from a separate source, the health cron job below.
 
 ## Pool and disk health
 

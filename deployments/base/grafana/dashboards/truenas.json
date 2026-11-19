@@ -184,8 +184,8 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "100 * {__name__=\"truenas.nas.truenas_pool.usage.used\"} / {__name__=\"truenas.nas.truenas_pool.usage.total\"}",
-          "legendFormat": "",
+          "expr": "100 * last_over_time(truenas_pool_allocated_bytes[5m]) / last_over_time(truenas_pool_size_bytes[5m])",
+          "legendFormat": "{{pool}}",
           "range": true,
           "refId": "A"
         }
@@ -2780,8 +2780,8 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "100 * {__name__=\"truenas.nas.truenas_pool.usage.used\"} / {__name__=\"truenas.nas.truenas_pool.usage.total\"}",
-          "legendFormat": "used",
+          "expr": "100 * last_over_time(truenas_pool_allocated_bytes[5m]) / last_over_time(truenas_pool_size_bytes[5m])",
+          "legendFormat": "{{pool}}",
           "range": true,
           "refId": "A"
         }
@@ -2866,8 +2866,8 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "{__name__=\"truenas.nas.truenas_pool.usage.used\"}",
-          "legendFormat": "used",
+          "expr": "last_over_time(truenas_pool_allocated_bytes[5m])",
+          "legendFormat": "{{pool}} allocated",
           "range": true,
           "refId": "A"
         },
@@ -2877,8 +2877,8 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "{__name__=\"truenas.nas.truenas_pool.usage.available\"}",
-          "legendFormat": "available",
+          "expr": "last_over_time(truenas_pool_free_bytes[5m])",
+          "legendFormat": "{{pool}} free",
           "range": true,
           "refId": "B"
         }
@@ -2893,13 +2893,13 @@
             "drawStyle": "line",
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "fillOpacity": 40,
+            "fillOpacity": 10,
             "gradientMode": "none",
             "showPoints": "never",
             "spanNulls": false,
             "axisPlacement": "auto",
             "stacking": {
-              "mode": "normal",
+              "mode": "none",
               "group": "A"
             },
             "thresholdsStyle": {
@@ -2932,7 +2932,7 @@
           "sort": "desc"
         }
       },
-      "description": "The exporter reports the pool as one series with no pool name. It has no health, vdev or SMART data."
+      "description": "Allocated and free bytes of each pool, the boot pool included, as zpool list counts them (a RAIDZ pool's size includes parity). From the health collector, which labels each series with its pool."
     },
     {
       "type": "row",
