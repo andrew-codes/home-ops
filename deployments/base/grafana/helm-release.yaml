@@ -61,6 +61,27 @@ spec:
               # so do not forward Grafana alerts to this Alertmanager.
               handleGrafanaManagedAlerts: false
 
+    # Keep Grafana's SQLite database (service accounts, tokens, users, UI
+    # changes) across pod restarts. Dynamically provisioned on the nfs class,
+    # like the other volumes in this repo. Provisioned datasources, dashboards
+    # and the admin secret stay declarative and are unaffected.
+    persistence:
+      enabled: true
+      type: pvc
+      storageClassName: nfs
+      accessModes:
+        - ReadWriteOnce
+      size: 1Gi
+    # The chart's root chown init container fails on NFS exports that squash
+    # root, and the repo's other nfs workloads do not use one. Grafana runs as
+    # uid 472 and writes to the provisioned directory directly.
+    initChownData:
+      enabled: false
+    # One pod at a time: SQLite must not be opened by two pods, and the old pod
+    # must release the ReadWriteOnce volume before the new one starts.
+    deploymentStrategy:
+      type: Recreate
+
     plugins:
       - victoriametrics-logs-datasource@0.34.0
 
