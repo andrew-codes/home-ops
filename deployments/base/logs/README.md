@@ -55,7 +55,7 @@ The `Logs` dashboard in Grafana (`dashboards/logs.json`, uid `logs`) is the sear
   puts the All value into the query as it is returns nothing. The Grafana mobile app Gaugely does exactly
   that (HO-332: it showed 0 log lines while the same dashboard worked in a browser). A client that does its
   own variable substitution must also support the `:regex` format. Checked on Grafana 12.3.1 and on 11.6.0
-  (what the pinned chart deploys) against VictoriaLogs v1.54.0.
+  (what the chart deployed before the 13.3.1 upgrade) against VictoriaLogs v1.54.0.
 - **Panels.** Counts (lines, errors and worse, hosts, pods), volume by source and by level, the busiest
   hosts, programs and pods, and the matching lines newest first.
 - **Search.** Use Explore on the `victorialogs` data source for anything the filters do not cover. Some
