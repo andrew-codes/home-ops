@@ -44,7 +44,14 @@ Pod logs have a `level` only when the application logs JSON that carries one. A 
 The `Logs` dashboard in Grafana (`dashboards/logs.json`, uid `logs`) is the search and filter surface:
 
 - **Filters.** Host, Source (the syslog program), Namespace, Pod, Container, Level and a Search box for a word
-  in the message. All of them start on `All`. Every filter is an anchored regular expression in a raw string,
+  in the message. All of them start on `All`. The pickers are built so the Grafana mobile app Gaugely can list
+  their options (it cannot load the VictoriaLogs plugin's query variables, HO-332 follow-up). Namespace, Pod and
+  Container are Prometheus `label_values` variables on `kube_pod_info` and `kube_pod_container_info`, so they
+  discover from metrics. Host, Source and Level have no metric that lines up with the log field (the metric
+  `hostname` and `instance` labels name other things than the syslog hostnames, and no metric carries the syslog
+  program or level), so they are fixed `custom` lists taken from the values seen in VictoriaLogs. A host,
+  program or level that is not in the list can still be found with Search or Explore, and the list needs a new
+  entry when a new host appears. Every filter is an anchored regular expression in a raw string,
   ``field:~`^${var:regex}$` ``, and the variables use `.*` as their All value. Grafana escapes the selected
   values through `:regex` (so `(sd-pam)` is matched as that exact program name) and leaves the All value
   alone. `.*` matches any value, including no value, so with everything on `All` both syslog lines and pod
