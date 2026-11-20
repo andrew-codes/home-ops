@@ -8,7 +8,7 @@ spec:
   interval: 10m
   url: oci://quay.io/jetstack/charts/cert-manager
   ref:
-    semver: ">=1.0.0 <2.0.0"
+    tag: 1.21.3
 ---
 # cert-manager renews the Telepresence agent-injector webhook certificate. It
 # lives in its own Flux Kustomization so its CRDs exist before the traffic-manager
@@ -20,14 +20,10 @@ metadata:
   namespace: cert-manager
 spec:
   interval: 5m
-  chart:
-    spec:
-      chart: cert-manager
-      version: 1.21.3
-      sourceRef:
-        kind: OCIRepository
-        name: cert-manager
-        namespace: default
+  chartRef:
+    kind: OCIRepository
+    name: cert-manager
+    namespace: default
   values:
     crds:
       enabled: true
