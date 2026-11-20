@@ -3,6 +3,6 @@
   "version": "0.0.1",
   "main": "src/index.ts",
   "devDependencies": {
-    "nx": "^22.7.12"
+    "nx": "^23.3.2"
   }
 }

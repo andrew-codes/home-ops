@@ -9,7 +9,7 @@
     "@ha/nx-executors": "workspace:^0.1.0",
     "@ha/shell-utils": "workspace:^1.0.0",
     "handlebars": "4.7.10",
-    "nx": "^22.7.12",
+    "nx": "^23.3.2",
     "shelljs": "^0.8.5"
   }
 }
