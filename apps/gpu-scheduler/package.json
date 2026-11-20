@@ -10,7 +10,7 @@
     "@ha/jsonnet": "workspace:^0.0.1",
     "@ha/kubectl": "workspace:^1.0.0",
     "@ha/nx-executors": "workspace:^0.1.0",
-    "nx": "^23.3.2",
+    "nx": "^24.0.6",
     "shelljs": "^0.8.5"
   }
 }

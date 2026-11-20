@@ -4,6 +4,6 @@
   "version": "0.0.1",
   "devDependencies": {
     "@ha/nx-executors": "workspace:^0.1.0",
-    "nx": "^23.3.2"
+    "nx": "^24.0.6"
   }
 }
