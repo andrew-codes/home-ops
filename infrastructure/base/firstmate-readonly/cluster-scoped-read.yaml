@@ -1,0 +1,34 @@
+# Read access to the cluster-scoped objects the built-in `view` role omits.
+# Only get/list/watch, only named resources. No secrets, no exec, no wildcards.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: firstmate-readonly-cluster-scoped
+rules:
+  - apiGroups: [""]
+    resources: [nodes, namespaces, persistentvolumes]
+    verbs: [get, list, watch]
+  - apiGroups: [storage.k8s.io]
+    resources: [storageclasses, csidrivers, csinodes]
+    verbs: [get, list, watch]
+  - apiGroups: [admissionregistration.k8s.io]
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
+      - validatingadmissionpolicies
+      - validatingadmissionpolicybindings
+    verbs: [get, list, watch]
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [get, list, watch]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [clusterroles, clusterrolebindings]
+    verbs: [get, list, watch]
+  # Cluster-scoped objects of installed CRDs. Flux and VictoriaMetrics CRDs are
+  # all namespaced and covered by `view` aggregation (flux-view-default).
+  - apiGroups: [cert-manager.io]
+    resources: [clusterissuers]
+    verbs: [get, list, watch]
+  - apiGroups: [tailscale.com]
+    resources: [connectors, proxyclasses, proxygroups, dnsconfigs, recorders]
+    verbs: [get, list, watch]
