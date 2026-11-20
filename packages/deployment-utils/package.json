@@ -3,6 +3,6 @@
   "name": "@ha/deployment-utils",
   "version": "0.0.1",
   "devDependencies": {
-    "nx": "^22.7.12"
+    "nx": "^24.0.6"
   }
 }

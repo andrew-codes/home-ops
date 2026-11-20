@@ -9,14 +9,14 @@
     "@ha/configuration-1password": "workspace:^0.0.1",
     "@ha/kubectl": "workspace:^1.0.0",
     "@ha/secret-utils": "workspace:^0.0.1",
-    "@nx/devkit": "22.7.12",
+    "@nx/devkit": "24.0.6",
     "dotenv": "^16.5.0",
     "lodash": "^4.18.1",
-    "nx": "^22.7.12",
+    "nx": "^24.0.6",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@nx/jest": "^22.7.12",
+    "@nx/jest": "^24.0.6",
     "@types/jest": "^29.5.14",
     "@types/node": "^18.19.76",
     "jest": "^29.7.0",

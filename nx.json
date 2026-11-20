@@ -23,7 +23,8 @@
   "npmScope": "@ha",
   "extends": "nx/presets/npm.json",
   "affected": {
-    "defaultBase": "main"
+    "defaultBase": "main",
+    "legacy": true
   },
   "workspaceLayout": {
     "appsDir": "apps",
@@ -90,28 +91,15 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["default", "^default"]
-    },
-    "@nx/eslint:lint": {
-      "cache": true,
-      "inputs": [
-        "default",
-        "{workspaceRoot}/.eslintrc.json",
-        "{workspaceRoot}/.eslintignore",
-        "{workspaceRoot}/eslint.config.mjs"
-      ]
-    },
-    "@nx/jest:jest": {
-      "cache": true,
-      "inputs": ["default", "^default", "{workspaceRoot}/jest.preset.js"],
-      "options": {
-        "passWithNoTests": true
-      },
-      "configurations": {
-        "ci": {
-          "ci": true,
-          "codeCoverage": true
-        }
-      }
     }
-  }
+  },
+  "plugins": [
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      },
+      "include": ["tools/nx-secrets-generators/**/*"]
+    }
+  ]
 }
