@@ -968,21 +968,24 @@
         "skipUrlSync": false
       },
       {
+        "name": "promds",
+        "label": "Metrics datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false
+      },
+      {
         "name": "host",
         "label": "Host",
         "description": "Proxmox, Proxmox Backup Server, TrueNAS and guest hostnames that send syslog.",
-        "type": "query",
-        "datasource": {
-          "type": "victoriametrics-logs-datasource",
-          "uid": "${datasource}"
-        },
-        "query": {
-          "type": "fieldValue",
-          "field": "hostname",
-          "query": "",
-          "limit": 1000
-        },
-        "refresh": 2,
+        "type": "custom",
         "includeAll": true,
         "allValue": ".*",
         "multi": true,
@@ -991,28 +994,72 @@
           "text": ["All"],
           "value": ["$__all"]
         },
-        "options": [],
-        "regex": "",
-        "sort": 1,
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "k8s-node",
+            "value": "k8s-node"
+          },
+          {
+            "selected": false,
+            "text": "truenas",
+            "value": "truenas"
+          },
+          {
+            "selected": false,
+            "text": "pbs",
+            "value": "pbs"
+          },
+          {
+            "selected": false,
+            "text": "tailscale",
+            "value": "tailscale"
+          },
+          {
+            "selected": false,
+            "text": "pihole-1",
+            "value": "pihole-1"
+          },
+          {
+            "selected": false,
+            "text": "pihole-2",
+            "value": "pihole-2"
+          },
+          {
+            "selected": false,
+            "text": "pihole1",
+            "value": "pihole1"
+          },
+          {
+            "selected": false,
+            "text": "pihole2",
+            "value": "pihole2"
+          },
+          {
+            "selected": false,
+            "text": "localhost",
+            "value": "localhost"
+          },
+          {
+            "selected": false,
+            "text": "grafana",
+            "value": "grafana"
+          }
+        ],
         "hide": 0,
-        "skipUrlSync": false
+        "skipUrlSync": false,
+        "query": "k8s-node,truenas,pbs,tailscale,pihole-1,pihole-2,pihole1,pihole2,localhost,grafana"
       },
       {
         "name": "app",
         "label": "Source",
         "description": "The program or service on a host that wrote the line (syslog app name), such as sshd or pveproxy.",
-        "type": "query",
-        "datasource": {
-          "type": "victoriametrics-logs-datasource",
-          "uid": "${datasource}"
-        },
-        "query": {
-          "type": "fieldValue",
-          "field": "app_name",
-          "query": "",
-          "limit": 1000
-        },
-        "refresh": 2,
+        "type": "custom",
         "includeAll": true,
         "allValue": ".*",
         "multi": true,
@@ -1021,11 +1068,151 @@
           "text": ["All"],
           "value": ["$__all"]
         },
-        "options": [],
-        "regex": "",
-        "sort": 1,
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "sshd",
+            "value": "sshd"
+          },
+          {
+            "selected": false,
+            "text": "sshd-session",
+            "value": "sshd-session"
+          },
+          {
+            "selected": false,
+            "text": "systemd",
+            "value": "systemd"
+          },
+          {
+            "selected": false,
+            "text": "systemd-logind",
+            "value": "systemd-logind"
+          },
+          {
+            "selected": false,
+            "text": "systemd-networkd",
+            "value": "systemd-networkd"
+          },
+          {
+            "selected": false,
+            "text": "(systemd)",
+            "value": "(systemd)"
+          },
+          {
+            "selected": false,
+            "text": "(sd-pam)",
+            "value": "(sd-pam)"
+          },
+          {
+            "selected": false,
+            "text": "CRON",
+            "value": "CRON"
+          },
+          {
+            "selected": false,
+            "text": "cron",
+            "value": "cron"
+          },
+          {
+            "selected": false,
+            "text": "kernel",
+            "value": "kernel"
+          },
+          {
+            "selected": false,
+            "text": "chronyd",
+            "value": "chronyd"
+          },
+          {
+            "selected": false,
+            "text": "rsyslogd",
+            "value": "rsyslogd"
+          },
+          {
+            "selected": false,
+            "text": "syslog-ng",
+            "value": "syslog-ng"
+          },
+          {
+            "selected": false,
+            "text": "postfix",
+            "value": "postfix"
+          },
+          {
+            "selected": false,
+            "text": "avahi-daemon",
+            "value": "avahi-daemon"
+          },
+          {
+            "selected": false,
+            "text": "dhclient",
+            "value": "dhclient"
+          },
+          {
+            "selected": false,
+            "text": "networkd-dispatcher",
+            "value": "networkd-dispatcher"
+          },
+          {
+            "selected": false,
+            "text": "auditd",
+            "value": "auditd"
+          },
+          {
+            "selected": false,
+            "text": "python3",
+            "value": "python3"
+          },
+          {
+            "selected": false,
+            "text": "proxmox-backup-proxy",
+            "value": "proxmox-backup-proxy"
+          },
+          {
+            "selected": false,
+            "text": "proxmox-backup-api",
+            "value": "proxmox-backup-api"
+          },
+          {
+            "selected": false,
+            "text": "middlewared",
+            "value": "middlewared"
+          },
+          {
+            "selected": false,
+            "text": "ZETTAREPL",
+            "value": "ZETTAREPL"
+          },
+          {
+            "selected": false,
+            "text": "tailscaled",
+            "value": "tailscaled"
+          },
+          {
+            "selected": false,
+            "text": "nscd",
+            "value": "nscd"
+          },
+          {
+            "selected": false,
+            "text": "containerd",
+            "value": "containerd"
+          },
+          {
+            "selected": false,
+            "text": "kubelet",
+            "value": "kubelet"
+          }
+        ],
         "hide": 0,
-        "skipUrlSync": false
+        "skipUrlSync": false,
+        "query": "sshd,sshd-session,systemd,systemd-logind,systemd-networkd,(systemd),(sd-pam),CRON,cron,kernel,chronyd,rsyslogd,syslog-ng,postfix,avahi-daemon,dhclient,networkd-dispatcher,auditd,python3,proxmox-backup-proxy,proxmox-backup-api,middlewared,ZETTAREPL,tailscaled,nscd,containerd,kubelet"
       },
       {
         "name": "namespace",
@@ -1033,14 +1220,13 @@
         "description": "Kubernetes namespace of the pod.",
         "type": "query",
         "datasource": {
-          "type": "victoriametrics-logs-datasource",
-          "uid": "${datasource}"
+          "type": "prometheus",
+          "uid": "${promds}"
         },
         "query": {
-          "type": "fieldValue",
-          "field": "kubernetes.pod_namespace",
-          "query": "",
-          "limit": 1000
+          "query": "label_values(kube_pod_info, namespace)",
+          "refId": "namespace",
+          "qryType": 1
         },
         "refresh": 2,
         "includeAll": true,
@@ -1055,7 +1241,8 @@
         "regex": "",
         "sort": 1,
         "hide": 0,
-        "skipUrlSync": false
+        "skipUrlSync": false,
+        "definition": "label_values(kube_pod_info, namespace)"
       },
       {
         "name": "pod",
@@ -1063,14 +1250,13 @@
         "description": "Kubernetes pod name.",
         "type": "query",
         "datasource": {
-          "type": "victoriametrics-logs-datasource",
-          "uid": "${datasource}"
+          "type": "prometheus",
+          "uid": "${promds}"
         },
         "query": {
-          "type": "fieldValue",
-          "field": "kubernetes.pod_name",
-          "query": "",
-          "limit": 1000
+          "query": "label_values(kube_pod_info, pod)",
+          "refId": "pod",
+          "qryType": 1
         },
         "refresh": 2,
         "includeAll": true,
@@ -1085,7 +1271,8 @@
         "regex": "",
         "sort": 1,
         "hide": 0,
-        "skipUrlSync": false
+        "skipUrlSync": false,
+        "definition": "label_values(kube_pod_info, pod)"
       },
       {
         "name": "container",
@@ -1093,14 +1280,13 @@
         "description": "Kubernetes container name.",
         "type": "query",
         "datasource": {
-          "type": "victoriametrics-logs-datasource",
-          "uid": "${datasource}"
+          "type": "prometheus",
+          "uid": "${promds}"
         },
         "query": {
-          "type": "fieldValue",
-          "field": "kubernetes.container_name",
-          "query": "",
-          "limit": 1000
+          "query": "label_values(kube_pod_container_info, container)",
+          "refId": "container",
+          "qryType": 1
         },
         "refresh": 2,
         "includeAll": true,
@@ -1115,24 +1301,14 @@
         "regex": "",
         "sort": 1,
         "hide": 0,
-        "skipUrlSync": false
+        "skipUrlSync": false,
+        "definition": "label_values(kube_pod_container_info, container)"
       },
       {
         "name": "level",
         "label": "Level",
         "description": "Syslog severity, or the level of a JSON log. Choosing a level leaves out lines that have none.",
-        "type": "query",
-        "datasource": {
-          "type": "victoriametrics-logs-datasource",
-          "uid": "${datasource}"
-        },
-        "query": {
-          "type": "fieldValue",
-          "field": "level",
-          "query": "",
-          "limit": 1000
-        },
-        "refresh": 2,
+        "type": "custom",
         "includeAll": true,
         "allValue": ".*",
         "multi": true,
@@ -1141,11 +1317,81 @@
           "text": ["All"],
           "value": ["$__all"]
         },
-        "options": [],
-        "regex": "",
-        "sort": 1,
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "debug",
+            "value": "debug"
+          },
+          {
+            "selected": false,
+            "text": "info",
+            "value": "info"
+          },
+          {
+            "selected": false,
+            "text": "INFO",
+            "value": "INFO"
+          },
+          {
+            "selected": false,
+            "text": "notice",
+            "value": "notice"
+          },
+          {
+            "selected": false,
+            "text": "warn",
+            "value": "warn"
+          },
+          {
+            "selected": false,
+            "text": "warning",
+            "value": "warning"
+          },
+          {
+            "selected": false,
+            "text": "WARNING",
+            "value": "WARNING"
+          },
+          {
+            "selected": false,
+            "text": "error",
+            "value": "error"
+          },
+          {
+            "selected": false,
+            "text": "ERROR",
+            "value": "ERROR"
+          },
+          {
+            "selected": false,
+            "text": "critical",
+            "value": "critical"
+          },
+          {
+            "selected": false,
+            "text": "alert",
+            "value": "alert"
+          },
+          {
+            "selected": false,
+            "text": "emerg",
+            "value": "emerg"
+          },
+          {
+            "selected": false,
+            "text": "fatal",
+            "value": "fatal"
+          }
+        ],
         "hide": 0,
-        "skipUrlSync": false
+        "skipUrlSync": false,
+        "query": "debug,info,INFO,notice,warn,warning,WARNING,error,ERROR,critical,alert,emerg,fatal"
       },
       {
         "name": "search",
