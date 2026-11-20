@@ -13,6 +13,7 @@ configMapGenerator:
     files:
       - dashboards/alert-history.json
       - dashboards/gaming-pc.json
+      - dashboards/gaugely-probe.json
       - dashboards/logs.json
       - dashboards/pbs.json
       - dashboards/truenas.json

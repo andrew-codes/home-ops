@@ -1,0 +1,556 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Temporary probe to find out which dashboard variable kinds the Gaugely iOS app can load and substitute. Remove after use.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": ["probe"],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Gaugely variable probe (temporary)",
+  "uid": "gaugely-probe",
+  "version": 1,
+  "weekStart": "",
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "How to read this",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 7
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Temporary Gaugely probe, remove after use. Each block below has a variable at the top of the dashboard. **Check 1:** can you open the picker and does it list values? **Check 2:** after you pick values, does the text show them and does the count change? A literal `${...}` in the text means the app did not substitute that variable. `no rows` means the query ran and matched nothing."
+      }
+    },
+    {
+      "id": 2,
+      "type": "text",
+      "title": "A custom list: what the app received",
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 14,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Raw: `${a_custom}`\n\nAs regex: `${a_custom:regex}`\n\nFilter sent: `level:~'^${a_custom:regex}$'`"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "A custom list: matching lines",
+      "description": "Log lines that match this variable's filter.",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 7,
+        "w": 10,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "level:~`^${a_custom:regex}$` | stats count() as lines",
+          "queryType": "stats",
+          "refId": "A",
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "no rows",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "text",
+      "title": "B textbox: what the app received",
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 14,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Raw: `${b_text}`\n\nAs regex: `${b_text:regex}`\n\nFilter sent: `hostname:~'^${b_text}$'`"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "B textbox: matching lines",
+      "description": "Log lines that match this variable's filter.",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 11,
+        "w": 10,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "hostname:~`^${b_text}$` | stats count() as lines",
+          "queryType": "stats",
+          "refId": "A",
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "no rows",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "text",
+      "title": "C plugin query (as in Logs): what the app received",
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 14,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Raw: `${c_plugin}`\n\nAs regex: `${c_plugin:regex}`\n\nFilter sent: `hostname:~'^${c_plugin:regex}$'`"
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "C plugin query (as in Logs): matching lines",
+      "description": "Log lines that match this variable's filter.",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 15,
+        "w": 10,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "hostname:~`^${c_plugin:regex}$` | stats count() as lines",
+          "queryType": "stats",
+          "refId": "A",
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "no rows",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 8,
+      "type": "text",
+      "title": "D1 LogsQL string query: what the app received",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 14,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Raw: `${d1_logsql}`\n\nAs regex: `${d1_logsql:regex}`\n\nFilter sent: `hostname:~'^${d1_logsql:regex}$'`"
+      }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "D1 LogsQL string query: matching lines",
+      "description": "Log lines that match this variable's filter.",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 19,
+        "w": 10,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "hostname:~`^${d1_logsql:regex}$` | stats count() as lines",
+          "queryType": "stats",
+          "refId": "A",
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "no rows",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 10,
+      "type": "text",
+      "title": "D2 Prometheus control: what the app received",
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Raw: `${d2_prom}`\n\nAs regex: `${d2_prom:regex}`"
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Logs datasource",
+        "type": "datasource",
+        "query": "victoriametrics-logs-datasource",
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false
+      },
+      {
+        "name": "promds",
+        "label": "Metrics datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false
+      },
+      {
+        "name": "a_custom",
+        "label": "A custom list",
+        "description": "Fixed list, multi-select and All.",
+        "hide": 0,
+        "skipUrlSync": false,
+        "type": "custom",
+        "query": "error,warning,info,notice,debug",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "error",
+            "value": "error"
+          },
+          {
+            "selected": false,
+            "text": "warning",
+            "value": "warning"
+          },
+          {
+            "selected": false,
+            "text": "info",
+            "value": "info"
+          },
+          {
+            "selected": false,
+            "text": "notice",
+            "value": "notice"
+          },
+          {
+            "selected": false,
+            "text": "debug",
+            "value": "debug"
+          }
+        ]
+      },
+      {
+        "name": "b_text",
+        "label": "B textbox",
+        "description": "Free text used as a regular expression.",
+        "hide": 0,
+        "skipUrlSync": false,
+        "type": "textbox",
+        "query": ".*",
+        "current": {
+          "selected": false,
+          "text": ".*",
+          "value": ".*"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": ".*",
+            "value": ".*"
+          }
+        ]
+      },
+      {
+        "name": "c_plugin",
+        "label": "C plugin query",
+        "description": "Exactly the plugin-specific query variable the Logs dashboard uses (hostname).",
+        "hide": 0,
+        "skipUrlSync": false,
+        "type": "query",
+        "datasource": {
+          "type": "victoriametrics-logs-datasource",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "type": "fieldValue",
+          "field": "hostname",
+          "query": "",
+          "limit": 1000
+        },
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "options": [],
+        "regex": "",
+        "sort": 1
+      },
+      {
+        "name": "d1_logsql",
+        "label": "D1 LogsQL string",
+        "description": "VictoriaLogs query variable written as a plain LogsQL string, the way SQL datasources store theirs.",
+        "hide": 0,
+        "skipUrlSync": false,
+        "type": "query",
+        "datasource": {
+          "type": "victoriametrics-logs-datasource",
+          "uid": "${datasource}"
+        },
+        "query": "* | stats by (hostname) count() as n | fields hostname",
+        "definition": "* | stats by (hostname) count() as n | fields hostname",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "options": [],
+        "regex": "",
+        "sort": 1
+      },
+      {
+        "name": "d2_prom",
+        "label": "D2 Prometheus control",
+        "description": "A Prometheus label_values variable, the form Gaugely documents. It is the control: if this loads, Gaugely loads query variables.",
+        "hide": 0,
+        "skipUrlSync": false,
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${promds}"
+        },
+        "definition": "label_values(up, job)",
+        "query": {
+          "query": "label_values(up, job)",
+          "refId": "d2_prom"
+        },
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "options": [],
+        "regex": "",
+        "sort": 1
+      }
+    ]
+  }
+}
