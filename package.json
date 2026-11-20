@@ -6,7 +6,7 @@
   "author": "Andrew Smith <andrew@andrew.codes>",
   "license": "MIT",
   "engines": {
-    "node": "22.14.0",
+    "node": "26.13.1",
     "yarn": "4.6.0"
   },
   "scripts": {
