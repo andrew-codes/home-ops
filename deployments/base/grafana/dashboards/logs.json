@@ -120,7 +120,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search level:in(error, critical, alert, emerg) | stats count() as lines",
+          "expr": "hostname:~`^${host:regex}$` app_name:~`^${app:regex}$` kubernetes.pod_namespace:~`^${namespace:regex}$` kubernetes.pod_name:~`^${pod:regex}$` kubernetes.container_name:~`^${container:regex}$` level:~`^${level:regex}$` $search level:~`(?i)^(error|err|critical|crit|alert|emerg|fatal|panic)$` | stats count() as lines",
           "queryType": "stats",
           "refId": "A",
           "legendFormat": ""
