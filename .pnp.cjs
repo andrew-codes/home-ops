@@ -6754,7 +6754,7 @@ const RAW_RUNTIME_STATE =
           ["@zkochan/js-yaml", "npm:0.0.7"],\
           ["ejs", "npm:5.0.1"],\
           ["enquirer", "npm:2.3.6"],\
-          ["minimatch", "npm:11.0.9"],\
+          ["minimatch", "npm:10.2.5"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:22.7.12"],\
           ["semver", "npm:7.8.6"],\
           ["tslib", "npm:2.8.1"],\
@@ -6774,7 +6774,7 @@ const RAW_RUNTIME_STATE =
           ["@zkochan/js-yaml", "npm:0.0.7"],\
           ["ejs", "npm:5.0.1"],\
           ["enquirer", "npm:2.3.6"],\
-          ["minimatch", "npm:11.0.9"],\
+          ["minimatch", "npm:10.2.5"],\
           ["nx", "virtual:f92f2cb92e4b7b1902d667ecd26b0ec614b52ebb08d8b1e0fc70b48bd040ca9f5d3a038c36cd6a50c67584f89c25704efeb98153a311c8cd1c30564ee24e414f#npm:22.7.12"],\
           ["semver", "npm:7.8.6"],\
           ["tslib", "npm:2.8.1"],\
@@ -6794,7 +6794,7 @@ const RAW_RUNTIME_STATE =
           ["@zkochan/js-yaml", "npm:0.0.7"],\
           ["ejs", "npm:5.0.1"],\
           ["enquirer", "npm:2.3.6"],\
-          ["minimatch", "npm:11.0.9"],\
+          ["minimatch", "npm:10.2.5"],\
           ["nx", null],\
           ["semver", "npm:7.8.6"],\
           ["tslib", "npm:2.8.1"],\
@@ -6945,7 +6945,7 @@ const RAW_RUNTIME_STATE =
           ["jest-config", "virtual:fe83e42f4d0ca5af32cf4b694dc9419ac39c35d6e5f11b444ad79b3ee709d63e083261f621cb233eaea1aa8480d4f97cc6f35442eda6e6a0422a52fd03259276#npm:30.5.2"],\
           ["jest-resolve", "npm:30.5.1"],\
           ["jest-util", "npm:30.5.1"],\
-          ["minimatch", "npm:11.0.9"],\
+          ["minimatch", "npm:10.2.5"],\
           ["picocolors", "npm:1.1.1"],\
           ["resolve.exports", "npm:2.0.3"],\
           ["semver", "npm:7.8.6"],\
@@ -15553,6 +15553,14 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["minimatch", [\
+      ["npm:10.2.5", {\
+        "packageLocation": "./.yarn/cache/minimatch-npm-10.2.5-f1c8297822-19e87a931a.zip/node_modules/minimatch/",\
+        "packageDependencies": [\
+          ["brace-expansion", "npm:5.0.13"],\
+          ["minimatch", "npm:10.2.5"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
       ["npm:11.0.9", {\
         "packageLocation": "./.yarn/cache/minimatch-npm-11.0.9-4ee6032964-5a17bd8703.zip/node_modules/minimatch/",\
         "packageDependencies": [\
@@ -16040,7 +16048,7 @@ const RAW_RUNTIME_STATE =
           ["mime-db", "npm:1.52.0"],\
           ["mime-types", "npm:2.1.35"],\
           ["mimic-fn", "npm:2.1.0"],\
-          ["minimatch", "npm:11.0.9"],\
+          ["minimatch", "npm:10.2.5"],\
           ["minimist", "npm:1.2.8"],\
           ["ms", "npm:2.1.3"],\
           ["npm-run-path", "npm:4.0.1"],\
@@ -16181,7 +16189,7 @@ const RAW_RUNTIME_STATE =
           ["mime-db", "npm:1.52.0"],\
           ["mime-types", "npm:2.1.35"],\
           ["mimic-fn", "npm:2.1.0"],\
-          ["minimatch", "npm:11.0.9"],\
+          ["minimatch", "npm:10.2.5"],\
           ["minimist", "npm:1.2.8"],\
           ["ms", "npm:2.1.3"],\
           ["npm-run-path", "npm:4.0.1"],\
