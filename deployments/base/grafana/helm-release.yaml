@@ -62,7 +62,7 @@ spec:
               handleGrafanaManagedAlerts: false
 
     plugins:
-      - victoriametrics-logs-datasource 0.34.0
+      - victoriametrics-logs-datasource@0.34.0
 
     dashboardProviders:
       dashboardproviders.yaml:
