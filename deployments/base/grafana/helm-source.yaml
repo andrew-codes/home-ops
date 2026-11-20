@@ -6,4 +6,4 @@ metadata:
   namespace: default
 spec:
   interval: 5m0s
-  url: https://grafana.github.io/helm-charts
+  url: https://grafana-community.github.io/helm-charts
