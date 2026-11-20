@@ -37,7 +37,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: ack-sync
-              image: node:22.23.5-alpine
+              image: node:26.13.1-alpine
               command: ["node", "/scripts/ack-sync.cjs"]
               env:
                 - name: JIRA_URL
