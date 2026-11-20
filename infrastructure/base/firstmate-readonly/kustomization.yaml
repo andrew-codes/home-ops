@@ -1,0 +1,6 @@
+resources:
+  - service-account.yaml
+  - token-secret.yaml
+  - view-binding.yaml
+  - cluster-scoped-read.yaml
+  - cluster-scoped-binding.yaml
