@@ -34,6 +34,35 @@ gcx api /api/datasources/proxy/uid/<victorialogs-uid>/select/logsql/query \
   -H 'Content-Type: application/x-www-form-urlencoded' -o json
 ```
 
+# Diagnosing the cluster with kubectl
+
+You have read-only Kubernetes access: no Secrets, no writes, no exec.
+The kubeconfig exists only in 1Password at `op://agents/k8s-firstmate-readonly/kubeconfig`.
+Pass it per command through process substitution, so the value goes straight from `op` to `kubectl`:
+
+```sh
+kubectl --kubeconfig <(op read 'op://agents/k8s-firstmate-readonly/kubeconfig') get pods -n <namespace>
+```
+
+Rules:
+
+- Never see the kubeconfig value. The only allowed use of `op read` is inside `--kubeconfig <(...)` as above.
+- Never print, echo, cat, redact, or inspect it or any of its fields, and never run `op read` to stdout.
+- Never write the kubeconfig or its token to a file, env var, log, commit or chat.
+- Never use another kubeconfig or ask for admin access.
+- Never run commands that change the cluster.
+
+In the examples below, `KC` stands for `--kubeconfig <(op read 'op://agents/k8s-firstmate-readonly/kubeconfig')`. Write it out in full in every command.
+
+```sh
+kubectl KC get pods -n <namespace>                            # pods in a namespace
+kubectl KC describe pod <pod> -n <namespace>                  # state, restarts, events
+kubectl KC logs <pod> -n <namespace> --since=1h --tail=100    # add -p for the previous container
+kubectl KC get events -A --field-selector type=Warning        # cluster-wide warnings
+kubectl KC get kustomizations.kustomize.toolkit.fluxcd.io -A  # Flux Kustomization status
+kubectl KC get helmreleases.helm.toolkit.fluxcd.io -A         # HelmRelease status
+```
+
 # Writing Content for AI Consumption
 
 When creating or editing content intended to be consumed by AI agents (e.g., AGENTS.md files, prompt instructions, agent configuration), follow the guidelines in [.agents/writing-for-ai.md](.agents/writing-for-ai.md).
