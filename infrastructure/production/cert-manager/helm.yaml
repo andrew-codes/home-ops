@@ -9,6 +9,9 @@ spec:
   url: oci://quay.io/jetstack/charts/cert-manager
   ref:
     tag: 1.21.3
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
 ---
 # cert-manager renews the Telepresence agent-injector webhook certificate. It
 # lives in its own Flux Kustomization so its CRDs exist before the traffic-manager
