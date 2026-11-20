@@ -8,7 +8,7 @@ spec:
   interval: 10m
   url: oci://ghcr.io/telepresenceio/telepresence-oss
   ref:
-    semver: ">=2.0.0 <3.0.0"
+    tag: 2.33.3
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -17,14 +17,10 @@ metadata:
   namespace: ambassador
 spec:
   interval: 5m
-  chart:
-    spec:
-      chart: telepresence-oss
-      version: 2.33.3
-      sourceRef:
-        kind: OCIRepository
-        name: telepresence-oss
-        namespace: default
+  chartRef:
+    kind: OCIRepository
+    name: telepresence-oss
+    namespace: default
   values:
     trafficManager:
       enabled: true
