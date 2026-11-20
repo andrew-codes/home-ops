@@ -79,10 +79,6 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:apps/truenas"\
     },\
     {\
-      "name": "@ha/uptime-kuma",\
-      "reference": "workspace:apps/uptime-kuma"\
-    },\
-    {\
       "name": "@ha/voice-agent",\
       "reference": "workspace:apps/voice-agent"\
     },\
@@ -288,7 +284,6 @@ const RAW_RUNTIME_STATE =
     ["@ha/themes-slate", ["workspace:packages/themes/slate"]],\
     ["@ha/truenas", ["workspace:apps/truenas"]],\
     ["@ha/unifi-client", ["workspace:packages/unifi-client"]],\
-    ["@ha/uptime-kuma", ["workspace:apps/uptime-kuma"]],\
     ["@ha/voice-agent", ["workspace:apps/voice-agent"]]\
   ],\
   "fallbackPool": [\
@@ -5317,21 +5312,6 @@ const RAW_RUNTIME_STATE =
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:22.7.12"],\
           ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/uptime-kuma", [\
-      ["workspace:apps/uptime-kuma", {\
-        "packageLocation": "./apps/uptime-kuma/",\
-        "packageDependencies": [\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/jsonnet", "workspace:packages/jsonnet"],\
-          ["@ha/kubectl", "workspace:packages/kubectl"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/uptime-kuma", "workspace:apps/uptime-kuma"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:22.7.12"]\
         ],\
         "linkType": "SOFT"\
       }]\
