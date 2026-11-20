@@ -9,6 +9,9 @@ spec:
   url: oci://ghcr.io/telepresenceio/telepresence-oss
   ref:
     tag: 2.33.3
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
