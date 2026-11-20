@@ -17,6 +17,23 @@ https://docs.home.smith-simms.family/wiki/spaces/HA/overview
 
 Found in Jira `HO` project.
 
+# Troubleshooting with gcx
+
+`gcx` (Grafana CLI) is installed and already logged in to the production Grafana with a read-only token.
+Use it to troubleshoot: query logs (VictoriaLogs), metrics (VictoriaMetrics) and alert state.
+Never ask for, print or handle the token. gcx keeps it in the OS keychain.
+
+```sh
+gcx datasources list                                        # datasource UIDs
+gcx metrics query 'up == 0' --since 1h                      # PromQL; default datasource is VictoriaMetrics
+gcx alert rules list --state firing                         # alert state
+# Logs: gcx logs query is Loki-only, so call VictoriaLogs (LogsQL) through Grafana's datasource proxy.
+# Use the victorialogs UID from `gcx datasources list`.
+gcx api /api/datasources/proxy/uid/<victorialogs-uid>/select/logsql/query \
+  -d 'query=kubernetes.pod_namespace:="default" error&start=30m&limit=20' \
+  -H 'Content-Type: application/x-www-form-urlencoded' -o json
+```
+
 # Writing Content for AI Consumption
 
 When creating or editing content intended to be consumed by AI agents (e.g., AGENTS.md files, prompt instructions, agent configuration), follow the guidelines in [.agents/writing-for-ai.md](.agents/writing-for-ai.md).
