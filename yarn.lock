@@ -3307,19 +3307,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/uptime-kuma@workspace:apps/uptime-kuma":
-  version: 0.0.0-use.local
-  resolution: "@ha/uptime-kuma@workspace:apps/uptime-kuma"
-  dependencies:
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/jsonnet": "workspace:^0.0.1"
-    "@ha/kubectl": "workspace:^1.0.0"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    nx: "npm:^22.7.12"
-  languageName: unknown
-  linkType: soft
-
 "@ha/voice-agent@workspace:apps/voice-agent":
   version: 0.0.0-use.local
   resolution: "@ha/voice-agent@workspace:apps/voice-agent"
