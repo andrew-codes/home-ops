@@ -211,10 +211,6 @@ const RAW_RUNTIME_STATE =
       "reference": "workspace:resources/k8s"\
     },\
     {\
-      "name": "@ha/resource-openclaw",\
-      "reference": "workspace:resources/openclaw"\
-    },\
-    {\
       "name": "@ha/pbs",\
       "reference": "workspace:resources/pbs"\
     },\
@@ -272,7 +268,6 @@ const RAW_RUNTIME_STATE =
     ["@ha/pve", ["workspace:apps/pve"]],\
     ["@ha/resource-fluxcd", ["workspace:resources/fluxcd"]],\
     ["@ha/resource-k8s", ["workspace:resources/k8s"]],\
-    ["@ha/resource-openclaw", ["workspace:resources/openclaw"]],\
     ["@ha/sealed-secrets", ["workspace:resources/sealed-secrets"]],\
     ["@ha/secret-utils", ["workspace:packages/secret-utils"]],\
     ["@ha/secrets", ["workspace:tools/nx-secrets-generators"]],\
@@ -5097,22 +5092,6 @@ const RAW_RUNTIME_STATE =
           ["lodash", "npm:4.18.1"],\
           ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:22.7.12"],\
           ["shelljs", "npm:0.8.5"]\
-        ],\
-        "linkType": "SOFT"\
-      }]\
-    ]],\
-    ["@ha/resource-openclaw", [\
-      ["workspace:resources/openclaw", {\
-        "packageLocation": "./resources/openclaw/",\
-        "packageDependencies": [\
-          ["@ha/ansible", "workspace:packages/ansible"],\
-          ["@ha/configuration-api", "workspace:packages/configuration-api"],\
-          ["@ha/configuration-workspace", "workspace:packages/configuration-workspace"],\
-          ["@ha/logger", "workspace:packages/logger"],\
-          ["@ha/nx-executors", "workspace:packages/nx-executors"],\
-          ["@ha/resource-openclaw", "workspace:resources/openclaw"],\
-          ["@ha/terraform", "workspace:packages/terraform"],\
-          ["nx", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:22.7.12"]\
         ],\
         "linkType": "SOFT"\
       }]\

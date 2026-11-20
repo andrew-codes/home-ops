@@ -3116,20 +3116,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@ha/resource-openclaw@workspace:resources/openclaw":
-  version: 0.0.0-use.local
-  resolution: "@ha/resource-openclaw@workspace:resources/openclaw"
-  dependencies:
-    "@ha/ansible": "workspace:^0.0.1"
-    "@ha/configuration-api": "workspace:^0.0.1"
-    "@ha/configuration-workspace": "workspace:^0.0.1"
-    "@ha/logger": "workspace:^0.0.1"
-    "@ha/nx-executors": "workspace:^0.1.0"
-    "@ha/terraform": "workspace:^0.0.1"
-    nx: "npm:^22.7.12"
-  languageName: unknown
-  linkType: soft
-
 "@ha/sealed-secrets@workspace:resources/sealed-secrets":
   version: 0.0.0-use.local
   resolution: "@ha/sealed-secrets@workspace:resources/sealed-secrets"

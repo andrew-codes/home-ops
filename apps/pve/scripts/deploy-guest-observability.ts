@@ -7,9 +7,9 @@ import path from "path"
 /**
  * Sends the logs of the Proxmox guests this repo manages to the cluster's
  * VictoriaLogs, without running anything else on them. The guests are the Pi-hole
- * containers, the Tailscale container and the Kubernetes node VM. The OpenClaw
- * container and any guest the repo does not manage (Home Assistant OS, for one)
- * need the same rsyslog forwarding by hand; see README.md#proxmox-guests.
+ * containers, the Tailscale container and the Kubernetes node VM. Any guest the
+ * repo does not manage (Home Assistant OS, for one) needs the same rsyslog
+ * forwarding by hand; see README.md#proxmox-guests.
  *
  * Run it again after provisioning a new guest, and add the guest's address and display name to `guestNames` here.
  */

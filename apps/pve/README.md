@@ -312,7 +312,6 @@ session. These guests need a manual step:
 
 | Guest                               | Why                                                                                                      | What to do                                                                                                      |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| OpenClaw container                  | Its address is set in [`resources/openclaw`](../../resources/openclaw/scripts/deploy.ts), not 1Password. | Add its address and display name to `guestNames` in `scripts/deploy-guest-observability.ts` and run the target. |
 | Any guest created in the Proxmox UI | The repo does not manage it.                                                                             | Add its address and display name to `guestNames` in `scripts/deploy-guest-observability.ts` and run the target. |
 
 A guest that is not a Debian or Ubuntu system with `apt` (an appliance image, for one) needs its own
