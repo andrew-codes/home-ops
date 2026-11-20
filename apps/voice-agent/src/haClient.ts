@@ -1,6 +1,6 @@
 /**
  * Thin client around the Home Assistant REST API. Only the endpoints the agent
- * needs are wrapped. Uses the global fetch built into Node 22.
+ * needs are wrapped. Uses the global fetch built into Node.
  *
  * Docs: https://developers.home-assistant.io/docs/api/rest/
  */
