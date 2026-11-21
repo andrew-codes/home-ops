@@ -1,0 +1,35 @@
+---
+# Sets only Pi-hole's dns.hosts (Local DNS Records). Applied to both instances
+# in one run. This replaces the whole list, so records added by hand in the web
+# UI are overwritten; the previous value is printed first.
+- hosts: all
+  become: yes
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: no
+  connection: ssh
+  remote_user: root
+
+  tasks:
+    - name: Read current dns.hosts
+      ansible.builtin.shell: pihole-FTL --config dns.hosts
+      register: previous_dns_hosts
+      changed_when: false
+
+    - name: Show current dns.hosts
+      ansible.builtin.debug:
+        msg: "{{ previous_dns_hosts.stdout }}"
+
+    - name: Set dns.hosts
+      ansible.builtin.shell: "pihole-FTL --config dns.hosts {{ dnsHosts | to_json | quote }}"
+
+    - name: Read back dns.hosts
+      ansible.builtin.shell: pihole-FTL --config dns.hosts
+      register: applied_dns_hosts
+      changed_when: false
+
+    - name: Check every record was applied
+      ansible.builtin.assert:
+        that:
+          - (applied_dns_hosts.stdout | from_json | sort) == (dnsHosts | sort)
+        fail_msg: "dns.hosts on {{ inventory_hostname }} does not match the requested records: {{ applied_dns_hosts.stdout }}"

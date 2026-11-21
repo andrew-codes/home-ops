@@ -31,6 +31,39 @@
         "module": "scripts/deploy.ts",
         "cwd": "{projectRoot}"
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/.test-runs/unit"],
+      "options": {
+        "command": "jest",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "ansible-playbook --syntax-check --inventory localhost, src/dns-records/index.yml",
+          "ansible-playbook --syntax-check --inventory localhost, src/dns-records-list/index.yml"
+        ],
+        "parallel": false,
+        "cwd": "{projectRoot}"
+      }
+    },
+    "dns-records": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "module": "scripts/dns-records.ts",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "list-dns-records": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "module": "scripts/list-dns-records.ts",
+        "cwd": "{projectRoot}"
+      }
     }
   },
   "tags": [],

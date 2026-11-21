@@ -100,9 +100,6 @@
     - name: Ensure dnsmasq entries are enabled
       shell: pihole-FTL --config misc.etc_dnsmasq_d true
 
-    - name: Ensure custom DNS entries
-      shell: "pihole-FTL --config misc.dnsmasq_lines '{{dnsEntries}}'"
-
     - name: Domain for pihole
       shell: "pihole-FTL --config dns.domain ''"
 

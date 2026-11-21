@@ -113,6 +113,10 @@ const secretNames = [
   "truenas/health-dir",
   "unifi/ip",
   "gaming-pc/ip",
+  // The Tailscale address of the home gateway (the tailnet-only entry point for
+  // ha, grafana, zwave, ps, nas, synology and homebox). apps/pihole writes it
+  // into Pi-hole's dns.hosts. Absent until the gateway exists.
+  "home-gateway/ip",
   "gaming-pc/user",
   "gaming-pc/username",
   "gaming-pc/password",
