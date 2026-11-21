@@ -189,22 +189,19 @@ spec:
           annotations:
             summary: Alertmanager cannot deliver notifications
             description: "Alertmanager has been failing to deliver {{ $labels.integration }} notifications for 10 minutes ({{ $value | humanize }} failures/s). Check the receiver URLs in the alertmanager-receivers secret and that Home Assistant is reachable."
-        # Without a successful run, acknowledged incidents are not silenced and pushes
-        # for them keep coming. kube_cronjob_created stands in until the first run
-        # succeeds, so a job that never works is caught too.
+        # Without a successful iteration, acknowledged incidents are not silenced and
+        # pushes for them keep coming. The service starts its heartbeat at its own
+        # start time, so one that never succeeds is caught too. A service that is
+        # gone or unreachable stops the heartbeat series, which TargetDown reports.
         - alert: IncidentAckSyncFailing
           expr: >-
-            time() - (
-              kube_cronjob_status_last_successful_time{job="kube-state-metrics",cronjob="incident-ack-sync"}
-              or on (namespace, cronjob)
-              kube_cronjob_created{job="kube-state-metrics",cronjob="incident-ack-sync"}
-            ) > 1800
+            time() - incident_ack_sync_last_success_timestamp_seconds{job="incident-ack-sync"} > 1800
           for: 5m
           labels:
             severity: warning
           annotations:
             summary: Incident acknowledgement sync is failing
-            description: "The incident-ack-sync job has not succeeded for {{ $value | humanizeDuration }}. Work items moved to In Progress no longer silence their alerts, so pushes for them continue. Check the newest incident-ack-sync Job and its pod logs in the {{ $labels.namespace }} namespace, and the jira-user and jira-api-token fields of the alertmanager-receivers secret."
+            description: "The incident-ack-sync service has not succeeded for {{ $value | humanizeDuration }}. Work items moved to In Progress no longer silence their alerts, so pushes for them continue. Check the pod logs of the incident-ack-sync Deployment in the default namespace, and the jira-user and jira-api-token fields of the alertmanager-receivers secret."
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMRule

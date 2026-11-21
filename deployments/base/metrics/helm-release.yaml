@@ -63,6 +63,12 @@ spec:
           static_configs:
             - targets:
                 - "vmalertmanager-vmalertmanager.default.svc.cluster.local:9093"
+        # The incident acknowledgement sync (deployments/base/alerting) and its
+        # last-success heartbeat for IncidentAckSyncFailing.
+        - job_name: "incident-ack-sync"
+          static_configs:
+            - targets:
+                - "incident-ack-sync.default.svc.cluster.local:9100"
         # VictoriaLogs and its pod log collector (deployments/base/logs), so a
         # log pipeline that stops shows up in TargetDown.
         - job_name: "victoria-logs"

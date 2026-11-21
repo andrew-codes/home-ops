@@ -298,7 +298,7 @@ changed, and the Proxmox host's logs keep its own hostname.
 On the Kubernetes node only, the same target also runs
 [`quiet-pod-link-events.yml`](../../resources/k8s/src/deployment/tasks/quiet-pod-link-events.yml)
 (shared with the node prep playbook, `prepare.yml`). Every pod start creates and deletes a veth link, and
-a short-lived pod such as the `incident-ack-sync` CronJob (once a minute) made `networkd-dispatcher` run
+a short-lived pod (the `incident-ack-sync` job, once a minute, before it became a Deployment) made `networkd-dispatcher` run
 `networkctl` on a link that was already gone, logging `Interface "vethXXXX" not found.` plus
 `systemd-networkd` link lines. The task masks `networkd-dispatcher` (nothing on the node uses it) and caps
 `systemd-networkd` at `LogLevelMax=notice`, so warnings and errors for the real uplink still log. It
@@ -310,9 +310,9 @@ containers (`pihole/ip`, `pihole2/ip`), the Tailscale container (`tailscale/ip`)
 node VM (`k8s/ip`). It is safe to run any time and again after provisioning a guest. Not from an agent
 session. These guests need a manual step:
 
-| Guest                               | Why                                                                                                      | What to do                                                                                                      |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Any guest created in the Proxmox UI | The repo does not manage it.                                                                             | Add its address and display name to `guestNames` in `scripts/deploy-guest-observability.ts` and run the target. |
+| Guest                               | Why                          | What to do                                                                                                      |
+| ----------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Any guest created in the Proxmox UI | The repo does not manage it. | Add its address and display name to `guestNames` in `scripts/deploy-guest-observability.ts` and run the target. |
 
 A guest that is not a Debian or Ubuntu system with `apt` (an appliance image, for one) needs its own
 rsyslog or syslog forwarder, pointed at the same node and port.
