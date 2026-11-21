@@ -16,6 +16,7 @@ jest.mock("@ha/configuration-1password", () => {
     "regcred/username",
     "tailscale-operator-oauth/client-id",
     "tailscale-operator-oauth/client-secret",
+    "cloudflare-dns/api-token",
   ]
   return {
     sealedOnePasswordConfiguration: {
@@ -25,6 +26,14 @@ jest.mock("@ha/configuration-1password", () => {
     },
   }
 })
+
+// Secrets sealed for another namespace are appended to the Kustomization that
+// creates it, which must already exist.
+const writeIssuersKustomization = (tree: Tree, env: string) =>
+  tree.write(
+    `infrastructure/${env}/cert-manager-issuers/kustomization.yaml`,
+    "resources:\n  - cluster-issuers.yaml\n",
+  )
 
 const hasBinary = (name: string) => spawnSync("which", [name]).status === 0
 
@@ -97,6 +106,7 @@ describeWithBinaries("secrets-seal generator without a kubeconfig", () => {
         `infrastructure/${env}/tailscale-operator/kustomization.yaml`,
         "resources:\n  - ../../base/tailscale-operator\n",
       )
+      writeIssuersKustomization(tree, env)
       await secretsSealGenerator(tree, { env })
 
       // kubeseal refuses a secret that does not declare a namespace, in which
@@ -129,6 +139,7 @@ resources:
   - ../../base/tailscale-operator
 `,
     )
+    writeIssuersKustomization(tree, env)
     await secretsSealGenerator(tree, { env })
     // A second run must not list the sealed file twice.
     await secretsSealGenerator(tree, { env })
@@ -162,5 +173,34 @@ resources:
     expect(
       tree.read(`infrastructure/${env}/secrets/kustomization.yaml`)?.toString(),
     ).not.toContain("tailscale-operator-oauth")
+  })
+
+  test("seals the Cloudflare DNS token into the cert-manager namespace next to the issuers.", async () => {
+    const env = "production"
+    const tree = createTreeWithEmptyWorkspace()
+    const kustomizationPath = `infrastructure/${env}/cert-manager-issuers/kustomization.yaml`
+    writeIssuersKustomization(tree, env)
+    tree.write(
+      `infrastructure/${env}/tailscale-operator/kustomization.yaml`,
+      "resources:\n  - ../../base/tailscale-operator\n",
+    )
+    await secretsSealGenerator(tree, { env })
+
+    expect(consoleError).not.toHaveBeenCalled()
+    const sealed = tree
+      .read(
+        `infrastructure/${env}/cert-manager-issuers/cloudflare-dns-sealed.yaml`,
+      )
+      ?.toString()
+    expect(sealed).toMatch(/^kind: SealedSecret$/m)
+    expect(sealed).toMatch(/^ {2}name: cloudflare-dns$/m)
+    expect(sealed?.match(/^ {2,6}namespace: cert-manager$/gm)).toHaveLength(2)
+    expect(sealed).toMatch(/^ {4}api-token: /m)
+    expect(tree.read(kustomizationPath)?.toString()).toContain(
+      "  - cloudflare-dns-sealed.yaml",
+    )
+    expect(
+      tree.exists(`infrastructure/${env}/secrets/cloudflare-dns-sealed.yaml`),
+    ).toBe(false)
   })
 })

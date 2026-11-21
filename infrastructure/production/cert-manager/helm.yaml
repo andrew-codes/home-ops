@@ -31,3 +31,10 @@ spec:
     crds:
       enabled: true
       keep: true
+    # The DNS-01 self-check looks the challenge TXT record up through these
+    # resolvers only, instead of the node resolver. Pi-hole overrides the
+    # smith-simms.family names that move to the tailnet gateway, so a check
+    # that went through it would see a different view than Let's Encrypt does.
+    extraArgs:
+      - --dns01-recursive-nameservers=1.1.1.1:53,1.0.0.1:53
+      - --dns01-recursive-nameservers-only
