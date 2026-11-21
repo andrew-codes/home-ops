@@ -154,9 +154,8 @@ spec:
 ---
 # Runs the Tailscale Kubernetes operator in its own namespace. The operator pod
 # needs the tailscale-operator-oauth sealed secret in that namespace. Until it is
-# sealed and committed the HelmRelease stays unready, which holds only this
-# Kustomization: nothing else depends on it and the Grafana Ingress is inert
-# without the operator.
+# sealed and committed the HelmRelease stays unready. That only holds back the
+# gateway, which depends on it, and the Grafana tailnet Ingress.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
