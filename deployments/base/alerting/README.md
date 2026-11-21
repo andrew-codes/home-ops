@@ -219,7 +219,7 @@ is its own work item, because incident alerts are grouped one per alert (`group_
 
 **How the acknowledgement reaches Alertmanager.** Alertmanager can create and reopen a work item but it cannot
 read its status. `incident-ack-sync` (`incident-sync.yaml`, script in `incident-sync/ack-sync.cjs`) does that
-part. A CronJob runs it every minute. It asks Jira for the `incident` work items in the In Progress status
+part. A single-replica Deployment runs it as a loop, one iteration a minute (60 s after the last one ends). It asks Jira for the `incident` work items in the In Progress status
 category, finds each one's alert through its `alert-fp-<fingerprint>` label, and creates a silence for exactly
 that alert (every label, exact match). It removes the silence when the work item leaves In Progress or is gone.
 While the alert is not firing the job keeps renewing the silence, so a recurrence stays silent.
@@ -231,11 +231,21 @@ While the alert is not firing the job keeps renewing the silence, so a recurrenc
   `{"issues": [...]}`, 50 per request). Placement does not change the status, so it does not affect the
   acknowledgement. The `jira-user` account needs the **Assign issues** project permission on HO for the move
   (Jira answers 403 "does not have permission to assign issues" without it), on top of Browse, Create, Edit and
-  Transition. A failure here is logged and does not stop the silence sync (and the reverse), but the run still
-  exits non-zero, so `IncidentAckSyncFailing` reports it.
+  Transition. A failure here is logged and does not stop the silence sync (and the reverse), but the iteration
+  still counts as failed, so it does not advance the heartbeat and `IncidentAckSyncFailing` reports it.
 - **A silence is a lease.** It lasts 15 minutes and the job renews it. If the job, Jira or the API token
   breaks, the silences run out and the pushes resume. Nothing is muted for good.
-  `IncidentAckSyncFailing` warns when the job has not succeeded for 30 minutes.
+  `IncidentAckSyncFailing` warns when the service has not succeeded for 30 minutes.
+- **It is a Deployment, not a CronJob.** The Kubernetes CronJob controller logs "object has been modified" for a
+  CronJob that runs every minute, and no release up to 1.37 removes that, so a loop in a pod replaces it. Each
+  iteration is aborted after 50 s (`ITERATION_TIMEOUT_SECONDS`) and iterations never overlap. A failed iteration
+  is logged and the next one runs on schedule. The Jira user and token are mounted from the secret as files and
+  read again every iteration, so a rotated token applies within a minute. `/healthz` is the liveness probe: it
+  fails when the loop has stopped ticking and the kubelet restarts the container. `/metrics` (port 9100, scraped
+  as the vmagent job `incident-ack-sync`) exposes `incident_ack_sync_last_success_timestamp_seconds`, which starts
+  at the process start time, plus `incident_ack_sync_runs_total` and `incident_ack_sync_failures_total`.
+  `IncidentAckSyncFailing` compares the heartbeat with the clock, and `TargetDown` reports a service that cannot
+  be scraped. Look at its logs with `kubectl logs deploy/incident-ack-sync -n default`.
 - **The silences are visible.** Grafana, Alerting, Silences lists them. Each is created by `incident-ack-sync`
   and its comment names the work item. Do not edit or expire them there, the job puts them back.
 - **A silence mutes the alert in every receiver.** An acknowledged alert does not update its work item either,
@@ -282,15 +292,17 @@ the same way (see [One-time setup](#one-time-setup)).
 
 3. Seal and commit, as in step 1 of One-time setup: `yarn nx g @ha/secrets:seal production`.
 
-Until the secret has both fields, the receiver cannot open work items and `incident-ack-sync` pods stay in
-`CreateContainerConfigError`. Pushes to Home Assistant are not affected.
+Until the secret has both fields, the receiver cannot open work items and the `incident-ack-sync` pod stays in
+`ContainerCreating`. Pushes to Home Assistant are not affected.
 
 ### Tests
 
 `yarn nx test alerting` runs, from `apps/alerting` (it needs Docker):
 
 - the unit tests of `ack-sync.cjs` (what it silences, renews and removes, that it changes nothing when Jira
-  is unreachable, and that it moves backlog incidents onto the board and tolerates a board API error);
+  is unreachable, that it moves backlog incidents onto the board and tolerates a board API error, and the loop:
+  the heartbeat and counters, the per-iteration timeout, credentials read again every iteration and the
+  liveness check);
 - `amtool` against `vmalertmanager.yaml`: the config loads, each kind of alert reaches the right receivers
   (a critical alert and `TargetDown` both reach Jira and Home Assistant, a warning only Home Assistant), and the
   work item's summary, priority, labels and description render for a sample alert;

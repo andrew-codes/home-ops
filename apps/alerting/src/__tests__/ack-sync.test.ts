@@ -1,6 +1,12 @@
 const {
+  createServer,
+  createState,
+  isHealthy,
+  iterate,
+  loop,
   plan,
   readConfig,
+  renderMetrics,
   run,
   toMatchers,
   SILENCE_CREATOR,
@@ -298,7 +304,40 @@ describe("readConfig", () => {
       jiraBoardId: "100",
       alertmanagerUrl: "http://alertmanager:9093",
       ttlMs: 15 * MINUTE,
+      intervalMs: 60 * 1000,
+      iterationTimeoutMs: 50 * 1000,
     })
+  })
+
+  test("Reads the Jira credentials from files and reads them again on every call.", () => {
+    const files: Record<string, string> = {
+      "/secrets/jira-user": "bot@example.test\n",
+      "/secrets/jira-api-token": "first\n",
+    }
+    const { JIRA_USER, JIRA_API_TOKEN, ...rest } = env
+    const fileEnv = {
+      ...rest,
+      JIRA_USER_FILE: "/secrets/jira-user",
+      JIRA_API_TOKEN_FILE: "/secrets/jira-api-token",
+    }
+    const readFile = (path: string) => files[path]
+    expect(JIRA_USER && JIRA_API_TOKEN).toBeTruthy()
+
+    expect(readConfig(fileEnv, { readFile })).toMatchObject({
+      jiraUser: "bot@example.test",
+      jiraApiToken: "first",
+    })
+    files["/secrets/jira-api-token"] = "rotated\n"
+    expect(readConfig(fileEnv, { readFile }).jiraApiToken).toEqual("rotated")
+  })
+
+  test("Rejects loop timings that are not positive numbers.", () => {
+    expect(() => readConfig({ ...env, INTERVAL_SECONDS: "0" })).toThrow(
+      "INTERVAL_SECONDS",
+    )
+    expect(() =>
+      readConfig({ ...env, ITERATION_TIMEOUT_SECONDS: "x" }),
+    ).toThrow("ITERATION_TIMEOUT_SECONDS")
   })
 
   test("Rejects a board id that is not a number.", () => {
@@ -690,5 +729,169 @@ describe("run", () => {
 
       expect(boardCalls(calls).map((c) => c.method)).toEqual(["GET", "POST"])
     })
+  })
+})
+
+describe("loop", () => {
+  const env = {
+    JIRA_URL: "https://example.atlassian.net",
+    JIRA_USER: "bot@example.test",
+    JIRA_API_TOKEN: "token",
+    JIRA_PROJECT: "HO",
+    ALERTMANAGER_URL: "http://alertmanager:9093",
+    ITERATION_TIMEOUT_SECONDS: "1",
+  }
+
+  beforeEach(() => {
+    jest.spyOn(console, "log").mockImplementation(() => undefined)
+    jest.spyOn(console, "error").mockImplementation(() => undefined)
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+    jest.useRealTimers()
+  })
+
+  test("A successful iteration advances the heartbeat and the run counter.", async () => {
+    const state = createState(now - 10 * MINUTE)
+    const { fetchImpl } = fakeServices({ jiraPages: [{ issues: [] }] })
+
+    await iterate(env, state, { fetch: fetchImpl, now: () => now })
+
+    expect(state).toMatchObject({
+      lastSuccessAt: now,
+      runs: 1,
+      failures: 0,
+    })
+    expect(renderMetrics(state)).toContain(
+      `incident_ack_sync_last_success_timestamp_seconds ${now / 1000}\n`,
+    )
+  })
+
+  test("A failed iteration counts a failure, keeps the old heartbeat and does not throw.", async () => {
+    const start = now - 10 * MINUTE
+    const state = createState(start)
+    const { fetchImpl } = fakeServices({ jiraPages: [], jiraStatus: 401 })
+
+    await iterate(env, state, { fetch: fetchImpl, now: () => now })
+
+    expect(state).toMatchObject({
+      lastSuccessAt: start,
+      runs: 1,
+      failures: 1,
+    })
+    expect(renderMetrics(state)).toContain("incident_ack_sync_failures_total 1")
+  })
+
+  test("A request still pending at the iteration timeout is aborted and counted as a failure.", async () => {
+    jest.useFakeTimers()
+    const state = createState(now)
+    const hang = (_url: string, options: { signal: AbortSignal }) =>
+      new Promise((_resolve, reject) => {
+        if (options.signal.aborted) {
+          reject(options.signal.reason)
+        }
+        options.signal.addEventListener("abort", () =>
+          reject(options.signal.reason),
+        )
+      })
+
+    const done = iterate(env, state, {
+      fetch: hang as unknown as typeof fetch,
+      now: () => now,
+    })
+    await jest.advanceTimersByTimeAsync(1000)
+    await done
+
+    expect(state.failures).toEqual(1)
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("iteration exceeded 1s"),
+    )
+  })
+
+  test("Reads the credentials again for every iteration.", async () => {
+    const state = createState(now)
+    const { fetchImpl, calls } = fakeServices({ jiraPages: [{ issues: [] }] })
+    const fileEnv = {
+      ...env,
+      JIRA_USER: undefined,
+      JIRA_API_TOKEN: undefined,
+      JIRA_USER_FILE: "/u",
+      JIRA_API_TOKEN_FILE: "/t",
+    }
+    const tokens = ["one", "two"]
+    const readFile = (path: string) =>
+      path === "/u" ? "bot@example.test" : tokens.shift()
+
+    await iterate(fileEnv, state, {
+      fetch: fetchImpl,
+      now: () => now,
+      readFile,
+    })
+    await iterate(fileEnv, state, {
+      fetch: fetchImpl,
+      now: () => now,
+      readFile,
+    })
+
+    const auth = calls
+      .filter((c) => c.url.endsWith("/rest/api/3/search/jql"))
+      .map((c) => c.headers?.Authorization)
+    expect(auth).toEqual(
+      ["one", "two"].map(
+        (t) =>
+          `Basic ${Buffer.from(`bot@example.test:${t}`).toString("base64")}`,
+      ),
+    )
+  })
+
+  test("Runs iterations one after another with the delay between them, until stopped.", async () => {
+    const state = createState(now)
+    const { fetchImpl } = fakeServices({ jiraPages: [{ issues: [] }] })
+    const delays: number[] = []
+    let stop = false
+
+    await loop(env, state, {
+      fetch: fetchImpl,
+      now: () => now,
+      sleep: async (ms: number) => {
+        delays.push(ms)
+        stop = delays.length === 3
+      },
+      stopped: () => stop,
+    })
+
+    expect(delays).toEqual([60000, 60000, 60000])
+    expect(state.runs).toEqual(3)
+  })
+
+  test("The loop is unhealthy once it has not ticked for three intervals and a timeout.", () => {
+    const state = createState(now)
+    const config = { intervalMs: 60000, iterationTimeoutMs: 50000 }
+
+    expect(isHealthy(state, config, now + 3 * 60000 + 50000)).toBe(true)
+    expect(isHealthy(state, config, now + 3 * 60000 + 50001)).toBe(false)
+  })
+
+  test("Serves the metrics and the liveness check.", async () => {
+    const state = createState(now)
+    const server = createServer(state, env, () => now)
+    await new Promise<void>((resolve) => server.listen(0, resolve))
+    const { port } = server.address() as { port: number }
+    try {
+      const metrics = await fetch(`http://127.0.0.1:${port}/metrics`)
+      expect(metrics.status).toEqual(200)
+      expect(await metrics.text()).toContain(
+        "incident_ack_sync_last_success_timestamp_seconds",
+      )
+      expect((await fetch(`http://127.0.0.1:${port}/healthz`)).status).toEqual(
+        200,
+      )
+      expect((await fetch(`http://127.0.0.1:${port}/other`)).status).toEqual(
+        404,
+      )
+    } finally {
+      await new Promise((resolve) => server.close(resolve))
+    }
   })
 })

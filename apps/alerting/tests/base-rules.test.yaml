@@ -6,7 +6,7 @@ rule_files:
   - base-rules.yaml
 
 # vmalert-tool starts its clock at 2000-01-01T00:00:00Z (unix 946684800), so the
-# CronJob timestamps below are absolute, not relative to zero.
+# heartbeat timestamps below are absolute, not relative to zero.
 
 evaluation_interval: 1m
 
@@ -54,13 +54,11 @@ tests:
               description: "The kubelet on node k8s-main (job kubernetes-nodes) has reported up=0 for 5 minutes. The node may be down or not ready, and the pods on it may be offline."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
 
-  # The sync ran a minute ago, every minute.
+  # The heartbeat moves forward every minute.
   - name: a working sync stays quiet
     interval: 1m
     input_series:
-      - series: 'kube_cronjob_created{job="kube-state-metrics",namespace="default",cronjob="incident-ack-sync"}'
-        values: "946684800x120"
-      - series: 'kube_cronjob_status_last_successful_time{job="kube-state-metrics",namespace="default",cronjob="incident-ack-sync"}'
+      - series: 'incident_ack_sync_last_success_timestamp_seconds{job="incident-ack-sync",instance="incident-ack-sync.default.svc.cluster.local:9100"}'
         values: "946684800+60x120"
     alert_rule_test:
       - eval_time: 90m
@@ -68,13 +66,12 @@ tests:
         exp_alerts: []
 
   # The last success was at the start. Half an hour later the rule is true, five
-  # more minutes and it fires.
+  # more minutes and it fires. A service that never succeeds looks the same: its
+  # heartbeat stays at the process start time.
   - name: a sync that stopped succeeding fires
     interval: 1m
     input_series:
-      - series: 'kube_cronjob_created{job="kube-state-metrics",namespace="default",cronjob="incident-ack-sync"}'
-        values: "946684800x120"
-      - series: 'kube_cronjob_status_last_successful_time{job="kube-state-metrics",namespace="default",cronjob="incident-ack-sync"}'
+      - series: 'incident_ack_sync_last_success_timestamp_seconds{job="incident-ack-sync",instance="incident-ack-sync.default.svc.cluster.local:9100"}'
         values: "946684800x120"
     alert_rule_test:
       - eval_time: 33m
@@ -85,32 +82,28 @@ tests:
         exp_alerts:
           - exp_labels:
               severity: warning
-              job: kube-state-metrics
-              namespace: default
-              cronjob: incident-ack-sync
+              job: incident-ack-sync
+              instance: incident-ack-sync.default.svc.cluster.local:9100
             exp_annotations:
               summary: "Incident acknowledgement sync is failing"
-              description: "The incident-ack-sync job has not succeeded for 40m 0s. Work items moved to In Progress no longer silence their alerts, so pushes for them continue. Check the newest incident-ack-sync Job and its pod logs in the default namespace, and the jira-user and jira-api-token fields of the alertmanager-receivers secret."
+              description: "The incident-ack-sync service has not succeeded for 40m 0s. Work items moved to In Progress no longer silence their alerts, so pushes for them continue. Check the pod logs of the incident-ack-sync Deployment in the default namespace, and the jira-user and jira-api-token fields of the alertmanager-receivers secret."
 
-  # Never succeeded since the CronJob was created (a missing secret, a wrong
-  # token): there is no success time yet, so the creation time is used.
-  - name: a sync that never succeeded fires
+  # The service is down: no heartbeat at all, so the down target reports it.
+  - name: a sync whose target is down is reported by TargetDown
     interval: 1m
     input_series:
-      - series: 'kube_cronjob_created{job="kube-state-metrics",namespace="default",cronjob="incident-ack-sync"}'
-        values: "946684800x120"
+      - series: 'up{job="incident-ack-sync",instance="incident-ack-sync.default.svc.cluster.local:9100"}'
+        values: "1x5 0x20"
     alert_rule_test:
-      - eval_time: 20m
-        alertname: IncidentAckSyncFailing
-        exp_alerts: []
-      - eval_time: 40m
-        alertname: IncidentAckSyncFailing
+      - eval_time: 15m
+        alertname: TargetDown
         exp_alerts:
           - exp_labels:
               severity: warning
-              job: kube-state-metrics
-              namespace: default
-              cronjob: incident-ack-sync
+              incident: "true"
+              job: incident-ack-sync
+              instance: incident-ack-sync.default.svc.cluster.local:9100
             exp_annotations:
-              summary: "Incident acknowledgement sync is failing"
-              description: "The incident-ack-sync job has not succeeded for 40m 0s. Work items moved to In Progress no longer silence their alerts, so pushes for them continue. Check the newest incident-ack-sync Job and its pod logs in the default namespace, and the jira-user and jira-api-token fields of the alertmanager-receivers secret."
+              summary: "incident-ack-sync is down"
+              description: "Scrape target incident-ack-sync.default.svc.cluster.local:9100 (job incident-ack-sync) has reported up=0 for 5 minutes. Its metrics are not being collected and the service may be down."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=VictoriaMetrics

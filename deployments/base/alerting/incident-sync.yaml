@@ -1,86 +1,128 @@
 ---
 # Acknowledgement sync for incident work items. Alertmanager opens a Jira work
-# item per incident alert but cannot read it back, so this job copies the work
-# item status into Alertmanager once a minute: In Progress silences that alert,
-# anything else removes the silence. It also moves new incident work items from
-# the board's backlog onto the board. The script, its rules and why it is built
-# this way are in incident-sync/ack-sync.cjs and the README.
+# item per incident alert but cannot read it back, so this service copies the
+# work item status into Alertmanager once a minute: In Progress silences that
+# alert, anything else removes the silence. It also moves new incident work items
+# from the board's backlog onto the board. The script, its rules and why it is
+# built this way are in incident-sync/ack-sync.cjs and the README.
+#
+# It is a single-replica Deployment that loops, not a CronJob: the CronJob
+# controller logs "object has been modified" for a CronJob that runs every
+# minute, and no Kubernetes release removes that. The script gives back what a
+# CronJob did: a timeout per iteration, no overlap, a liveness probe for a hung
+# loop, and credentials read again every iteration.
 #
 # It reads the Jira user and API token from the same alertmanager-receivers
-# secret as the receiver. Alertmanager has no authentication, the job reaches it
+# secret as the receiver, mounted as files so a rotated token is picked up
+# without a restart. Alertmanager has no authentication, the service reaches it
 # on the in-cluster Service like vmalert does.
-apiVersion: batch/v1
-kind: CronJob
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: incident-ack-sync
 spec:
-  schedule: "* * * * *"
-  # A run that is still going when the next is due (Jira slow) makes that next run
-  # wait, it does not overlap. The deadline below ends a stuck run first.
-  concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 120
-  successfulJobsHistoryLimit: 1
-  failedJobsHistoryLimit: 3
-  jobTemplate:
+  replicas: 1
+  # One runner at a time: a rollout stops the old pod before it starts the new.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: incident-ack-sync
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: incident-ack-sync
     spec:
-      backoffLimit: 0
-      activeDeadlineSeconds: 50
-      template:
-        spec:
-          restartPolicy: Never
-          automountServiceAccountToken: false
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ack-sync
+          image: node:26.13.1-alpine
+          command: ["node", "/scripts/ack-sync.cjs"]
+          ports:
+            - name: metrics
+              containerPort: 9100
+          env:
+            - name: JIRA_URL
+              value: https://smithsimms.atlassian.net
+            - name: JIRA_PROJECT
+              value: HO
+            # The board incidents are moved onto. The HO project has one board
+            # ("HO board"), a kanban board with a backlog.
+            - name: JIRA_BOARD_ID
+              value: "100"
+            - name: JIRA_USER_FILE
+              value: /secrets/jira-user
+            - name: JIRA_API_TOKEN_FILE
+              value: /secrets/jira-api-token
+            - name: ALERTMANAGER_URL
+              value: http://vmalertmanager-vmalertmanager.default.svc.cluster.local:9093
+            # How long a silence lasts without being renewed. It is renewed every
+            # iteration, so this is how long an acknowledgement outlives a dead
+            # service, Jira or token.
+            - name: SILENCE_TTL_MINUTES
+              value: "15"
+            # Seconds between the end of one iteration and the start of the next.
+            - name: INTERVAL_SECONDS
+              value: "60"
+            # An iteration that runs longer is aborted and counts as a failure.
+            - name: ITERATION_TIMEOUT_SECONDS
+              value: "50"
+          # Fails when the loop has stopped ticking (hung beyond its own
+          # timeout), and the kubelet restarts the container.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
           securityContext:
-            runAsNonRoot: true
-            runAsUser: 1000
-            runAsGroup: 1000
-            seccompProfile:
-              type: RuntimeDefault
-          containers:
-            - name: ack-sync
-              image: node:26.13.1-alpine
-              command: ["node", "/scripts/ack-sync.cjs"]
-              env:
-                - name: JIRA_URL
-                  value: https://smithsimms.atlassian.net
-                - name: JIRA_PROJECT
-                  value: HO
-                # The board incidents are moved onto. The HO project has one board
-                # ("HO board"), a kanban board with a backlog.
-                - name: JIRA_BOARD_ID
-                  value: "100"
-                - name: JIRA_USER
-                  valueFrom:
-                    secretKeyRef:
-                      name: alertmanager-receivers
-                      key: jira-user
-                - name: JIRA_API_TOKEN
-                  valueFrom:
-                    secretKeyRef:
-                      name: alertmanager-receivers
-                      key: jira-api-token
-                - name: ALERTMANAGER_URL
-                  value: http://vmalertmanager-vmalertmanager.default.svc.cluster.local:9093
-                # How long a silence lasts without being renewed. The job renews it
-                # every run, so this is how long an acknowledgement outlives a dead
-                # job, Jira or token.
-                - name: SILENCE_TTL_MINUTES
-                  value: "15"
-              securityContext:
-                allowPrivilegeEscalation: false
-                readOnlyRootFilesystem: true
-                capabilities:
-                  drop: ["ALL"]
-              resources:
-                requests:
-                  cpu: 10m
-                  memory: 32Mi
-                limits:
-                  memory: 128Mi
-              volumeMounts:
-                - name: scripts
-                  mountPath: /scripts
-                  readOnly: true
-          volumes:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
             - name: scripts
-              configMap:
-                name: incident-ack-sync
+              mountPath: /scripts
+              readOnly: true
+            - name: jira
+              mountPath: /secrets
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: incident-ack-sync
+        - name: jira
+          secret:
+            secretName: alertmanager-receivers
+            items:
+              - key: jira-user
+                path: jira-user
+              - key: jira-api-token
+                path: jira-api-token
+---
+# The metrics port, so the vmagent job "incident-ack-sync"
+# (deployments/base/metrics/helm-release.yaml) can scrape the heartbeat.
+apiVersion: v1
+kind: Service
+metadata:
+  name: incident-ack-sync
+spec:
+  selector:
+    app.kubernetes.io/name: incident-ack-sync
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: metrics

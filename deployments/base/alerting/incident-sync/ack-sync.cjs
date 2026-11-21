@@ -4,7 +4,7 @@
 //
 // Alertmanager creates one Jira work item per critical or service-down alert
 // (the jira_configs receiver in vmalertmanager.yaml) but cannot read the work
-// item back. This job closes that gap once a minute:
+// item back. This service closes that gap once a minute:
 //
 //   - A work item that is In Progress (status category "In Progress", so also
 //     Verify) means the incident is acknowledged. The job silences that one
@@ -28,23 +28,54 @@
 // the receiver sets from the alert's Alertmanager fingerprint. The silence
 // matches every label of that alert exactly.
 //
+// It is a long-running process, not a CronJob: a Deployment runs one replica
+// that loops with a fixed delay (INTERVAL_SECONDS) between iterations. Each
+// iteration has a hard timeout (ITERATION_TIMEOUT_SECONDS) that aborts its
+// requests, iterations never overlap, and a failed iteration is logged and
+// counted, then the next one starts on schedule. The process serves
+//
+//   /metrics  incident_ack_sync_last_success_timestamp_seconds, which the
+//             IncidentAckSyncFailing rule watches, plus run and failure counters
+//   /healthz  the liveness probe: fails when the loop has stopped ticking
+//
+// Credentials are read again every iteration (from the mounted secret files
+// when JIRA_USER_FILE and JIRA_API_TOKEN_FILE are set), so a rotated token takes
+// effect within a minute without a restart, as it did when each run was a pod.
+//
 // No dependencies, so it runs on the stock node image from a ConfigMap.
+
+const fs = require("node:fs")
+const http = require("node:http")
 
 const SILENCE_CREATOR = "incident-ack-sync"
 const FINGERPRINT_LABEL = /^alert-fp-([0-9a-f]+)$/
 const ISSUE_KEY = /^([A-Z][A-Z0-9]*-\d+) /
 
-const readConfig = (env) => {
+const readConfig = (env, { readFile = fs.readFileSync } = {}) => {
+  // A value comes from NAME, or from the file named by NAME_FILE (a mounted
+  // secret, read again on every call so a rotated secret is picked up).
+  const value = (name) => {
+    const file = env[`${name}_FILE`]
+    return file ? String(readFile(file, "utf8")).trim() : env[name]
+  }
   const required = (name) => {
-    const value = env[name]
-    if (!value) {
+    const found = value(name)
+    if (!found) {
       throw new Error(`Missing required environment variable ${name}`)
     }
-    return value
+    return found
   }
   const ttlMinutes = Number(env.SILENCE_TTL_MINUTES || 15)
   if (!Number.isFinite(ttlMinutes) || ttlMinutes < 2) {
     throw new Error("SILENCE_TTL_MINUTES must be a number of at least 2")
+  }
+  const intervalSeconds = Number(env.INTERVAL_SECONDS || 60)
+  const timeoutSeconds = Number(env.ITERATION_TIMEOUT_SECONDS || 50)
+  if (!Number.isFinite(intervalSeconds) || intervalSeconds < 1) {
+    throw new Error("INTERVAL_SECONDS must be a number of at least 1")
+  }
+  if (!Number.isFinite(timeoutSeconds) || timeoutSeconds < 1) {
+    throw new Error("ITERATION_TIMEOUT_SECONDS must be a number of at least 1")
   }
   const boardId = env.JIRA_BOARD_ID || "100"
   if (!/^\d+$/.test(boardId)) {
@@ -59,6 +90,8 @@ const readConfig = (env) => {
     jiraBoardId: boardId,
     alertmanagerUrl: required("ALERTMANAGER_URL").replace(/\/+$/, ""),
     ttlMs: ttlMinutes * 60 * 1000,
+    intervalMs: intervalSeconds * 1000,
+    iterationTimeoutMs: timeoutSeconds * 1000,
   }
 }
 
@@ -378,21 +411,148 @@ const syncAcknowledgements = async (config, fetchImpl, now) => {
   return changes
 }
 
+// State of the loop, read by the metrics and the liveness probe. Times are
+// epoch milliseconds. lastSuccessAt starts at the process start, so a loop that
+// never succeeds still ages and trips IncidentAckSyncFailing.
+const createState = (now = Date.now()) => ({
+  startedAt: now,
+  lastSuccessAt: now,
+  lastTickAt: now,
+  runs: 0,
+  failures: 0,
+})
+
+const renderMetrics = (state) =>
+  [
+    "# HELP incident_ack_sync_last_success_timestamp_seconds Unix time of the last iteration that succeeded, or of the process start before the first one.",
+    "# TYPE incident_ack_sync_last_success_timestamp_seconds gauge",
+    `incident_ack_sync_last_success_timestamp_seconds ${state.lastSuccessAt / 1000}`,
+    "# HELP incident_ack_sync_runs_total Iterations finished, failed or not.",
+    "# TYPE incident_ack_sync_runs_total counter",
+    `incident_ack_sync_runs_total ${state.runs}`,
+    "# HELP incident_ack_sync_failures_total Iterations that failed or timed out.",
+    "# TYPE incident_ack_sync_failures_total counter",
+    `incident_ack_sync_failures_total ${state.failures}`,
+    "",
+  ].join("\n")
+
+// The loop ticks at the start and the end of every iteration, so it is alive
+// while an iteration is within its timeout or the delay is within its length.
+// Allow three missed intervals plus a full iteration before calling it hung.
+const isHealthy = (state, config, now) =>
+  now - state.lastTickAt <= config.intervalMs * 3 + config.iterationTimeoutMs
+
+const describeError = (error) =>
+  // fetch reports a network failure as just "fetch failed", the reason is in cause.
+  error.cause ? `${error.message}: ${error.cause.message}` : error.message
+
+// One iteration: read the config again, run with every request bound to a
+// timeout, and record the outcome. Never throws, so the loop carries on.
+const iterate = async (
+  env,
+  state,
+  { fetch: fetchImpl = fetch, now = Date.now, readFile } = {},
+) => {
+  state.lastTickAt = now()
+  const controller = new AbortController()
+  let config
+  let timer
+  try {
+    config = readConfig(env, { readFile })
+    timer = setTimeout(
+      () =>
+        controller.abort(
+          new Error(`iteration exceeded ${config.iterationTimeoutMs / 1000}s`),
+        ),
+      config.iterationTimeoutMs,
+    )
+    await run(config, {
+      fetch: (url, options) =>
+        fetchImpl(url, { ...options, signal: controller.signal }),
+      now: now(),
+    })
+    state.lastSuccessAt = now()
+  } catch (error) {
+    state.failures += 1
+    console.error(describeError(error))
+  } finally {
+    clearTimeout(timer)
+    state.runs += 1
+    state.lastTickAt = now()
+  }
+}
+
+// Fixed delay between iterations, so they never overlap.
+const loop = async (env, state, options = {}) => {
+  const sleep =
+    options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)))
+  const stopped = options.stopped ?? (() => false)
+  while (!stopped()) {
+    await iterate(env, state, options)
+    // The interval comes from the config of this iteration's environment.
+    await sleep(Number(env.INTERVAL_SECONDS || 60) * 1000)
+  }
+}
+
+const createServer = (state, env, now = Date.now) =>
+  http.createServer((req, res) => {
+    if (req.url === "/metrics") {
+      res.writeHead(200, { "Content-Type": "text/plain; version=0.0.4" })
+      res.end(renderMetrics(state))
+    } else if (req.url === "/healthz") {
+      let healthy = false
+      try {
+        healthy = isHealthy(state, readIntervals(env), now())
+      } catch {
+        healthy = false
+      }
+      res.writeHead(healthy ? 200 : 503)
+      res.end(healthy ? "ok\n" : "loop is not ticking\n")
+    } else {
+      res.writeHead(404)
+      res.end()
+    }
+  })
+
+// Only the timing settings, so the probe does not depend on Jira credentials.
+const readIntervals = (env) => ({
+  intervalMs: Number(env.INTERVAL_SECONDS || 60) * 1000,
+  iterationTimeoutMs: Number(env.ITERATION_TIMEOUT_SECONDS || 50) * 1000,
+})
+
 module.exports = {
   readConfig,
   run,
   plan,
   moveIncidentsToBoard,
   toMatchers,
+  createState,
+  renderMetrics,
+  isHealthy,
+  iterate,
+  loop,
+  createServer,
   SILENCE_CREATOR,
 }
 
 if (require.main === module) {
-  run(readConfig(process.env)).catch((error) => {
-    // fetch reports a network failure as just "fetch failed", the reason is in cause.
-    console.error(
-      error.cause ? `${error.message}: ${error.cause.message}` : error.message,
-    )
+  const env = process.env
+  const state = createState()
+  // Fail at start on a bad timing setting rather than loop with a wrong one.
+  const timing = readIntervals(env)
+  if (!(timing.intervalMs >= 1000) || !(timing.iterationTimeoutMs >= 1000)) {
+    console.error("INTERVAL_SECONDS and ITERATION_TIMEOUT_SECONDS must be >= 1")
     process.exit(1)
-  })
+  }
+  const server = createServer(state, env)
+  server.listen(Number(env.METRICS_PORT || 9100))
+  let stop = false
+  const shutdown = () => {
+    stop = true
+    server.close()
+    process.exit(0)
+  }
+  process.on("SIGTERM", shutdown)
+  process.on("SIGINT", shutdown)
+  loop(env, state, { stopped: () => stop })
 }

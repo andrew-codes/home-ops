@@ -1,7 +1,7 @@
 ---
 # Keeps the Kubernetes node's journal free of pod network link churn. Every
 # pod sandbox creates and deletes a veth pair, and a short-lived pod (the
-# incident-ack-sync CronJob starts one every minute) makes systemd-networkd log
+# incident-ack-sync job started one every minute until it became a Deployment) makes systemd-networkd log
 # the link coming and going while networkd-dispatcher runs `networkctl status`
 # on a link that is already gone, which logs `Interface "vethXXXX" not found.`
 # (and an ERROR from networkd-dispatcher itself) on every pod start.

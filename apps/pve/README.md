@@ -298,7 +298,7 @@ changed, and the Proxmox host's logs keep its own hostname.
 On the Kubernetes node only, the same target also runs
 [`quiet-pod-link-events.yml`](../../resources/k8s/src/deployment/tasks/quiet-pod-link-events.yml)
 (shared with the node prep playbook, `prepare.yml`). Every pod start creates and deletes a veth link, and
-a short-lived pod such as the `incident-ack-sync` CronJob (once a minute) made `networkd-dispatcher` run
+a short-lived pod (the `incident-ack-sync` job, once a minute, before it became a Deployment) made `networkd-dispatcher` run
 `networkctl` on a link that was already gone, logging `Interface "vethXXXX" not found.` plus
 `systemd-networkd` link lines. The task masks `networkd-dispatcher` (nothing on the node uses it) and caps
 `systemd-networkd` at `LogLevelMax=notice`, so warnings and errors for the real uplink still log. It
