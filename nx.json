@@ -101,6 +101,5 @@
       },
       "include": ["tools/nx-secrets-generators/**/*"]
     }
-  ],
-  "analytics": false
+  ]
 }
