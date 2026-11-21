@@ -14,14 +14,11 @@ const run = async (
   const dhcpIp = await configurationApi.get("unifi/ip")
   const cidr = await configurationApi.get("tailscale/subnet-routes")
 
-  const dnsEntries = []
-
   const deploymentPath = path.join(__dirname, "..", "src", "deployment")
   await runPlaybook(path.join(deploymentPath, "index.yml"), [ip, ip2], {
     pihole_password: password,
     dhcpIp,
     cidr,
-    dnsEntries: JSON.stringify(dnsEntries),
   })
 }
 

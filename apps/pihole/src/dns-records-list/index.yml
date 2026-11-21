@@ -1,0 +1,31 @@
+---
+# Read-only. Prints dns.hosts on each Pi-hole and fails when the two differ.
+- hosts: all
+  become: yes
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: no
+  connection: ssh
+  remote_user: root
+
+  tasks:
+    - name: Read dns.hosts
+      ansible.builtin.shell: pihole-FTL --config dns.hosts
+      register: current_dns_hosts
+      changed_when: false
+
+    - name: Show dns.hosts
+      ansible.builtin.debug:
+        msg: "{{ current_dns_hosts.stdout | from_json | sort }}"
+
+    - name: Compare dns.hosts across instances
+      run_once: true
+      ansible.builtin.assert:
+        that:
+          - >-
+            ansible_play_hosts_all
+            | map('extract', hostvars, ['current_dns_hosts', 'stdout'])
+            | map('from_json') | map('sort') | map('join', ',')
+            | unique | length == 1
+        success_msg: "dns.hosts is identical on both Pi-holes"
+        fail_msg: "dns.hosts differs between the Pi-holes"
