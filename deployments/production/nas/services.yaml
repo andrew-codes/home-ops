@@ -25,3 +25,34 @@ spec:
       targetPort: 80
   type: ClusterIP
   sessionAffinity: None
+---
+# The Synology DSM web UI. The tailnet gateway
+# (infrastructure/production/gateway) routes synology.smith-simms.family here.
+# The Cloudflare tunnel still reaches the Synology through a hand-applied nas
+# Service that is not in git, and stays until the tunnel route is pruned.
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: synology-http
+  namespace: default
+subsets:
+  - addresses:
+      - ip: 10.5.113.53
+    ports:
+      - name: http
+        port: 5000
+        protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: synology-http
+  namespace: default
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP
+  sessionAffinity: None

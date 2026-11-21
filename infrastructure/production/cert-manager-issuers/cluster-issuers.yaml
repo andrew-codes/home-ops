@@ -1,0 +1,43 @@
+# Let's Encrypt issuers that prove domain ownership with a DNS-01 TXT record in
+# the Cloudflare zone, so nothing needs inbound access from the internet.
+#
+# The Cloudflare token lives in the cloudflare-dns Secret in the cert-manager
+# namespace (a ClusterIssuer reads its Secrets from there). It is sealed by
+# `OP_VAULT=home-ops yarn nx g @ha/secrets:seal production` from the 1Password
+# item cloudflare-dns, field api-token. The token needs Zone - DNS - Edit and
+# Zone - Zone - Read, scoped to the smith-simms.family zone only.
+#
+# No email is set. cert-manager registers the ACME account without one, which
+# only means Let's Encrypt cannot send expiry notices. cert-manager renews the
+# certificate on its own well before it expires.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-dns
+              key: api-token
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-production-account-key
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-dns
+              key: api-token

@@ -81,6 +81,10 @@ const sealedSecretNames = [
   // see tools/nx-secrets-generators/src/generators/secrets-seal.ts.
   "tailscale-operator-oauth/client-id",
   "tailscale-operator-oauth/client-secret",
+  // The Cloudflare API token cert-manager uses for DNS-01 challenges, scoped to
+  // the smith-simms.family zone. Sealed into the cert-manager namespace, see
+  // tools/nx-secrets-generators/src/generators/secrets-seal.ts.
+  "cloudflare-dns/api-token",
 ] as const
 
 const secretNames = [
@@ -156,6 +160,7 @@ const secretNames = [
   "alertmanager-receivers/jira-api-token",
   "tailscale-operator-oauth/client-id",
   "tailscale-operator-oauth/client-secret",
+  "cloudflare-dns/api-token",
 ] as const
 
 const onePasswordConfiguration = createOnePasswordConfigurationApi(secretNames)

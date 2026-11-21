@@ -1,0 +1,29 @@
+# Wildcard certificate for the home services that move to the tailnet gateway
+# (infrastructure/production/gateway). Traefik serves it as its default TLS
+# store certificate and reloads it on renewal.
+#
+# A wildcard keeps the individual hostnames out of Certificate Transparency
+# logs. It does not cover smith-simms.family itself or the two-level names
+# under home.smith-simms.family, and nothing here needs those.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: smith-simms-family-wildcard
+  namespace: gateway
+spec:
+  secretName: smith-simms-family-wildcard-tls
+  dnsNames:
+    - "*.smith-simms.family"
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef:
+    kind: ClusterIssuer
+    # The staging/production switch. Start on staging: Let's Encrypt production
+    # has strict rate limits, and staging proves the token and DNS-01 flow
+    # without spending them. The staging certificate is not trusted by browsers.
+    # Once the Certificate is Ready=True, change this one line to
+    # letsencrypt-production and merge. cert-manager then re-issues into the
+    # same Secret, because the issuer changed.
+    name: letsencrypt-staging

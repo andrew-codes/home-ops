@@ -1,0 +1,8 @@
+# The wildcard Certificate writes its Secret into this namespace, because the
+# Traefik default TLS store can only read a Secret from its own namespace. The
+# namespace is created here, ahead of the gateway Kustomization, so the
+# Certificate can be applied before Traefik exists.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway

@@ -156,7 +156,10 @@ spec:
                   name: home-assistant-token
                   key: token
             - name: HA_URL
-              value: https://ha.smith-simms.family
+              # The Service name, not the public hostname: pods resolve through
+              # CoreDNS and are not on the tailnet, so they cannot reach
+              # ha.smith-simms.family once it points at the tailnet gateway.
+              value: http://home-assistant:8123
           volumeMounts:
             - name: home-assistant-app-daemon-config
               mountPath: /conf

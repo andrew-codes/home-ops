@@ -25,6 +25,10 @@ const SECRET_TARGETS: Record<string, { namespace: string; directory: string }> =
       namespace: "tailscale",
       directory: "tailscale-operator",
     },
+    "cloudflare-dns": {
+      namespace: "cert-manager",
+      directory: "cert-manager-issuers",
+    },
   }
 
 const targetOf = (k8sName: string) => {
