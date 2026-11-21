@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# The gateway namespace is created by the cert-manager-issuers Kustomization,
+# which the wildcard Certificate needs first. This Kustomization depends on it.
+resources:
+  - helm-source.yaml
+  - helm-release.yaml
+  - ingresses.yaml

@@ -1,0 +1,74 @@
+# The home gateway: one Traefik that terminates TLS for the friendly
+# *.smith-simms.family names and routes by Host header to the services. The
+# Tailscale operator (infrastructure/base/tailscale-operator) puts its
+# LoadBalancer Service on the tailnet as the device home-gateway. Pihole then
+# resolves the names to that device's tailnet address. Tailscale only forwards
+# TCP to the proxy and never touches TLS.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: traefik
+  namespace: gateway
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: traefik
+      version: 42.4.1
+      sourceRef:
+        kind: HelmRepository
+        name: traefik
+        namespace: default
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    global:
+      checkNewVersion: false
+      sendAnonymousUsage: false
+    # The Ingresses in ingresses.yaml name this class. Do not make it the
+    # default class, so an Ingress without a class never lands on the gateway.
+    ingressClass:
+      isDefaultClass: false
+    ports:
+      web:
+        # Plain HTTP only redirects to HTTPS.
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
+      websecure:
+        # Traefik proxies websockets (Home Assistant, Z-Wave JS UI, TrueNAS)
+        # without extra config. Its default 60s read and write timeouts would cut
+        # a large upload to TrueNAS or Synology, which Cloudflare used to carry
+        # through its own limits, so the entrypoint sets none.
+        transport:
+          respondingTimeouts:
+            readTimeout: 0
+            writeTimeout: 0
+    # The certificate that cert-manager keeps renewing
+    # (infrastructure/production/cert-manager-issuers/certificate.yaml). Traefik
+    # serves it for every router and reloads it when the Secret changes.
+    tlsStore:
+      default:
+        defaultCertificate:
+          secretName: smith-simms-family-wildcard-tls
+    service:
+      annotations:
+        # The tailnet device name. Pihole records point at this device's 100.x
+        # address, which stays put only while the device exists. Do not delete
+        # this Service: a new Service means a new device and a new address.
+        tailscale.com/hostname: home-gateway
+        # The tag the tailnet policy grants access on. It must exist in tagOwners
+        # (owned by tag:k8s-operator), or the proxy cannot join the tailnet.
+        tailscale.com/tags: tag:home-gateway
+      spec:
+        type: LoadBalancer
+        loadBalancerClass: tailscale

@@ -84,6 +84,55 @@ spec:
   prune: true
   wait: true
 ---
+# Let's Encrypt ClusterIssuers (Cloudflare DNS-01) and the wildcard Certificate
+# for the tailnet gateway. Separate from cert-manager so the CRDs exist before a
+# ClusterIssuer is applied, and so it can wait for the sealed Cloudflare token.
+#
+# wait is off on purpose: the Certificate cannot become Ready until the
+# cloudflare-dns sealed secret is committed and the Cloudflare token works. With
+# wait on, this Kustomization would stay unready and hold back the gateway.
+# Check the certificate itself with
+# `kubectl get certificate -n gateway smith-simms-family-wildcard`.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cert-manager-issuers
+  namespace: default
+spec:
+  interval: 10m0s
+  retryInterval: 1m
+  timeout: 5m
+  dependsOn:
+    - name: cert-manager
+    - name: sealed-secrets
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./infrastructure/production/cert-manager-issuers
+  prune: true
+  wait: false
+---
+# Traefik behind a Tailscale LoadBalancer Service, one Ingress per home service.
+# Public DNS and the Cloudflare tunnel are untouched, so this serves nobody
+# until pihole resolves the names to the gateway's tailnet address.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: gateway
+  namespace: default
+spec:
+  interval: 10m0s
+  retryInterval: 1m
+  timeout: 10m
+  dependsOn:
+    - name: cert-manager-issuers
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./infrastructure/production/gateway
+  prune: true
+  wait: true
+---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
