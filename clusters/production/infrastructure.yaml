@@ -126,6 +126,7 @@ spec:
   timeout: 10m
   dependsOn:
     - name: cert-manager-issuers
+    - name: tailscale-operator
   sourceRef:
     kind: GitRepository
     name: default

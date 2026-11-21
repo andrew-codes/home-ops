@@ -20,10 +20,16 @@ spec:
         name: traefik
         namespace: default
   install:
+    # The Service has no tailnet address until tag:home-gateway exists, and a
+    # failed wait would remediate by uninstalling it and changing that address.
+    disableWait: true
     crds: CreateReplace
     remediation:
       retries: 3
   upgrade:
+    # The Service has no tailnet address until tag:home-gateway exists, and a
+    # failed wait would remediate by uninstalling it and changing that address.
+    disableWait: true
     crds: CreateReplace
     remediation:
       retries: 3
