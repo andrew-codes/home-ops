@@ -67,6 +67,26 @@ describe("isMissingKeyError", () => {
     ).toBe(true)
   })
 
+  test("Recognises a missing key inside the aggregate not found error.", () => {
+    expect(
+      isMissingKeyError(
+        new Error(
+          `Configuration value not found, home-gateway/ip. Provider errors:\n[provider 0] Command failed: op read\n[ERROR] "home-gateway" isn't an item in the "agents" vault.`,
+        ),
+      ),
+    ).toBe(true)
+  })
+
+  test("Does not treat a sign-in failure inside the aggregate error as a missing key.", () => {
+    expect(
+      isMissingKeyError(
+        new Error(
+          `Configuration value not found, home-gateway/ip. Provider errors:\n[provider 0] You are not signed in to 1Password`,
+        ),
+      ),
+    ).toBe(false)
+  })
+
   test("Does not treat other failures as a missing key.", () => {
     expect(
       isMissingKeyError(new Error("You are not signed in to 1Password")),

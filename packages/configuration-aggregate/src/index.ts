@@ -2,6 +2,10 @@ import { ConfigurationApi } from "@ha/configuration-api"
 import { logger } from "@ha/logger"
 import { uniq } from "lodash"
 
+// Only the failing provider's error text is surfaced, never a value.
+const describeError = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error)
+
 const createConfigurationApi = <
   TProviders extends ReadonlyArray<ConfigurationApi<Record<string, string>>>,
 >(
@@ -22,6 +26,7 @@ const createConfigurationApi = <
 > => {
   return {
     get: async (name) => {
+      const failures: Array<string> = []
       for (const configurationProvider of providers.filter((provider) =>
         provider.getNames().includes(name),
       )) {
@@ -29,9 +34,18 @@ const createConfigurationApi = <
           const value = await configurationProvider.get(name)
 
           return value
-        } catch (error) {}
+        } catch (error) {
+          failures.push(
+            `[provider ${providers.indexOf(configurationProvider)}] ${describeError(error)}`,
+          )
+        }
       }
-      throw new Error(`Configuration value not found, ${String(name)}.`)
+      const reason = failures.length
+        ? ` Provider errors:\n${failures.join("\n")}`
+        : ""
+      throw new Error(
+        `Configuration value not found, ${String(name)}.${reason}`,
+      )
     },
     getNames: () => {
       const allConfiguration = providers.reduce(
