@@ -1,6 +1,6 @@
 # Tailscale Kubernetes operator
 
-The operator gives a Service or Ingress its own tailnet device, a MagicDNS name and a Tailscale-issued HTTPS certificate. Grafana is the first consumer: [`deployments/base/grafana/ingress.yaml`](../../../deployments/base/grafana/ingress.yaml) serves it at `https://grafana.<tailnet>.ts.net`, so the Grafana CLI (`gcx`) works from any tailnet machine without Cloudflare Access. The Cloudflare tunnel route for browsers is separate and unchanged. The Proxmox LXC in `apps/tailscale` (subnet router and exit node) is not involved.
+The operator gives a Service or Ingress its own tailnet device, a MagicDNS name and a Tailscale-issued HTTPS certificate. Grafana is the first consumer: [`deployments/base/grafana/ingress.yaml`](../../../deployments/base/grafana/ingress.yaml) serves it at `https://grafana.<tailnet>.ts.net`, so the Grafana CLI (`gcx`) works from any tailnet machine. Browsers reach `https://grafana.smith-simms.family` through the `home-gateway` LoadBalancer Service (`infrastructure/production/gateway`, tag `tag:home-gateway`); Grafana is no longer exposed through the Cloudflare tunnel. The Proxmox LXC in `apps/tailscale` (subnet router and exit node) is not involved.
 
 Flux runs the operator through the `tailscale-operator` Kustomization in [`clusters/production/infrastructure.yaml`](../../../clusters/production/infrastructure.yaml), in the `tailscale` namespace. Until the OAuth secret below is sealed and committed, the operator pod cannot start and that Kustomization stays unready. Nothing else depends on it, and the Grafana Ingress does nothing without the operator.
 
@@ -10,6 +10,7 @@ Flux runs the operator through the `tailscale-operator` Kustomization in [`clust
 2. **Tailscale admin, access controls:** add the tag owners and an access rule.
    - `tagOwners`: `tag:k8s-operator` owned by `autogroup:admin`, and `tag:k8s` owned by `tag:k8s-operator`.
    - A grant or ACL that lets the users or devices that run agents reach `tag:k8s` on port 443.
+   - For the home gateway: `tag:home-gateway` owned by `tag:k8s-operator`, and a grant that lets the owner's users or devices reach `tag:home-gateway` on ports 443 and 80. Without the tag owner the gateway Service gets no tailnet address.
 3. **Tailscale admin, OAuth client:** create an OAuth client with the scopes the operator docs list (Devices Core, Auth Keys and Services, each Read and Write) and the tag `tag:k8s-operator`.
 4. **1Password:** create the item `tailscale-operator-oauth` in the `home-ops` vault with the text fields `client-id` and `client-secret`. `OP_VAULT=home-ops yarn nx g @ha/secrets:1password` scaffolds the empty item. Fill in the client ID and secret.
 5. **Seal and commit:**
