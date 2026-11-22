@@ -62,7 +62,6 @@ const parseDnsHosts = (output: string): Array<string> =>
 
 export {
   buildDnsHosts,
-  dnsHostPattern,
   parseDnsHosts,
   gatewayHostnames,
   isMissingKeyError,
