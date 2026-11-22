@@ -48,14 +48,35 @@ describe("configuration api module exports", () => {
       mockedThirdProvider,
       mockedProvider,
     ])
-    try {
-      await api.get("onepassword/token")
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error)
-      expect((error as Error).message).toEqual(
-        "Configuration value not found, onepassword/token.",
-      )
-    }
+    await expect(api.get("onepassword/token")).rejects.toThrow(
+      /^Configuration value not found, onepassword\/token\./,
+    )
+  })
+
+  test("The not found error includes the underlying error of every failing provider.", async () => {
+    const first = jest.mocked<ConfigurationApi<{ "k8s/ip": string }>>({
+      get: jest.fn().mockRejectedValue(new Error("op: not signed in")),
+      getNames: () => ["k8s/ip"],
+      set: jest.fn(),
+    })
+    const second = jest.mocked<ConfigurationApi<{ "k8s/ip": string }>>({
+      get: jest.fn().mockRejectedValue("plain string failure"),
+      getNames: () => ["k8s/ip"],
+      set: jest.fn(),
+    })
+    const api = sut.createConfigurationApi([first, second])
+
+    await expect(api.get("k8s/ip")).rejects.toThrow(
+      /^Configuration value not found, k8s\/ip\.[\s\S]*op: not signed in[\s\S]*plain string failure/,
+    )
+  })
+
+  test("The not found error has no provider details when no provider supports the name.", async () => {
+    const api = sut.createConfigurationApi([mockedSecondEnvProvider])
+
+    await expect(api.get("one" as never)).rejects.toThrow(
+      /^Configuration value not found, one\.$/,
+    )
   })
 
   test("Created configuration API will return configuration value from the first provider that does not throw an error.", async () => {
