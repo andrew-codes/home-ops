@@ -20,10 +20,9 @@ spec:
     rotationPolicy: Always
   issuerRef:
     kind: ClusterIssuer
-    # The staging/production switch. Start on staging: Let's Encrypt production
-    # has strict rate limits, and staging proves the token and DNS-01 flow
-    # without spending them. The staging certificate is not trusted by browsers.
-    # Once the Certificate is Ready=True, change this one line to
-    # letsencrypt-production and merge. cert-manager then re-issues into the
-    # same Secret, because the issuer changed.
-    name: letsencrypt-staging
+    # The staging/production switch. Production certificates are trusted by
+    # browsers. Staging proved the token and DNS-01 flow without spending
+    # Let's Encrypt production rate limits. To test changes to the flow, point
+    # this back at letsencrypt-staging; cert-manager re-issues into the same
+    # Secret whenever the issuer changes.
+    name: letsencrypt-production
