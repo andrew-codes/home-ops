@@ -49,8 +49,21 @@ const isMissingKeyError = (error: unknown): boolean =>
     error.message,
   )
 
+// Pi-hole v6 `pihole-FTL --config dns.hosts` prints `[ ip host, ip host ]`
+// with unquoted entries, which is not JSON (quoted entries are possible too).
+// Extract every "<ipv4> <hostname>" pair. This pattern is also the
+// `dns_host_pattern` var in src/dns-records*/index.yml; keep them in sync.
+const dnsHostPattern = String.raw`\d{1,3}(?:\.\d{1,3}){3}\s+[\w.-]+`
+
+const parseDnsHosts = (output: string): Array<string> =>
+  (output.match(new RegExp(dnsHostPattern, "g")) ?? []).map((entry) =>
+    entry.replace(/\s+/g, " "),
+  )
+
 export {
   buildDnsHosts,
+  dnsHostPattern,
+  parseDnsHosts,
   gatewayHostnames,
   isMissingKeyError,
   isTailnetAddress,

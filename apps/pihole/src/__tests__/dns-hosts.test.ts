@@ -1,5 +1,9 @@
+import { readFileSync } from "fs"
+import path from "path"
 import {
   buildDnsHosts,
+  dnsHostPattern,
+  parseDnsHosts,
   gatewayHostnames,
   isMissingKeyError,
   isTailnetAddress,
@@ -73,4 +77,64 @@ describe("isMissingKeyError", () => {
     ).toBe(false)
     expect(isMissingKeyError("isn't an item")).toBe(false)
   })
+})
+
+describe("parseDnsHosts", () => {
+  const expected = [
+    "100.101.102.103 ha.smith-simms.family",
+    "100.101.102.103 grafana.smith-simms.family",
+  ]
+
+  test("Parses the unquoted array Pi-hole v6 prints.", () => {
+    expect(
+      parseDnsHosts(
+        "[ 100.101.102.103 ha.smith-simms.family, 100.101.102.103 grafana.smith-simms.family ]\n",
+      ),
+    ).toEqual(expected)
+  })
+
+  test("Parses a quoted array.", () => {
+    expect(
+      parseDnsHosts(
+        `[ "100.101.102.103 ha.smith-simms.family", "100.101.102.103 grafana.smith-simms.family" ]`,
+      ),
+    ).toEqual(expected)
+  })
+
+  test("Parses a JSON array and a multi-line array.", () => {
+    expect(
+      parseDnsHosts(
+        '["100.101.102.103 ha.smith-simms.family","100.101.102.103 grafana.smith-simms.family"]',
+      ),
+    ).toEqual(expected)
+    expect(
+      parseDnsHosts(
+        "[\n  100.101.102.103 ha.smith-simms.family,\n  100.101.102.103 grafana.smith-simms.family\n]",
+      ),
+    ).toEqual(expected)
+  })
+
+  test("Returns nothing for an empty array.", () => {
+    expect(parseDnsHosts("[]\n")).toEqual([])
+    expect(parseDnsHosts("[ ]")).toEqual([])
+  })
+
+  test("Round-trips the records buildDnsHosts produces.", () => {
+    const records = buildDnsHosts("100.101.102.103")
+    expect(parseDnsHosts(`[ ${records.join(", ")} ]`)).toEqual(records)
+  })
+})
+
+describe("dns_host_pattern in the playbooks", () => {
+  test.each(["dns-records", "dns-records-list"])(
+    "%s uses the same pattern as parseDnsHosts and no longer parses JSON.",
+    (name) => {
+      const playbook = readFileSync(
+        path.join(__dirname, "..", name, "index.yml"),
+        "utf8",
+      )
+      expect(playbook).toContain(`dns_host_pattern: '${dnsHostPattern}'`)
+      expect(playbook).not.toContain("from_json")
+    },
+  )
 })
