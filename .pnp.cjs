@@ -5239,7 +5239,8 @@ const RAW_RUNTIME_STATE =
           ["shelljs", "npm:0.8.5"],\
           ["ts-jest", "virtual:20ff1ee6d460bc472214d17cf0dbfd8e47709999cadc35cfcd9ec31857f0d87b67470e30028e3941501d0584989f441772b2ab14cd332863ce20e8d439b12cde#npm:29.2.6"],\
           ["typescript", "patch:typescript@npm%3A5.7.3#optional!builtin<compat/typescript>::version=5.7.3&hash=5786d5"],\
-          ["uuid", "npm:11.1.1"]\
+          ["uuid", "npm:11.1.1"],\
+          ["yaml", "npm:2.9.1"]\
         ],\
         "linkType": "SOFT"\
       }]\

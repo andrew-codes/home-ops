@@ -25,7 +25,7 @@ const run = async (
   const vmId = ip1.split(".").slice(1).join("")
   const vmId2 = ip2.split(".").slice(1).join("")
 
-  var vars = {
+  const vars = {
     ip: `${ip1}/8`,
     ip2: `${ip2}/8`,
     gateway,

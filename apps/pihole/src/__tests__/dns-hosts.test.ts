@@ -1,3 +1,6 @@
+import { readFileSync } from "fs"
+import path from "path"
+import { parse } from "yaml"
 import {
   buildDnsHosts,
   gatewayHostnames,
@@ -93,4 +96,66 @@ describe("isMissingKeyError", () => {
     ).toBe(false)
     expect(isMissingKeyError("isn't an item")).toBe(false)
   })
+})
+
+const loadPattern = (playbook: string): string => {
+  const plays = parse(
+    readFileSync(path.join(__dirname, "..", playbook, "index.yml"), "utf8"),
+  ) as Array<{ vars: { dns_host_pattern: string } }>
+  return plays[0].vars.dns_host_pattern
+}
+
+describe.each(["dns-records", "dns-records-list"])(
+  "%s dns_host_pattern",
+  (playbook) => {
+    const findall = (output: string): Array<string> =>
+      output.match(new RegExp(loadPattern(playbook), "g")) ?? []
+    const expected = [
+      "100.101.102.103 ha.smith-simms.family",
+      "100.101.102.103 grafana.smith-simms.family",
+    ]
+
+    test("Extracts entries from the unquoted array Pi-hole v6 prints.", () => {
+      expect(
+        findall(
+          "[ 100.101.102.103 ha.smith-simms.family, 100.101.102.103 grafana.smith-simms.family ]\n",
+        ),
+      ).toEqual(expected)
+    })
+
+    test("Extracts entries from a quoted array.", () => {
+      expect(
+        findall(
+          `[ "100.101.102.103 ha.smith-simms.family", "100.101.102.103 grafana.smith-simms.family" ]`,
+        ),
+      ).toEqual(expected)
+    })
+
+    test("Extracts entries from a JSON array and a multi-line array.", () => {
+      expect(
+        findall(
+          '["100.101.102.103 ha.smith-simms.family","100.101.102.103 grafana.smith-simms.family"]',
+        ),
+      ).toEqual(expected)
+      expect(
+        findall(
+          "[\n  100.101.102.103 ha.smith-simms.family,\n  100.101.102.103 grafana.smith-simms.family\n]",
+        ),
+      ).toEqual(expected)
+    })
+
+    test("Extracts nothing from an empty array.", () => {
+      expect(findall("[]\n")).toEqual([])
+      expect(findall("[ ]")).toEqual([])
+    })
+
+    test("Round-trips the records buildDnsHosts produces.", () => {
+      const records = buildDnsHosts("100.101.102.103")
+      expect(findall(`[ ${records.join(", ")} ]`)).toEqual(records)
+    })
+  },
+)
+
+test("Both playbooks use the same dns_host_pattern.", () => {
+  expect(loadPattern("dns-records")).toEqual(loadPattern("dns-records-list"))
 })
