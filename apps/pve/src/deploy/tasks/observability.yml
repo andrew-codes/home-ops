@@ -43,7 +43,7 @@
       - "="
       - ":{{ observability_syslog_port }}"
   register: pve_syslog_connection
-  until: observability_host | string in pve_syslog_connection.stdout
+  until: (observability_host | string ~ ':' ~ observability_syslog_port) in pve_syslog_connection.stdout.split()
   retries: 6
   delay: 5
   changed_when: false
