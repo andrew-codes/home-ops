@@ -21,12 +21,12 @@ Everything else is tailnet-only:
 
 Break-glass, when the gateway, Tailscale or Pi-hole is down: reach the services directly from the LAN or through the subnet router.
 
-| Service | Direct address |
-| --- | --- |
+| Service        | Direct address                                                  |
+| -------------- | --------------------------------------------------------------- |
 | Home Assistant | the Kubernetes node IP, port 8123 (it runs on the host network) |
-| TrueNAS | `http://10.5.90.74` |
-| Synology | `http://10.5.113.53:5000` |
-| Proxmox | `https://10.1.0.100:8006` |
+| TrueNAS        | `http://10.5.90.74`                                             |
+| Synology       | `http://10.5.113.53:5000`                                       |
+| Proxmox        | `https://10.1.0.100:8006`                                       |
 
 ## Deploy exclusions
 
