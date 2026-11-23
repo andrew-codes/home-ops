@@ -14,7 +14,7 @@ etcd:
       # (job "etcd" in deployments/base/metrics) can scrape them. The default
       # is loopback only.
       - name: listen-metrics-urls
-        value: "http://127.0.0.1:2381,http://{{ inventory_hostname }}:2381"
+        value: "http://127.0.0.1:2381,http://{{ ansible_host | default(inventory_hostname) }}:2381"
 # A single NVMe stall of several seconds blocks etcd on fdatasync, so the
 # apiserver cannot answer a lease renewal within the default 10s/5s window
 # and both controllers exit with "leaderelection lost". These longer leader
