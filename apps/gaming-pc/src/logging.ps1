@@ -13,5 +13,6 @@ function Write-Log {
     $logMessage = "${timestamp}: $Message"
 
     Write-Host $logMessage
-    Add-Content -Path $script:LogFile -Value $logMessage
+    # -WhatIf:$false so a dry run (storage.ps1 -WhatIf) still logs instead of printing "What if" lines.
+    Add-Content -Path $script:LogFile -Value $logMessage -WhatIf:$false
 }

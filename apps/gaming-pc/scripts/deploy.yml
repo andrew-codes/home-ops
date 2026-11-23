@@ -4,6 +4,21 @@
   vars_files:
     - ../.secrets/ansible-secrets.yml
 
+  # The games drive (src/storage.ps1, src/steam-library.ps1). Change a default
+  # here; README.md#games-drive-and-steam-library says what each one does. The
+  # wipe and required switches are set per run from the environment instead, by
+  # scripts/deploy.ts, which writes them to the secrets file above (that file
+  # wins over these).
+  vars:
+    gaming_pc_storage_pool_name: GamesPool
+    gaming_pc_storage_virtual_disk_name: Games
+    gaming_pc_storage_drive_letter: G
+    gaming_pc_storage_file_system: NTFS
+    gaming_pc_storage_interleave: 262144
+    gaming_pc_storage_columns: 2
+    gaming_pc_storage_wipe: false
+    gaming_pc_storage_required: false
+
   tasks:
     - name: Set timezone to Eastern Time
       win_shell: tzutil /s "Eastern Standard Time"
@@ -996,6 +1011,35 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
+    # The games drive: the two spare NVMe drives striped into one Storage Spaces
+    # drive (Simple layout, 2 columns, no redundancy). Ordered before the
+    # software install so the drive exists when Steam is set up. This task can
+    # wipe disks, so src/storage.ps1 only acts on exactly two empty NVMe drives
+    # that are not the boot disk, reattaches an existing pool after a Windows
+    # reinstall instead of recreating it, and on any other machine (including the
+    # BIOS RAID one) prints a warning and changes nothing. It fails the deploy
+    # only when gaming_pc_storage_required is true. Old partitions on the two
+    # drives are wiped only when gaming_pc_storage_wipe is true. Both come from
+    # scripts/deploy.ts (GAMING_PC_STORAGE_WIPE, GAMING_PC_STORAGE_REQUIRED).
+    - name: Build the games drive (two NVMe drives striped with Storage Spaces)
+      win_shell: |
+        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\storage.ps1" -PoolName '{{ gaming_pc_storage_pool_name }}' -VirtualDiskName '{{ gaming_pc_storage_virtual_disk_name }}' -DriveLetter '{{ gaming_pc_storage_drive_letter }}' -FileSystem '{{ gaming_pc_storage_file_system }}' -Interleave {{ gaming_pc_storage_interleave }} -NumberOfColumns {{ gaming_pc_storage_columns }}{{ ' -AllowWipe' if (gaming_pc_storage_wipe | bool) else '' }}{{ ' -RequireArray' if (gaming_pc_storage_required | bool) else '' }}
+      register: storage
+      changed_when: "'changed=0 ' not in storage.stdout"
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    # The script reports a missing array, a refused wipe or an unexpected drive
+    # count as a warning, which leaves the task green, and Ansible hides
+    # win_shell stdout on a green task. Print it so the reason is visible.
+    - name: Show the games drive output when it recorded warnings
+      ansible.builtin.debug:
+        var: storage.stdout_lines
+      when: "'warnings=0' not in storage.stdout"
+
     # HO-239's software list. Split in two because elevation is a property of
     # the process: machine-scope winget installers need it, and the Microsoft
     # Store's MSIX packages plus the per-user MoonDeck Buddy installer must not
@@ -1018,6 +1062,28 @@
         pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\software.ps1" -Phase User
       register: software_user
       changed_when: "'changed=0 ' not in software_user.stdout"
+
+    # Registers the games folder (G:\SteamLibrary) as a Steam library in
+    # config\libraryfolders.vdf, after the machine-scope install above has put
+    # Steam on the machine. It never edits the file while Steam runs, keeps a
+    # backup, and keeps every existing library. It cannot make the games drive
+    # Steam's default install location: see README.md#games-drive-and-steam-library.
+    - name: Register the games drive as a Steam library
+      win_shell: |
+        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\steam-library.ps1" -DriveLetter '{{ gaming_pc_storage_drive_letter }}'
+      register: steam_library
+      when: "'array=Ready' in storage.stdout"
+      changed_when: "'changed=0 ' not in steam_library.stdout"
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    - name: Show the Steam library output when it recorded warnings
+      ansible.builtin.debug:
+        var: steam_library.stdout_lines
+      when: "steam_library.stdout is defined and 'warnings=0' not in steam_library.stdout"
 
     # Microsoft Store installs are deliberately non-fatal, so a failure leaves
     # the task green and Ansible hides win_shell stdout on a green task. Print
