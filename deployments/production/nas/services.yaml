@@ -28,8 +28,6 @@ spec:
 ---
 # The Synology DSM web UI. The tailnet gateway
 # (infrastructure/production/gateway) routes synology.smith-simms.family here.
-# The Cloudflare tunnel still reaches the Synology through a hand-applied nas
-# Service that is not in git, and stays until the tunnel route is pruned.
 apiVersion: v1
 kind: Endpoints
 metadata:
