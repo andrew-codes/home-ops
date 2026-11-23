@@ -34,3 +34,7 @@
     - name: Health reporting (ZFS pool, vdev and SMART metrics)
       ansible.builtin.import_tasks: tasks/health.yml
       tags: [health]
+
+    - name: ZFS autotrim on the SSD pools
+      ansible.builtin.import_tasks: tasks/autotrim.yml
+      tags: [autotrim]

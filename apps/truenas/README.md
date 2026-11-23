@@ -1,6 +1,6 @@
 # truenas
 
-Sends the TrueNAS host's metrics, health and logs to the cluster, so nothing is typed into the TrueNAS UI. It is an idempotent Ansible play ([`src/deploy/index.yml`](src/deploy/index.yml)) that connects over SSH and calls TrueNAS's own middleware with `midclt`. It does not install TrueNAS, create pools or shares, or manage anything else on the NAS.
+Sends the TrueNAS host's metrics, health and logs to the cluster and keeps ZFS autotrim on for its SSD pools, so nothing is typed into the TrueNAS UI. It is an idempotent Ansible play ([`src/deploy/index.yml`](src/deploy/index.yml)) that connects over SSH and calls TrueNAS's own middleware with `midclt`. It does not install TrueNAS, create pools or shares, or manage anything else on the NAS.
 
 ## What it manages
 
@@ -9,12 +9,14 @@ Sends the TrueNAS host's metrics, health and logs to the cluster, so nothing is 
 | A `victoriametrics` Graphite reporting exporter, pointed at port 30003            | `reporting.exporters.query`, `reporting.exporters.create` and `.update`          |
 | A remote syslog server over TCP, pointed at port 30514                            | `system.advanced.config` and `system.advanced.update` (the `syslogservers` list) |
 | A cron job that pushes ZFS pool, vdev and SMART health to port 30080 every minute | `cronjob.query`, `cronjob.create` and `.update`                                  |
+| ZFS autotrim on every pool whose disks are all SSD or NVMe                        | `pool.query`, `disk.query` and `pool.update`                                     |
 
-The destination is the Kubernetes node (`k8s/ip`), on the NodePorts the `metrics` and `logs` deployments publish. All three tasks read the current state first and write only on drift, so a second run changes nothing.
+The destination is the Kubernetes node (`k8s/ip`), on the NodePorts the `metrics` and `logs` deployments publish. All four tasks read the current state first and write only on drift, so a second run changes nothing.
 
 - **Exporter.** Created when missing. When it exists, the play compares the exporter type, destination, port, prefix, namespace and enabled flag, and updates only on drift. Other attributes (`update_every`, `buffer_on_failures` and so on) keep whatever they are. The prefix is `truenas` and the namespace is `nas`; both are play variables. Confirm the resulting metric names in VictoriaMetrics after the first run.
 - **Syslog.** `system.advanced.update` replaces the whole list and allows two servers. The play keeps every server that is not for the cluster node, replaces an entry for the node on another port or transport, and appends one when there is none. If both slots belong to other hosts, it fails with a message instead of removing one.
 - **Health cron job.** Created when no cron job has the description `Report ZFS pool and SMART health to VictoriaMetrics`. When one exists, the play compares the command, user, schedule, enabled flag and output flags, and updates on drift. Other cron jobs, including the SMART test jobs, are left alone. See [Pool and disk health](#pool-and-disk-health).
+- **ZFS autotrim.** [`src/deploy/tasks/autotrim.yml`](src/deploy/tasks/autotrim.yml) reads `pool.query` (each pool's `autotrim` property and every vdev's disks) and `disk.query` (each disk's `type`), and joins them on the disk name. A pool is an SSD pool when every disk in it, in every vdev class (data, log, cache, special, dedup, spare), has type `SSD` (which includes NVMe). For an SSD pool with autotrim off it calls `pool.update <id> '{"autotrim": "ON"}'`; with autotrim already on it does nothing. A pool with any HDD, or any disk the middleware does not list or has no name for, is skipped, and the play never turns autotrim off. The boot pool is not in `pool.query`, so it is never touched. Each run prints one line per pool saying whether autotrim was enabled, already on or skipped (and the disk types that decided it), and the play recap counts one change per pool it enabled. The disk-type check is reliable on this host: every leaf disk in `pool.query` carries a `disk` name that matches a `disk.query` entry, and `disk.query` reports `SSD` for the NVMe and SATA SSDs and `HDD` for the rest. There is no pool-name variable to set. Autotrim trims continuously in the background; it does not run a full trim, so `zpool status -t` shows trim state only after data has been freed.
 
 ## Deploying
 
@@ -111,6 +113,8 @@ The collector reads `pool.query`, `boot.get_state`, `disk.query`, the four task 
 
 ## What was verified, and what was not
 
+The autotrim tasks ran only against a stand-in `midclt` (the `src/deploy/__tests__` fixtures), never against the host. The pool and disk shapes are the recorded ones from `src/health`, with `id` and `autotrim` added to each pool from the TrueNAS 25.10 `pool.query` documentation (`autotrim` is `{parsed, rawvalue, source, value}`), and `pool.update` taking `autotrim` as `"ON"` or `"OFF"` also comes from that documentation. Confirm both on the first deploy with the commands in the PR.
+
 The middleware method names, field names and the TrueNAS version (25.10.8) were read from the live host with query calls only (`system.version`, `reporting.exporters.query`, `system.advanced.config`, `core.get_methods`, `reporting.exporters.exporter_schemas`). Nothing was created, updated or deleted there.
 
 The play was run against a Debian container with a stand-in `midclt` that follows those shapes. It created both settings on a first run, changed nothing on a second, corrected a disabled and mis-pointed exporter and a UDP syslog entry, kept an unrelated syslog server and a custom `update_every`, and failed cleanly when both syslog slots were taken. It has not been run against the real host.
@@ -119,11 +123,11 @@ For the health job, the `pool.query`, `boot.get_state` and `disk.query` output a
 
 ## Nx targets
 
-| Target   | What it does                                                                                                                                                                                                                                                 |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `lint`   | `ansible-playbook --syntax-check` against the playbook - no host contact, safe to run anytime.                                                                                                                                                               |
-| `test`   | Jest tests for the health collector (recorded `midclt` and `smartctl` output, needs `python3`), then the `vmalert-tool` tests for the `truenas` alert rules in `tests/` and the `truenas-health` alert rules in `src/health/rules/` (needs Docker and `yq`). |
-| `deploy` | Runs the play against the NAS over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md).                                                                                                                                                              |
+| Target   | What it does                                                                                                                                                                                                                                                                                                                                                                              |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lint`   | `ansible-playbook --syntax-check` against the playbook - no host contact, safe to run anytime.                                                                                                                                                                                                                                                                                            |
+| `test`   | Jest tests for the autotrim tasks (recorded `pool.query` and `disk.query` output through a stand-in `midclt`, needs `ansible-playbook`) and the health collector (recorded `midclt` and `smartctl` output, needs `python3`), then the `vmalert-tool` tests for the `truenas` alert rules in `tests/` and the `truenas-health` alert rules in `src/health/rules/` (needs Docker and `yq`). |
+| `deploy` | Runs the play against the NAS over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md).                                                                                                                                                                                                                                                                                           |
 
 The `truenas-health` alert rules have their own unit tests, [`src/health/rules/truenas-health.test.yaml`](src/health/rules/truenas-health.test.yaml), which `test` runs through `vmalert-tool`. To run only those:
 

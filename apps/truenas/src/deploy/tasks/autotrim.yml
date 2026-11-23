@@ -1,0 +1,80 @@
+---
+# Turns ZFS autotrim on for every pool whose disks are all SSD or NVMe, and
+# leaves every other pool alone. TRIM only helps flash, and an HDD pool gains
+# nothing from it.
+# Like the other tasks, this reads the current state first (pool.query for each
+# pool's autotrim property and vdev disks, disk.query for each disk's type) and
+# writes only on drift: a pool that already has autotrim on is not touched.
+# Pools are never reconfigured beyond the autotrim property, and a pool is
+# skipped, not guessed at, when any of its disks has an unknown type. The boot
+# pool is not in pool.query, so it is never touched.
+- name: List the pools
+  ansible.builtin.command: midclt call pool.query
+  register: truenas_autotrim_pool_query
+  changed_when: false
+
+- name: List the disks
+  ansible.builtin.command: midclt call disk.query
+  register: truenas_autotrim_disk_query
+  changed_when: false
+
+# A vdev is either a disk itself (stripe, log, cache, spare) or has the disks
+# as children (mirror, RAIDZ, dRAID). Every class counts, so a pool with an HDD
+# anywhere in it is not an SSD pool. A disk with no name (one that was removed)
+# or no type has the type "UNKNOWN", which is not SSD.
+- name: Decide which pools autotrim applies to
+  ansible.builtin.set_fact:
+    truenas_autotrim_pools: >-
+      {%- set types = truenas_autotrim_disk_query.stdout | from_json | items2dict(key_name='name', value_name='type') -%}
+      {%- set ns = namespace(pools=[]) -%}
+      {%- for pool in truenas_autotrim_pool_query.stdout | from_json -%}
+      {%- set leaves = namespace(types=[]) -%}
+      {%- for vdevs in pool.topology.values() -%}
+      {%- for vdev in vdevs -%}
+      {%- for leaf in (vdev.children if vdev.children | default([]) | length > 0 else [vdev]) -%}
+      {%- set leaves.types = leaves.types + [types.get(leaf.disk, 'UNKNOWN') if leaf.disk else 'UNKNOWN'] -%}
+      {%- endfor -%}
+      {%- endfor -%}
+      {%- endfor -%}
+      {%- set ssd = leaves.types | length > 0 and leaves.types | reject('in', ['SSD']) | list | length == 0 -%}
+      {%- set on = pool.autotrim.parsed | default('off') == 'on' -%}
+      {%- set ns.pools = ns.pools + [{
+            'id': pool.id,
+            'name': pool.name,
+            'disk_types': leaves.types | unique | sort,
+            'ssd': ssd,
+            'autotrim_on': on,
+            'action': 'already on' if ssd and on else ('enable' if ssd else 'skip')
+          }] -%}
+      {%- endfor -%}
+      {{ ns.pools | to_json }}
+
+- name: Set the pool list as data
+  ansible.builtin.set_fact:
+    truenas_autotrim_pools: "{{ truenas_autotrim_pools | from_json }}"
+  when: truenas_autotrim_pools is string
+
+- name: Enable autotrim on the SSD pools that do not have it
+  ansible.builtin.command:
+    argv:
+      - midclt
+      - call
+      - -job
+      - pool.update
+      - "{{ item.id | string }}"
+      - '{"autotrim": "ON"}'
+  loop: "{{ truenas_autotrim_pools | selectattr('action', 'equalto', 'enable') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Report what autotrim did
+  ansible.builtin.debug:
+    msg: >-
+      {{ item.name }}: {{
+        'autotrim enabled' if item.action == 'enable'
+        else 'autotrim already on, unchanged' if item.action == 'already on'
+        else 'not an SSD pool (' ~ (item.disk_types | join(', ')) ~ '), unchanged'
+      }}
+  loop: "{{ truenas_autotrim_pools }}"
+  loop_control:
+    label: "{{ item.name }}"
