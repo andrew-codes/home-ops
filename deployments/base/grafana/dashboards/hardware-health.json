@@ -1989,7 +1989,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "count(last_over_time(nvme_health_collect_ok[15m]) == 0) + count(last_over_time(truenas_smart_collect_ok[15m]) == 0) or vector(0)",
+          "expr": "(count(last_over_time(nvme_health_collect_ok[15m]) == 0) or vector(0)) + (count(last_over_time(truenas_smart_collect_ok[15m]) == 0) or vector(0))",
           "legendFormat": "",
           "refId": "A",
           "range": false,
