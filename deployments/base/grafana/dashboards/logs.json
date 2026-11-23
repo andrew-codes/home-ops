@@ -1049,11 +1049,16 @@
             "selected": false,
             "text": "grafana",
             "value": "grafana"
+          },
+          {
+            "selected": false,
+            "text": "pve",
+            "value": "pve"
           }
         ],
         "hide": 0,
         "skipUrlSync": false,
-        "query": "k8s-node,truenas,pbs,tailscale,pihole-1,pihole-2,pihole1,pihole2,localhost,grafana"
+        "query": "k8s-node,truenas,pbs,tailscale,pihole-1,pihole-2,pihole1,pihole2,localhost,grafana,pve"
       },
       {
         "name": "app",
