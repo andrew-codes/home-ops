@@ -92,6 +92,9 @@ const sealedSecretNames = [
   // the smith-simms.family zone. Sealed into the cert-manager namespace, see
   // tools/nx-secrets-generators/src/generators/secrets-seal.ts.
   "cloudflare-dns/api-token",
+  // The owner token for the couch-colors vote collector's /results endpoint
+  // (deployments/production/couch-colors). Sealed into the default namespace.
+  "couch-colors-results/token",
 ] as const
 
 const secretNames = [
@@ -172,6 +175,9 @@ const secretNames = [
   "tailscale-operator-oauth/client-id",
   "tailscale-operator-oauth/client-secret",
   "cloudflare-dns/api-token",
+  // The owner token for the couch-colors vote collector's /results endpoint
+  // (deployments/production/couch-colors). Sealed into the default namespace.
+  "couch-colors-results/token",
 ] as const
 
 const onePasswordConfiguration = createOnePasswordConfigurationApi(secretNames)
