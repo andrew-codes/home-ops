@@ -32,6 +32,17 @@ ATA_ATTRIBUTES = {
     197: "truenas_smart_pending_sectors",
     198: "truenas_smart_offline_uncorrectable_sectors",
 }
+# SSDs report their remaining life as the normalized value (100 when new, falling
+# toward 0) of a vendor attribute. The id differs by vendor and is reused for
+# other things (231 is a temperature on some drives), so these are matched by the
+# name smartctl prints: Samsung, Intel and Micron/Crucial.
+SSD_LIFE_LEFT_ATTRIBUTES = {
+    "Wear_Leveling_Count",
+    "Media_Wearout_Indicator",
+    "Percent_Lifetime_Remain",
+    "SSD_Life_Left",
+    "Remaining_Lifetime_Perc",
+}
 
 
 class Metrics:
@@ -171,6 +182,57 @@ def collect_smart(out, disk) -> None:
         out.add("truenas_smart_nvme_critical_warning", nvme["critical_warning"], **labels)
         out.add("truenas_smart_nvme_media_errors", nvme["media_errors"], **labels)
         out.add("truenas_smart_nvme_percentage_used", nvme["percentage_used"], **labels)
+    collect_drive_health(out, data, nvme, labels)
+
+
+def number(value: object) -> float | None:
+    """A number from smartctl's JSON, or None. Strings of digits count: a 128-bit counter may come as one."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value)
+    return None
+
+
+def collect_drive_health(out, data: dict, nvme: dict | None, labels: dict) -> None:
+    """Wear, spare, temperature, age and size, the same facts for an SSD, an NVMe drive and a hard disk.
+
+    A drive that does not report one of them has no series for it, never a zero.
+    """
+    for metric, value in (
+        ("truenas_smart_power_on_hours", (data.get("power_on_time") or {}).get("hours")),
+        ("truenas_smart_temperature_celsius", (data.get("temperature") or {}).get("current")),
+        ("truenas_disk_capacity_bytes", (data.get("user_capacity") or {}).get("bytes")),
+    ):
+        if number(value) is not None:
+            out.add(metric, number(value), **labels)
+    used = None
+    if nvme:
+        # NVMe reports the share of rated endurance used, and may exceed 100.
+        used = number(nvme.get("percentage_used"))
+        for metric, field in (
+            ("truenas_smart_spare_percent", "available_spare"),
+            ("truenas_smart_spare_threshold_percent", "available_spare_threshold"),
+            ("truenas_smart_nvme_data_units_written", "data_units_written"),
+        ):
+            if number(nvme.get(field)) is not None:
+                out.add(metric, number(nvme[field]), **labels)
+        # smartctl prints temperature and hours at the top level for most drives; the log is the fallback.
+        for metric, field, parent, key in (
+            ("truenas_smart_temperature_celsius", "temperature", "temperature", "current"),
+            ("truenas_smart_power_on_hours", "power_on_hours", "power_on_time", "hours"),
+        ):
+            if number((data.get(parent) or {}).get(key)) is None and number(nvme.get(field)) is not None:
+                out.add(metric, number(nvme[field]), **labels)
+    else:
+        for attribute in data.get("ata_smart_attributes", {}).get("table", []):
+            if attribute.get("name") in SSD_LIFE_LEFT_ATTRIBUTES and number(attribute.get("value")) is not None:
+                used = max(0, 100 - attribute["value"])
+                break
+    if used is not None:
+        out.add("truenas_smart_wear_used_percent", used, **labels)
 
 
 def cron_field(text: object, low: int, high: int, names: dict[str, int] | None = None) -> set[int]:

@@ -1,0 +1,2148 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Health and end of life of the drives of every machine that reports SMART data: the Proxmox host's NVMe (apps/pve) and all TrueNAS disks (apps/truenas). Status per drive, wear, remaining life, spare capacity, errors, temperature, age and capacity use, filterable by machine.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "tags": ["hardware", "drives", "smart"],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false
+      },
+      {
+        "name": "machine",
+        "label": "Machine",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(group by (machine) (label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\") or label_replace(last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\") or label_replace(label_replace(up{job=~\"node-exporter|pihole-host\"},\"machine\",\"$1\",\"node\",\"(.+)\"),\"machine\",\"$1\",\"pihole\",\"(.+)\")))",
+        "query": {
+          "query": "query_result(group by (machine) (label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\") or label_replace(last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\") or label_replace(label_replace(up{job=~\"node-exporter|pihole-host\"},\"machine\",\"$1\",\"node\",\"(.+)\"),\"machine\",\"$1\",\"pihole\",\"(.+)\")))",
+          "refId": "machine"
+        },
+        "regex": "/machine=\"([^\"]+)\"/",
+        "refresh": 2,
+        "current": {
+          "selected": true,
+          "text": ["All"],
+          "value": ["$__all"]
+        },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "hide": 0,
+        "options": [],
+        "skipUrlSync": false,
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Summary",
+      "id": 1,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Drives monitored",
+      "id": 2,
+      "description": "Drives with SMART data from pve (NVMe) and TrueNAS (all disks), for the machines selected.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(label_match(max by (machine,drive,model,serial) (label_replace(((label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 80) + ((label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 95),\"signal\",\"wear\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_available_spare_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) <= bool ((label_replace(label_replace(last_over_time(nvme_smart_available_spare_threshold_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_threshold_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) + 10)) + ((label_replace(label_replace(last_over_time(nvme_smart_available_spare_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) <= bool (label_replace(label_replace(last_over_time(nvme_smart_available_spare_threshold_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_threshold_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))),\"signal\",\"spare\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_critical_warning[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_nvme_critical_warning[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0) * 2,\"signal\",\"critical_warning\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_media_errors[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_nvme_media_errors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"media_errors\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_healthy[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) == bool 0) * 2,\"signal\",\"smart_health\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_pending_sectors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"pending_sectors\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_reallocated_sectors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"reallocated_sectors\",\"\",\"\")), \"machine\", \"$machine\"))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "0",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Drives to watch",
+      "id": 3,
+      "description": "Drives with status WATCH: wear above 80%, spare within 10 points of the threshold, logged media errors, or pending or reallocated sectors.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(label_match(max by (machine,drive,model,serial) (label_replace(((label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 80) + ((label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 95),\"signal\",\"wear\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_available_spare_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) <= bool ((label_replace(label_replace(last_over_time(nvme_smart_available_spare_threshold_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_threshold_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) + 10)) + ((label_replace(label_replace(last_over_time(nvme_smart_available_spare_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) <= bool (label_replace(label_replace(last_over_time(nvme_smart_available_spare_threshold_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_threshold_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))),\"signal\",\"spare\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_critical_warning[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_nvme_critical_warning[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0) * 2,\"signal\",\"critical_warning\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_media_errors[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_nvme_media_errors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"media_errors\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_healthy[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) == bool 0) * 2,\"signal\",\"smart_health\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_pending_sectors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"pending_sectors\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_reallocated_sectors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"reallocated_sectors\",\"\",\"\")), \"machine\", \"$machine\") == 1) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "0",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Drives to replace",
+      "id": 4,
+      "description": "Drives with status REPLACE: wear above 95%, spare at the drive's threshold, a critical warning, or a failed SMART health check.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(label_match(max by (machine,drive,model,serial) (label_replace(((label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 80) + ((label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 95),\"signal\",\"wear\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_available_spare_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) <= bool ((label_replace(label_replace(last_over_time(nvme_smart_available_spare_threshold_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_threshold_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) + 10)) + ((label_replace(label_replace(last_over_time(nvme_smart_available_spare_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) <= bool (label_replace(label_replace(last_over_time(nvme_smart_available_spare_threshold_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_threshold_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))),\"signal\",\"spare\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_critical_warning[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_nvme_critical_warning[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0) * 2,\"signal\",\"critical_warning\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_media_errors[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_nvme_media_errors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"media_errors\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_healthy[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) == bool 0) * 2,\"signal\",\"smart_health\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_pending_sectors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"pending_sectors\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_reallocated_sectors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"reallocated_sectors\",\"\",\"\")), \"machine\", \"$machine\") == 2) or vector(0)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "0",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Most worn drive",
+      "id": 5,
+      "description": "Highest share of rated endurance used by any selected SSD or NVMe drive. Hard disks do not report it.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max(label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\"))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 95
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "n/a",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "noValue": "n/a"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Lowest spare",
+      "id": 6,
+      "description": "Least available spare capacity of any selected NVMe drive. The drive raises a critical warning at its own threshold, usually 5 to 10%.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "min(label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_available_spare_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\"))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 20
+              },
+              {
+                "color": "green",
+                "value": 50
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "n/a",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "noValue": "n/a"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Hottest drive",
+      "id": 7,
+      "description": "Highest drive temperature among the selected machines.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "max(label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_temperature_celsius[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_temperature_celsius[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\"))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 70
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "n/a",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "noValue": "n/a"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Drives",
+      "id": 8,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Drive health",
+      "id": 9,
+      "description": "One row per drive, worst first. Status is the worst of: wear above 80% (watch) or 95% (replace), spare capacity within 10 points of the drive's own threshold (watch) or at it (replace), an NVMe critical warning or a failed SMART health check (replace), logged media errors, pending or reallocated sectors (watch). These are the thresholds of the drive alerts. Temperature: amber from 50 C and red from 70 C (hard disks alert at 50 and 60 C on the TrueNAS dashboard, NVMe drives throttle above about 80 C).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 17,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) (label_replace(((label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 80) + ((label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 95),\"signal\",\"wear\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_available_spare_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) <= bool ((label_replace(label_replace(last_over_time(nvme_smart_available_spare_threshold_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_threshold_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) + 10)) + ((label_replace(label_replace(last_over_time(nvme_smart_available_spare_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) <= bool (label_replace(label_replace(last_over_time(nvme_smart_available_spare_threshold_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_threshold_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))),\"signal\",\"spare\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_critical_warning[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_nvme_critical_warning[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0) * 2,\"signal\",\"critical_warning\",\"\",\"\") or label_replace(((label_replace(label_replace(last_over_time(nvme_smart_media_errors[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_nvme_media_errors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"media_errors\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_healthy[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) == bool 0) * 2,\"signal\",\"smart_health\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_pending_sectors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"pending_sectors\",\"\",\"\") or label_replace(((label_replace(label_replace((last_over_time(truenas_smart_reallocated_sectors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) > bool 0),\"signal\",\"reallocated_sectors\",\"\",\"\")), \"machine\", \"$machine\")",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\")",
+          "legendFormat": "",
+          "refId": "B",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) (100 - (label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\")",
+          "legendFormat": "",
+          "refId": "C",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_available_spare_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\")",
+          "legendFormat": "",
+          "refId": "D",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_temperature_celsius[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_temperature_celsius[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\")",
+          "legendFormat": "",
+          "refId": "E",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_capacity_bytes[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_disk_capacity_bytes[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\")",
+          "legendFormat": "",
+          "refId": "F",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_power_on_hours[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_power_on_hours[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) / 8766), \"machine\", \"$machine\")",
+          "legendFormat": "",
+          "refId": "G",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "machine": 0,
+              "drive": 1,
+              "model": 2,
+              "serial": 3,
+              "Value #A": 4,
+              "Value #B": 5,
+              "Value #C": 6,
+              "Value #D": 7,
+              "Value #E": 8,
+              "Value #F": 9,
+              "Value #G": 10
+            },
+            "renameByName": {
+              "machine": "Machine",
+              "drive": "Drive",
+              "model": "Model",
+              "serial": "Serial",
+              "Value #A": "Status",
+              "Value #B": "Wear used",
+              "Value #C": "Life left",
+              "Value #D": "Spare",
+              "Value #E": "Temp",
+              "Value #F": "Capacity",
+              "Value #G": "Age"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Status",
+                "desc": true
+              },
+              {
+                "field": "Wear used",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 2
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "OK",
+                        "color": "green",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "WATCH",
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "2": {
+                        "text": "REPLACE",
+                        "color": "red",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Wear used"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 80
+                    },
+                    {
+                      "color": "red",
+                      "value": 95
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "text": "-",
+                        "color": "transparent"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Life left"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 5
+                    },
+                    {
+                      "color": "green",
+                      "value": 20
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "text": "-",
+                        "color": "transparent"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Spare"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 20
+                    },
+                    {
+                      "color": "green",
+                      "value": 50
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "description",
+                "value": "Available spare. The drive's own threshold is usually 5 to 10%."
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "text": "-",
+                        "color": "transparent"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Temp"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "celsius"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 50
+                    },
+                    {
+                      "color": "red",
+                      "value": 70
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "text": "-",
+                        "color": "transparent"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Age"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: y"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Capacity"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Wear and spare over time",
+      "id": 10,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Wear used",
+      "id": 11,
+      "description": "Share of rated endurance used. A line that climbs faster than before points at a new heavy writer. Lines mark 80% (watch) and 95% (replace).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_percentage_used[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_wear_used_percent[15m]) or last_over_time(truenas_smart_nvme_percentage_used[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\")",
+          "legendFormat": "{{machine}} {{drive}} ({{model}})",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": 3600000,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 95
+              }
+            ]
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Spare capacity",
+      "id": 12,
+      "description": "Available spare capacity of NVMe drives. It only falls once a drive starts retiring worn out cells.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_available_spare_percent[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_spare_percent[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\")",
+          "legendFormat": "{{machine}} {{drive}} ({{model}})",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": 3600000,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 20
+              }
+            ]
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Temperature",
+      "id": 13,
+      "description": "Lines mark 50 C and 70 C. The etcd stalls showed the pve NVMe 18 C hotter during each stall.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 33
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_temperature_celsius[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_temperature_celsius[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\")",
+          "legendFormat": "{{machine}} {{drive}} ({{model}})",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": 3600000,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 70
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Data written",
+      "id": 14,
+      "description": "Total data written over the life of each NVMe drive (NVMe data units of 512,000 bytes). The slope is the write load.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 33
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_data_units_written[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_nvme_data_units_written[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\")) * 512000), \"machine\", \"$machine\")",
+          "legendFormat": "{{machine}} {{drive}} ({{model}})",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decbytes",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": 3600000,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "title": "Errors",
+      "id": 15,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Media errors",
+      "id": 16,
+      "description": "Media and data integrity errors logged by NVMe drives. Cumulative: any rise means new damage.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 43
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace(last_over_time(nvme_smart_media_errors[15m]),\"machine\",\"$1\",\"host\",\"(.*)\"),\"drive\",\"$1\",\"device\",\"(.*)\") or label_replace(label_replace((last_over_time(truenas_smart_nvme_media_errors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\")",
+          "legendFormat": "{{machine}} {{drive}} ({{model}})",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": 3600000,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Pending and reallocated sectors",
+      "id": 17,
+      "description": "Sectors a hard disk or SATA SSD could not read (pending) and sectors it has remapped (reallocated). A count that keeps growing means the disk is failing.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 43
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace((last_over_time(truenas_smart_pending_sectors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\")",
+          "legendFormat": "{{machine}} {{drive}} pending ({{model}})",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(max by (machine,drive,model,serial) ((label_replace(label_replace((last_over_time(truenas_smart_reallocated_sectors[15m])) * on(disk,serial) group_left(model) last_over_time(truenas_disk_info[15m]),\"machine\",\"truenas\",\"\",\"\"),\"drive\",\"$1\",\"disk\",\"(.*)\"))), \"machine\", \"$machine\")",
+          "legendFormat": "{{machine}} {{drive}} reallocated ({{model}})",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": 3600000,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "title": "Capacity use",
+      "id": 18,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Root filesystem used",
+      "id": 19,
+      "description": "Root filesystem of the machines running node_exporter: k8s-main and the two Pi-holes. k8s-main and the Pi-holes live on the pve NVMe drive, so these also say how full its thin pool is getting. pve itself has no node_exporter.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 53
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(label_replace(label_replace(100 * (1 - node_filesystem_avail_bytes{fstype=~\"ext4|xfs|btrfs|zfs\",mountpoint=\"/\",job=~\"node-exporter|pihole-host\"} / node_filesystem_size_bytes{fstype=~\"ext4|xfs|btrfs|zfs\",mountpoint=\"/\",job=~\"node-exporter|pihole-host\"}),\"machine\",\"$1\",\"pihole\",\"(.+)\"),\"machine\",\"$1\",\"node\",\"(.+)\"), \"machine\", \"$machine\")",
+          "legendFormat": "{{machine}} {{mountpoint}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": 3600000,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "ZFS pool used",
+      "id": 20,
+      "description": "Allocated share of each TrueNAS pool, as `zpool list` counts it. TrueNASPoolUsageHigh alerts at 80%.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 53
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_match(label_replace(100 * last_over_time(truenas_pool_allocated_bytes[15m]) / last_over_time(truenas_pool_size_bytes[15m]),\"machine\",\"truenas\",\"\",\"\"), \"machine\", \"$machine\")",
+          "legendFormat": "{{machine}} pool {{pool}}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": 3600000,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "title": "Is the data arriving",
+      "id": 21,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 62
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "pve NVMe reports",
+      "id": 22,
+      "description": "Seconds since the pve host last pushed its NVMe SMART log (every 5 minutes). PVENVMeHealthMetricsMissing fires after 25 minutes.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 0,
+        "y": 63
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "time() - max(nvme_health_push_timestamp_seconds)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 900
+              },
+              {
+                "color": "red",
+                "value": 1500
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "never",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "noValue": "never"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "TrueNAS reports",
+      "id": 23,
+      "description": "Seconds since the TrueNAS health cron job last pushed (every minute). TrueNASHealthMetricsMissing fires after 15 minutes.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 6,
+        "y": 63
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "time() - max(truenas_health_push_timestamp_seconds)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 900
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "never",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "noValue": "never"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Drives that cannot be read",
+      "id": 24,
+      "description": "Drives whose SMART log could not be read on the last run. They are missing from the table until they answer again.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 12,
+        "y": 63
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "(count(last_over_time(nvme_health_collect_ok[15m]) == 0) or vector(0)) + (count(last_over_time(truenas_smart_collect_ok[15m]) == 0) or vector(0))",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "0",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Machines with node_exporter",
+      "id": 25,
+      "description": "k8s-main and the two Pi-holes. Their drives are not readable from inside an LXC guest, only their filesystem use.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 18,
+        "y": 63
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "count(up{job=~\"node-exporter|pihole-host\"} == 1)",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "0",
+                  "color": "text"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "text",
+      "title": "Gaps",
+      "id": 26,
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 66
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**Not covered yet**\n\n- **Gaming PC drives.** windows_exporter runs without a disk collector, and OhmGraphite's `storage` class is switched off on purpose (SMART reads hitch games). No wear, spare or temperature for its drives.\n- **Proxmox Backup Server datastore.** `pbs_datastore_available` says whether it mounts, not how full or worn it is.\n- **Pi-hole, tailscale and k8s-main drives.** They are LXC guests on the pve NVMe drive and have no disk of their own: their wear is the pve drive's. Only their root filesystem use is shown.\n- **pve filesystem use.** The host has no node_exporter, so thin pool and root usage are not reported.\n- **UPS.** NUT runs on the TrueNAS host and pve is a client, but no battery charge, load or runtime is collected. The netdata `nut_ups` plugin on TrueNAS only reports its own run time.\n- **Hard disk temperature and age before the next TrueNAS deploy.** They appear once the updated health cron job has run on the NAS.\n"
+      }
+    }
+  ],
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Hardware health",
+  "uid": "hardware-health",
+  "version": 1,
+  "weekStart": ""
+}

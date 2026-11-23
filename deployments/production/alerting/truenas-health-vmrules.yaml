@@ -260,6 +260,43 @@ spec:
             summary: "TrueNAS NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) is logging media errors"
             description: "NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) logged {{ $value | humanize }} more media and data integrity errors in the last 7 days."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # Drives near the end of their rated life, the same thresholds as the
+        # Proxmox host's drives (pve-vmrules.yaml). truenas_smart_wear_used_percent
+        # is an NVMe drive's percentage used, or 100 minus the remaining-life
+        # attribute of an SATA SSD. Hard disks do not report it. Warning from 80%
+        # up to 95% and critical above, so one drive does not push twice.
+        - alert: TrueNASDriveWearHigh
+          expr: last_over_time(truenas_smart_wear_used_percent[15m]) > 80 <= 95
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS SSD {{ $labels.serial }} ({{ $labels.disk }}) is {{ $value | humanize }}% worn"
+            description: "SSD {{ $labels.serial }} ({{ $labels.disk }}) has used {{ $value | humanize }}% of its rated endurance. Plan its replacement. The Hardware health dashboard shows every drive."
+            dashboard_url: https://grafana.smith-simms.family/d/hardware-health
+        - alert: TrueNASDriveWearCritical
+          expr: last_over_time(truenas_smart_wear_used_percent[15m]) > 95
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "TrueNAS SSD {{ $labels.serial }} ({{ $labels.disk }}) is almost worn out ({{ $value | humanize }}%)"
+            description: "SSD {{ $labels.serial }} ({{ $labels.disk }}) has used {{ $value | humanize }}% of its rated endurance and can fail at any time. Replace it now."
+            dashboard_url: https://grafana.smith-simms.family/d/hardware-health
+        # The drive sets critical warning bit 0 below its own spare threshold
+        # (TrueNASNvmeCriticalWarning); this fires earlier, while 10 points of
+        # spare capacity are left.
+        - alert: TrueNASNvmeSpareLow
+          expr: >-
+            last_over_time(truenas_smart_spare_percent[15m])
+            <= last_over_time(truenas_smart_spare_threshold_percent[15m]) + 10
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) is running out of spare capacity"
+            description: "NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) has {{ $value | humanize }}% spare capacity left, within 10 points of the drive's own threshold. The drive is replacing worn out cells. Plan its replacement."
+            dashboard_url: https://grafana.smith-simms.family/d/hardware-health
     # Scheduled tasks: cloud sync, replication, periodic snapshot and rsync.
     # Scrubs and SMART tests are covered by the pool and SMART groups. A task is
     # identified by type, task (its name, dataset or path) and id.

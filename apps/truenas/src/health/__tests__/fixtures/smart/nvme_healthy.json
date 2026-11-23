@@ -38,7 +38,8 @@
     "media_errors": 0,
     "num_err_log_entries": 0,
     "warning_temp_time": 0,
-    "critical_comp_time": 0
+    "critical_comp_time": 0,
+    "power_on_hours": 8100
   },
   "nvme_self_test_log": {
     "current_self_test_operation": {
@@ -46,5 +47,15 @@
       "string": "No self-test in progress"
     },
     "table": []
+  },
+  "user_capacity": {
+    "blocks": 7814037168,
+    "bytes": 4000787030016
+  },
+  "temperature": {
+    "current": 41
+  },
+  "power_on_time": {
+    "hours": 8100
   }
 }

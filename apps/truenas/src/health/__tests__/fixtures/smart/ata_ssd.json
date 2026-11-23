@@ -50,6 +50,28 @@
         }
       },
       {
+        "id": 177,
+        "name": "Wear_Leveling_Count",
+        "value": 93,
+        "worst": 93,
+        "thresh": 0,
+        "when_failed": "",
+        "flags": {
+          "value": 19,
+          "string": "PO--C-",
+          "prefailure": true,
+          "updated_online": true,
+          "performance": false,
+          "error_rate": false,
+          "event_count": true,
+          "auto_keep": true
+        },
+        "raw": {
+          "value": 52,
+          "string": "52"
+        }
+      },
+      {
         "id": 9,
         "name": "Power_On_Hours",
         "value": 50,
@@ -178,5 +200,9 @@
   },
   "power_on_time": {
     "hours": 31000
+  },
+  "user_capacity": {
+    "blocks": 3907029168,
+    "bytes": 2000398934016
   }
 }

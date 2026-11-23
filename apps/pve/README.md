@@ -302,9 +302,9 @@ SMART log, and the Proxmox metric stream does not carry SMART data. So the host 
   `nvme_smart_percentage_used`, `nvme_smart_available_spare_percent`,
   `nvme_smart_available_spare_threshold_percent`, `nvme_smart_media_errors`,
   `nvme_smart_error_log_entries`, `nvme_smart_temperature_celsius`, `nvme_smart_unsafe_shutdowns`,
-  `nvme_smart_power_on_hours`, `nvme_smart_data_units_written`/`_read` and the two temperature
+  `nvme_smart_power_on_hours`, `nvme_capacity_bytes`, `nvme_smart_data_units_written`/`_read` and the two temperature
   time counters. `nvme_health_collect_ok` is 0 for a drive whose SMART log cannot be read, and
-  `nvme_health_push_timestamp_seconds` is the heartbeat.
+  `nvme_health_push_timestamp_seconds` is the heartbeat. nvme-cli can print its 128-bit counters (media errors, power on hours, data units, unsafe shutdowns) as strings of digits, which the script reads as numbers; a field it cannot read is named on stderr (`journalctl -u nvme-health`) and left out.
 - The rules are the `pve` VMRule in
   [`deployments/production/alerting/pve-vmrules.yaml`](../../deployments/production/alerting/pve-vmrules.yaml):
   `PVENVMeCriticalWarning`, `PVENVMeMediaErrors` (new errors in the last day) and `PVENVMeWearCritical`
