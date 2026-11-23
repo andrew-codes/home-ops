@@ -1072,6 +1072,7 @@
       win_shell: |
         pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\steam-library.ps1" -DriveLetter '{{ gaming_pc_storage_drive_letter }}'
       register: steam_library
+      when: "'array=Ready' in storage.stdout"
       changed_when: "'changed=0 ' not in steam_library.stdout"
       become: yes
       become_method: runas
@@ -1082,7 +1083,7 @@
     - name: Show the Steam library output when it recorded warnings
       ansible.builtin.debug:
         var: steam_library.stdout_lines
-      when: "'warnings=0' not in steam_library.stdout"
+      when: "steam_library.stdout is defined and 'warnings=0' not in steam_library.stdout"
 
     # Microsoft Store installs are deliberately non-fatal, so a failure leaves
     # the task green and Ansible hides win_shell stdout on a green task. Print

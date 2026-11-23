@@ -376,7 +376,7 @@ $arrayState = 'Missing'
 try {
     $outcome = Invoke-GamesStorage
     if ($outcome -eq 'Installed' -and -not $WhatIfPreference) { $script:Changed++ }
-    $arrayState = if (Test-Path "${DriveLetter}:\") { 'Ready' } else { 'Missing' }
+    $arrayState = if ($script:Warnings.Count -eq 0 -and (Test-Path "${DriveLetter}:\")) { 'Ready' } else { 'Missing' }
 }
 catch {
     $message = "storage : $($_.Exception.Message)"
