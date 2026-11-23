@@ -383,7 +383,9 @@ anything it should not:
    would use (and wipe) and changes nothing.
 
 The last line of its output is `RESULT changed=<n> warnings=<n> failures=<n> array=<Ready|Missing>`,
-which the playbook reads like the other scripts.
+which the playbook reads like the other scripts. `array=Ready` means the drive letter
+exists and the run recorded no warnings (for example, a different volume already
+holding `G:` gives `Missing`). The Steam step only runs when it is `Ready`.
 
 ### Steam ([`src/steam-library.ps1`](src/steam-library.ps1))
 
