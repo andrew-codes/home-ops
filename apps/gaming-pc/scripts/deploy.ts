@@ -23,6 +23,13 @@ const run = async (
   // firewall rules for their ports name this address and no other.
   const k8sNodeIp = await configurationApi.get("k8s/ip")
 
+  // The games drive build (src/storage.ps1) can wipe disks, so both switches are
+  // opt-in per run, read from the environment rather than stored anywhere:
+  //   GAMING_PC_STORAGE_WIPE=true      allow wiping old partitions on the two drives
+  //   GAMING_PC_STORAGE_REQUIRED=true  fail the deploy when the games drive is absent
+  const storageWipe = process.env["GAMING_PC_STORAGE_WIPE"] === "true"
+  const storageRequired = process.env["GAMING_PC_STORAGE_REQUIRED"] === "true"
+
   await fs.mkdir(path.join(__dirname, "..", ".secrets"), { recursive: true })
 
   // Transport lives here, not in the playbook, so the playbook stays connection
@@ -58,6 +65,8 @@ nut_battery_charge_floor: 30
 nut_monitor_username: ${JSON.stringify(nutMonitorUsername)}
 nut_monitor_password: ${JSON.stringify(nutMonitorPassword)}
 k8s_node_ip: ${JSON.stringify(k8sNodeIp)}
+gaming_pc_storage_wipe: ${storageWipe}
+gaming_pc_storage_required: ${storageRequired}
 `,
     "utf8",
   )

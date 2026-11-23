@@ -6,6 +6,9 @@ run on the machine itself.
 The deploy runs **remotely from the Mac**. Ansible reaches the gaming PC over
 the OpenSSH server that ships with Windows.
 
+**Rebuilding the machine from scratch** (new Windows install, BIOS RAID to NVMe
+mode, the games drive): follow the [rebuild runbook](docs/rebuild-runbook.md).
+
 ## Prerequisites
 
 Start here, from the repo root:
@@ -326,6 +329,96 @@ run's `SUMMARY` lines, and counted in the `RESULT ... warnings=` line the
 playbook prints. If they warn, install that app from the Store by hand once;
 `AutoDownload` keeps it updated afterwards.
 
+## Games drive and Steam library
+
+The machine has three 2 TB NVMe drives. One holds Windows. The other two are
+combined by Windows itself into one `G:` drive of about 4 TB, and Steam is given a
+games folder on it. After a Windows reinstall the owner only has to run the deploy;
+the full procedure (BIOS, install, checks) is the [rebuild runbook](docs/rebuild-runbook.md).
+
+### What gets built
+
+| Piece           | Value (default, a variable in `scripts/deploy.yml`)                    |
+| --------------- | ---------------------------------------------------------------------- |
+| Pool            | `GamesPool` (`gaming_pc_storage_pool_name`)                            |
+| Virtual disk    | `Games`, layout **Simple** (striped, no redundancy), 2 columns, fixed provisioning (`gaming_pc_storage_virtual_disk_name`, `gaming_pc_storage_columns`) |
+| Interleave      | 262144 bytes (256 KB, Windows' own default; `gaming_pc_storage_interleave`) |
+| Volume          | `G:`, NTFS, labelled `Games` (`gaming_pc_storage_drive_letter`, `gaming_pc_storage_file_system`) |
+| Steam library   | `G:\SteamLibrary`                                                     |
+
+This is the equivalent of RAID 0: the two drives are written in stripes, there is no
+copy of anything, and **if either drive fails everything on `G:` is lost**. That is
+the intent: it holds re-downloadable games, and the owner values the CPU and GPU
+performance over disk redundancy.
+
+**Why Storage Spaces and not a dynamic-disk striped volume.** Both give a Windows-level
+stripe. Dynamic disks are the legacy mechanism, and Microsoft's Disk Management
+documentation sends readers who want to pool drives like a RAID to Storage Spaces.
+Storage Spaces is also scriptable end to end with the `Storage` PowerShell module, and
+a pool records its configuration on the member drives, which is what lets Windows
+re-detect the array after a reinstall (the deploy relies on that). Nothing here needs
+what dynamic disks do differently, so the choice is Storage Spaces.
+
+### What the deploy does ([`src/storage.ps1`](src/storage.ps1))
+
+It runs as a task before the software install and is built around not wiping
+anything it should not:
+
+1. **It only considers physical disks that are NVMe**, not the boot or system disk,
+   not USB or removable, and not already in a pool.
+2. **If the pool already exists** (including after a Windows reinstall, when Windows
+   re-detects it from the drives), it changes nothing if `G:` is already there, and
+   otherwise makes the pool writable, attaches and onlines the existing virtual disk
+   and assigns the drive letter. It never removes or recreates a pool.
+3. **It creates the array only when there are exactly two eligible, empty NVMe
+   drives.** With any other count (the current BIOS RAID machine, where Windows sees one
+   RAID drive; a third spare drive) it prints a warning with the reason and the remedy
+   and changes nothing. The deploy still succeeds.
+4. **Drives with old partitions are refused** with a warning that names each disk.
+   Set `GAMING_PC_STORAGE_WIPE=true` for that one run
+   (`GAMING_PC_STORAGE_WIPE=true yarn nx deploy gaming-pc`) to allow it. `scripts/deploy.ts`
+   passes it to the playbook as `gaming_pc_storage_wipe`. It is never stored.
+5. **`GAMING_PC_STORAGE_REQUIRED=true`** makes "no array" fail the deploy instead of warning.
+6. **Dry run.** On the PC, `pwsh -NoProfile -File storage.ps1 -WhatIf` lists the disks it
+   would use (and wipe) and changes nothing.
+
+The last line of its output is `RESULT changed=<n> warnings=<n> failures=<n> array=<Ready|Missing>`,
+which the playbook reads like the other scripts.
+
+### Steam ([`src/steam-library.ps1`](src/steam-library.ps1))
+
+Steam is installed by winget (`Valve.Steam`, machine scope) in `src/software.ps1`; the
+Steam step runs right after that task, as the deploy's own account, elevated.
+
+**What the playbook does:**
+
+- Creates `G:\SteamLibrary` (and `steamapps` inside it).
+- Adds that folder to `config\libraryfolders.vdf` in Steam's install folder (found
+  from the registry, normally `C:\Program Files (x86)\Steam`). Existing libraries,
+  their app lists and every other byte of the file are kept; the new entry is
+  inserted, never re-serialised. A timestamped backup,
+  `libraryfolders.vdf.gaming-pc-<time>.bak`, is made first and the new file is written through a
+  temp file and a rename. If Steam has never run, the file is created with Steam's own folder
+  as library 0 and the games folder as library 1.
+- Does nothing when the folder is already listed.
+- Does nothing, with a warning, when Steam is running (it rewrites the file from
+  memory when it exits, which would drop the entry), when `G:` is missing, when Steam
+  is not installed, or when the file does not parse. None of those fail the deploy.
+
+**What it cannot do:** make `G:\SteamLibrary` Steam's **default** install location.
+Steam keeps no setting a playbook can safely write for that: it asks, per game, which
+library to install to. **What the owner does once**, in Steam: Settings > Storage, open the
+drive dropdown, select `G:\SteamLibrary`, then the "..." menu > **Make Default**.
+Or pick `G:` in the install dialog each time.
+
+### The drive health collector sees the member drives
+
+The two pool members stay NVMe physical disks (Storage Spaces changes the logical
+disk, not the bus), so [`drive-health.ps1`](src/drive-health.ps1) / smartctl reads
+all three NVMe drives individually after the pool exists, and the Hardware health
+dashboard shows each one. This is exactly what the BIOS RAID hid. The collector is not
+changed by this work.
+
 ## Metrics and sensors
 
 The machine's sensors and frame rate go to the cluster's VictoriaMetrics, so the
@@ -547,7 +640,12 @@ fails the deploy:
 OhmGraphite config; needs `pwsh`),
 [`tests/drive-health.test.ps1`](tests/drive-health.test.ps1) (the drive health metrics from
 `smartctl --json` fixtures in [`tests/fixtures/smartctl`](tests/fixtures/smartctl), and the whole
-script against a stand-in smartctl; needs `pwsh`) and the `vmalert-tool` tests for the alert rules in
+script against a stand-in smartctl; needs `pwsh`),
+[`tests/storage.test.ps1`](tests/storage.test.ps1) (the games drive decisions against fake Storage
+cmdlets from [`tests/helpers`](tests/helpers): the safe no-ops, the existing pool, the wipe opt-in and
+`-WhatIf`; no real disk is touched; needs `pwsh`),
+[`tests/steam-library.test.ps1`](tests/steam-library.test.ps1) (the `libraryfolders.vdf` edit and
+backup, in a temp folder; needs `pwsh`) and the `vmalert-tool` tests for the alert rules in
 [`tests/gaming-pc-rules.test.yaml`](tests/gaming-pc-rules.test.yaml) (needs Docker
 and `yq`). All run in the pull request checks.
 
