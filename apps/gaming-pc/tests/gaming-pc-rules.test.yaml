@@ -358,3 +358,40 @@ tests:
               summary: "NVMe drive nvme0 in the gaming PC is running out of spare capacity"
               description: "WD_BLACK SN850X (nvme0) has 19% spare capacity left, within 10 points of the drive's own threshold. The drive is replacing worn out cells. Plan its replacement."
               dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+
+  # The textfile is served unchanged when the task stops writing it.
+  - name: stale drive health fires only while the PC is up
+    interval: 1m
+    input_series:
+      # Written at the start (vmalert-tool time() starts at 946684800) and never again, PC up for 60 minutes.
+      - series: 'gaming_pc_drive_health_timestamp_seconds{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc"}'
+        values: "946684800x60"
+      - series: 'up{job="gaming-pc",exporter="windows",instance="pc:9182"}'
+        values: "1x60"
+      # Refreshed every minute, PC up.
+      - series: 'gaming_pc_drive_health_timestamp_seconds{job="gaming-pc",exporter="windows",instance="fresh:9182",host="fresh"}'
+        values: "946684800+60x60"
+      - series: 'up{job="gaming-pc",exporter="windows",instance="fresh:9182"}'
+        values: "1x60"
+      # Stale file, but the PC went down after 40 minutes.
+      - series: 'gaming_pc_drive_health_timestamp_seconds{job="gaming-pc",exporter="windows",instance="off:9182",host="off"}'
+        values: "946684800x60"
+      - series: 'up{job="gaming-pc",exporter="windows",instance="off:9182"}'
+        values: "1x10 0x50"
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: GamingPCDriveHealthStale
+        exp_alerts: []
+      - eval_time: 45m
+        alertname: GamingPCDriveHealthStale
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: gaming-pc
+              exporter: windows
+              instance: "pc:9182"
+              host: gaming-pc
+            exp_annotations:
+              summary: "Gaming PC drive health metrics are 45m 0s old"
+              description: "The Gaming-PC-DriveHealth task has not refreshed the drive health textfile for 45m 0s while the PC is on, so its wear, spare and error alerts show old values. In an administrator PowerShell run `Get-ScheduledTaskInfo -TaskName Gaming-PC-DriveHealth`, and run `yarn nx deploy gaming-pc` to put it back."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health

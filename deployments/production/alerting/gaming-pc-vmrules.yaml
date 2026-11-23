@@ -150,3 +150,17 @@ spec:
             summary: "NVMe drive {{ $labels.device }} in the gaming PC is running out of spare capacity"
             description: "{{ $labels.model }} ({{ $labels.device }}) has {{ $value | humanize }}% spare capacity left, within 10 points of the drive's own threshold. The drive is replacing worn out cells. Plan its replacement."
             dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+        # windows_exporter keeps serving the textfile unchanged when the task
+        # stops writing it, so the drive series look current while they are not.
+        # Only judged while the PC is up: it is off most of the day.
+        - alert: GamingPCDriveHealthStale
+          expr: >-
+            (time() - last_over_time(gaming_pc_drive_health_timestamp_seconds{job="gaming-pc"}[15m]) > 20 * 60)
+            and on(instance) up{job="gaming-pc",exporter="windows"} == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Gaming PC drive health metrics are {{ $value | humanizeDuration }} old"
+            description: "The Gaming-PC-DriveHealth task has not refreshed the drive health textfile for {{ $value | humanizeDuration }} while the PC is on, so its wear, spare and error alerts show old values. In an administrator PowerShell run `Get-ScheduledTaskInfo -TaskName Gaming-PC-DriveHealth`, and run `yarn nx deploy gaming-pc` to put it back."
+            dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
