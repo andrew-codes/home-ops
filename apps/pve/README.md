@@ -51,7 +51,8 @@ isn't on exactly the pinned version.
 
 ### 1. Network ([`tasks/network.yml`](src/deploy/tasks/network.yml))
 
-> [!WARNING] > **This step can lock out SSH access to `pve` and everything it hosts.** Read
+> [!WARNING]
+> **This step can lock out SSH access to `pve` and everything it hosts.** Read
 > [Network rollback](#network-rollback-if-this-goes-wrong) before running it.
 
 Sets the host to static IP `10.1.0.100/24`, gateway `10.1.0.1`, DNS `1.1.1.1` and
@@ -117,7 +118,8 @@ storage-id `nas-iso` - not a literal `/pve/mnt/...` path). Content types `iso,vz
 absent, `pvesm set` reconciles settings if it's already there (a cheap no-op when
 nothing changed).
 
-> [!IMPORTANT] > **The NAS credentials for this share do not exist in 1Password yet.** See
+> [!IMPORTANT]
+> **The NAS credentials for this share do not exist in 1Password yet.** See
 > [Secrets](#secrets-that-do-not-exist-yet).
 
 ### 5. Proxmox Backup Server storage ([`tasks/storage-pbs.yml`](src/deploy/tasks/storage-pbs.yml))
@@ -208,7 +210,8 @@ PCIe slot for one card first if that's an option on this board.
 
 ### 7. NUT UPS monitoring ([`tasks/nut-client.yml`](src/deploy/tasks/nut-client.yml))
 
-> [!WARNING] > **A misconfigured client here can shut this host down unexpectedly.** Verify the
+> [!WARNING]
+> **A misconfigured client here can shut this host down unexpectedly.** Verify the
 > NUT server address, UPS name and thresholds below against the real Synology NAS
 > before relying on this, or before merging a change to it.
 
@@ -464,7 +467,8 @@ already exists, since the Kubernetes provisioning reads it.
 nx run pve:deploy
 ```
 
-> [!CAUTION] > **Do not run this from an agent session.** See [AGENTS.md](AGENTS.md). This is a
+> [!CAUTION]
+> **Do not run this from an agent session.** See [AGENTS.md](AGENTS.md). This is a
 > manually supervised action, ideally with physical console access on hand, taken
 > after this automation has been reviewed - not something to run casually while
 > iterating on the playbook.

@@ -254,7 +254,8 @@ under Prerequisites for what it is and the one-time manual step it requires.
 
 ### NUT UPS monitoring
 
-> [!WARNING] > **A misconfigured client here can shut this machine down unexpectedly.** Verify
+> [!WARNING]
+> **A misconfigured client here can shut this machine down unexpectedly.** Verify
 > the NUT server address, UPS name and thresholds below against the real Synology
 > NAS before relying on this, or before merging a change to it.
 
@@ -387,7 +388,7 @@ has no SMART data, so this is its own piece:
   query of its own for this machine. vmagent adds `job="gaming-pc"`, which is how the alert rules
   tell the two apart: the `pve` rules exclude that job and the
   [`gaming-pc-drives`](../../deployments/base/alerting/README.md#gaming-pc) rules read only it.
-  The heartbeat is `gaming_pc_drive_health_timestamp_seconds`, not `nvme_health_push_timestamp_seconds`,
+  The staleness signal is `gaming_pc_drive_health_timestamp_seconds`, not `nvme_health_push_timestamp_seconds`,
   so the Proxmox heartbeat alert is not satisfied by this machine.
 - **Only NVMe drives.** A SATA SSD or hard disk has no standard wear or spare field in
   smartctl's JSON (each vendor names its own attribute), so it is left out instead of guessed at.
@@ -400,7 +401,7 @@ has no SMART data, so this is its own piece:
   cannot run, becomes `nvme_health_collect_ok 0` (device `scan` for the latter) and the file is still
   replaced, so old values are never served as current. `GamingPCNvmeHealthSourceFailing` fires on it.
 - **The PC is often off.** The series only exist while it is on, and the dashboard reads them
-  through a 15 minute window, so its rows empty out 15 minutes after shutdown. No alert fires for that.
+  through a 15 minute window, so its rows empty out 15 minutes after shutdown. No alert fires for that. If the task stops writing while the PC is on, `GamingPCDriveHealthStale` fires after the file is 20 minutes old.
 
 Checks on the first deploy: the deploy prints a warning when `smartctl.exe` is missing or when
 windows_exporter does not answer with `nvme_smart_percentage_used` after the task's first run. By hand:
