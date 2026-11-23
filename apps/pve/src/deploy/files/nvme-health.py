@@ -76,6 +76,18 @@ def read_sysfs(controller: str, name: str) -> str:
         return ""
 
 
+def capacity_bytes(controller: str) -> int | None:
+    """The size of the drive: its namespaces (nvme0n1, ...) hold it in 512 byte sectors."""
+    sizes = []
+    for path in glob.glob("/sys/class/nvme/%s/%sn[0-9]*/size" % (controller, controller)):
+        try:
+            with open(path) as handle:
+                sizes.append(int(handle.read().strip()) * 512)
+        except (OSError, ValueError):
+            pass
+    return sum(sizes) if sizes else None
+
+
 def smart_log(controller: str) -> dict:
     result = subprocess.run(
         ["nvme", "smart-log", "/dev/" + controller, "--output-format=json"],
@@ -93,12 +105,33 @@ def celsius(temperature: float) -> float:
     return round(temperature - 273.15, 2) if temperature > 200 else temperature
 
 
+def number(value: object) -> float | None:
+    """A number from the JSON of `nvme smart-log`, or None.
+
+    nvme-cli prints most fields as numbers, but the 128-bit counters (media errors,
+    power on hours, data units, unsafe shutdowns, error log entries) can arrive as a
+    string of digits. Taking only int and float silently dropped those series, which
+    left the media error alert with nothing to read.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value)
+    return None
+
+
 def add_smart(out: Metrics, log: dict, **labels: object) -> None:
     for metric, field in SMART_FIELDS.items():
-        if isinstance(log.get(field), (int, float)):
-            out.add(metric, log[field], **labels)
-    if isinstance(log.get("temperature"), (int, float)):
-        out.add("nvme_smart_temperature_celsius", celsius(log["temperature"]), **labels)
+        value = number(log.get(field))
+        if value is not None:
+            out.add(metric, value, **labels)
+        elif field in log:
+            print("%s: %s has an unreadable value %r" % (labels.get("device"), field, log[field]), file=sys.stderr)
+    temperature = number(log.get("temperature"))
+    if temperature is not None:
+        out.add("nvme_smart_temperature_celsius", celsius(temperature), **labels)
 
 
 def collect(out: Metrics, host: str) -> None:
@@ -114,6 +147,9 @@ def collect(out: Metrics, host: str) -> None:
         }
         try:
             add_smart(out, smart_log(controller), **labels)
+            size = capacity_bytes(controller)
+            if size is not None:
+                out.add("nvme_capacity_bytes", size, **labels)
             ok = 1
         except Exception as error:  # a bad drive or a CLI change must not stop the rest
             print("%s: %r" % (controller, error), file=sys.stderr)

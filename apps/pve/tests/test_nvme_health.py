@@ -45,6 +45,7 @@ def collect(smart=None, controllers=("nvme0",), fail=None):
 
     with mock.patch.object(nvme_health, "controllers", return_value=list(controllers)), \
          mock.patch.object(nvme_health, "smart_log", side_effect=log), \
+         mock.patch.object(nvme_health, "capacity_bytes", return_value=1000204886016), \
          mock.patch.object(nvme_health, "read_sysfs", side_effect=lambda c, n: {"model": "Sabrent", "serial": "S1"}[n]):
         nvme_health.collect(out, "pve")
     return out.lines
@@ -65,10 +66,23 @@ class CollectTest(unittest.TestCase):
             "nvme_smart_power_on_hours{%s} 9000" % labels,
             "nvme_smart_data_units_written{%s} 2000" % labels,
             "nvme_smart_temperature_celsius{%s} 32.85" % labels,
+            "nvme_capacity_bytes{%s} 1000204886016" % labels,
             'nvme_health_collect_ok{device="nvme0",host="pve"} 1',
             'nvme_health_drives{host="pve"} 1',
         ):
             self.assertIn(expected, lines)
+
+    def test_a_128_bit_counter_printed_as_a_string_is_still_reported(self):
+        lines = collect({**SMART_LOG, "media_errors": "4", "power_on_hours": "9001", "data_units_written": 2000.0})
+        labels = 'device="nvme0",host="pve",model="Sabrent",serial="S1"'
+        self.assertIn("nvme_smart_media_errors{%s} 4" % labels, lines)
+        self.assertIn("nvme_smart_power_on_hours{%s} 9001" % labels, lines)
+        self.assertIn("nvme_smart_data_units_written{%s} 2000.0" % labels, lines)
+
+    def test_a_value_that_is_not_a_number_is_left_out(self):
+        lines = collect({**SMART_LOG, "media_errors": {"lo": 1, "hi": 0}})
+        self.assertFalse([l for l in lines if l.startswith("nvme_smart_media_errors")])
+        self.assertTrue([l for l in lines if l.startswith("nvme_smart_power_on_hours")])
 
     def test_a_celsius_temperature_is_left_alone(self):
         lines = collect({"temperature": 41})

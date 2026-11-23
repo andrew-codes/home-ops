@@ -398,6 +398,57 @@ tests:
               description: "NVMe disk SERIAL-NVME (nvme0n1) logged 5 more media and data integrity errors in the last 7 days."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
 
+  # Drives near the end of their rated life: an NVMe drive and an SATA SSD at
+  # 85% worn (warning), another SSD at 97% (critical), a drive at 50% (silent),
+  # and spare capacity within 10 points of the threshold (warning) against a
+  # drive with plenty (silent).
+  - name: worn drives
+    interval: 1m
+    input_series:
+      - series: 'truenas_smart_wear_used_percent{disk="nvme0n1",serial="SERIAL-NVME"}'
+        values: "85x40"
+      - series: 'truenas_smart_wear_used_percent{disk="sdd",serial="SERIAL-SDD"}'
+        values: "97x40"
+      - series: 'truenas_smart_wear_used_percent{disk="sdi",serial="SERIAL-SDI"}'
+        values: "50x40"
+      - series: 'truenas_smart_spare_percent{disk="nvme0n1",serial="SERIAL-NVME"}'
+        values: "20x40"
+      - series: 'truenas_smart_spare_threshold_percent{disk="nvme0n1",serial="SERIAL-NVME"}'
+        values: "10x40"
+      - series: 'truenas_smart_spare_percent{disk="nvme1n1",serial="SERIAL-NVME1"}'
+        values: "100x40"
+      - series: 'truenas_smart_spare_threshold_percent{disk="nvme1n1",serial="SERIAL-NVME1"}'
+        values: "10x40"
+    alert_rule_test:
+      # Not yet: the rules wait 15 minutes.
+      - { eval_time: 10m, alertname: TrueNASDriveWearHigh, exp_alerts: [] }
+      - eval_time: 30m
+        alertname: TrueNASDriveWearHigh
+        exp_alerts:
+          - exp_labels:
+              { severity: warning, disk: nvme0n1, serial: SERIAL-NVME }
+            exp_annotations:
+              summary: "TrueNAS SSD SERIAL-NVME (nvme0n1) is 85% worn"
+              description: "SSD SERIAL-NVME (nvme0n1) has used 85% of its rated endurance. Plan its replacement. The Hardware health dashboard shows every drive."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health
+      - eval_time: 30m
+        alertname: TrueNASDriveWearCritical
+        exp_alerts:
+          - exp_labels: { severity: critical, disk: sdd, serial: SERIAL-SDD }
+            exp_annotations:
+              summary: "TrueNAS SSD SERIAL-SDD (sdd) is almost worn out (97%)"
+              description: "SSD SERIAL-SDD (sdd) has used 97% of its rated endurance and can fail at any time. Replace it now."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health
+      - eval_time: 30m
+        alertname: TrueNASNvmeSpareLow
+        exp_alerts:
+          - exp_labels:
+              { severity: warning, disk: nvme0n1, serial: SERIAL-NVME }
+            exp_annotations:
+              summary: "TrueNAS NVMe disk SERIAL-NVME (nvme0n1) is running out of spare capacity"
+              description: "NVMe disk SERIAL-NVME (nvme0n1) has 20% spare capacity left, within 10 points of the drive's own threshold. The drive is replacing worn out cells. Plan its replacement."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health
+
   # The health job stopped while the host keeps reporting: the pool alerts
   # cannot see anything, so this must fire.
   - name: health job stopped

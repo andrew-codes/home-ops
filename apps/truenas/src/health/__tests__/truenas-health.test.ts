@@ -448,6 +448,45 @@ describe("truenas-health.py", () => {
       )
     })
 
+    it("reports wear, spare, temperature, age and size for an NVMe drive", () => {
+      const samples = collect({ smart: { nvme0n1: "smart/nvme_healthy" } })
+      const disk = { disk: "nvme0n1" }
+      expect(valueOf(samples, "truenas_smart_wear_used_percent", disk)).toBe(1)
+      expect(valueOf(samples, "truenas_smart_spare_percent", disk)).toBe(100)
+      expect(
+        valueOf(samples, "truenas_smart_spare_threshold_percent", disk),
+      ).toBe(10)
+      expect(valueOf(samples, "truenas_smart_temperature_celsius", disk)).toBe(
+        41,
+      )
+      expect(valueOf(samples, "truenas_smart_power_on_hours", disk)).toBe(8100)
+      expect(valueOf(samples, "truenas_disk_capacity_bytes", disk)).toBe(
+        4000787030016,
+      )
+    })
+
+    it("turns an SSD's remaining-life attribute into wear used", () => {
+      const samples = collect({ smart: { sdd: "smart/ata_ssd" } })
+      const disk = { disk: "sdd" }
+      // Wear_Leveling_Count normalized value 93 means 93% of the life is left.
+      expect(valueOf(samples, "truenas_smart_wear_used_percent", disk)).toBe(7)
+      expect(valueOf(samples, "truenas_smart_power_on_hours", disk)).toBe(31000)
+      expect(valueOf(samples, "truenas_smart_temperature_celsius", disk)).toBe(
+        36,
+      )
+      expect(find(samples, "truenas_smart_spare_percent", disk)).toHaveLength(0)
+    })
+
+    it("reports no wear for a spinning disk", () => {
+      const samples = collect()
+      expect(
+        find(samples, "truenas_smart_wear_used_percent", { disk: "sda" }),
+      ).toHaveLength(0)
+      expect(
+        valueOf(samples, "truenas_smart_power_on_hours", { disk: "sda" }),
+      ).toBe(31000)
+    })
+
     it("does not wake a disk that is in standby, and does not count it as a failure", () => {
       const samples = collect({ smart: { sdc: "smart/standby" } })
       expect(
