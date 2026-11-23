@@ -1,0 +1,15 @@
+# Managed by apps/pve (src/deploy/tasks/trim.yml). Edits are overwritten.
+[Unit]
+Description=Trim the running LXC containers and report the result to VictoriaMetrics
+Documentation=https://docs.home.smith-simms.family/wiki/spaces/HA/overview
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/pve-trim/pve-trim.sh push http://{{ observability_host }}:{{ observability_influx_port }}/api/v1/import/prometheus
+# Each pct fstrim is timed out by the script; this stops a run that hangs anyway.
+TimeoutStartSec=4h
+# A trim is background work: it must not compete with the guests for the drive.
+Nice=19
+IOSchedulingClass=idle

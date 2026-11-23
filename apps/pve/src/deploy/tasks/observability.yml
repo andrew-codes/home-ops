@@ -54,6 +54,11 @@
   ansible.builtin.import_tasks: nvme-health.yml
   tags: [observability, nvme-health]
 
+# Weekly TRIM of the host and its containers, so the drive hears about freed blocks.
+- name: Trim the host and its containers weekly
+  ansible.builtin.import_tasks: trim.yml
+  tags: [observability, trim]
+
 # Metrics: the cluster's VictoriaMetrics InfluxDB endpoint. Metric servers are
 # cluster-wide (/cluster/metrics/server). Hosts in one cluster share a single
 # entry, so only the first host of each cluster manages it; a standalone host

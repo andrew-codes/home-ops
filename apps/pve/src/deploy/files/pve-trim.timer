@@ -1,0 +1,12 @@
+# Managed by apps/pve (src/deploy/tasks/trim.yml). Edits are overwritten.
+[Unit]
+Description=Trim the running LXC containers of this host every Sunday
+
+[Timer]
+OnCalendar=Sun *-*-* 03:30:00
+RandomizedDelaySec=30min
+# Run at boot if the host was off at the scheduled time.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

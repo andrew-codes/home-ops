@@ -97,3 +97,20 @@ spec:
             summary: "NVMe drive {{ $labels.device }} on the Proxmox host is running out of spare capacity"
             description: "{{ $labels.model }} ({{ $labels.device }}) on {{ $labels.host }} has {{ $value | humanize }}% spare capacity left, within 10 points of the drive's own threshold. The drive is replacing worn out cells. Plan its replacement."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+    - name: pve-trim
+      rules:
+        # pve-trim.timer (apps/pve, src/deploy/files/pve-trim.sh) trims the running
+        # containers every Sunday and writes this series only for a run in which every
+        # container was trimmed. 10 days is one missed week plus slack for the timer's
+        # random delay. The rule is true for a host that wrote the series within the
+        # last 90 days but not within the last 10, so it keeps the host label, does not
+        # depend on the sample's value and cannot fire before the first clean run.
+        - alert: PVETrimStale
+          expr: last_over_time(pve_trim_last_success_timestamp_seconds[90d]) unless last_over_time(pve_trim_last_success_timestamp_seconds[10d])
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox host {{ $labels.host }} has not trimmed its containers for 10 days"
+            description: "The weekly container trim on {{ $labels.host }} has not finished cleanly for 10 days. Without a trim the NVMe drive is never told which blocks are free and starts stalling writes. On the host run `systemctl status pve-trim.timer pve-trim.service` and `journalctl -u pve-trim`, and run `OP_VAULT=home-ops yarn nx run pve:deploy-observability` to put it back."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox

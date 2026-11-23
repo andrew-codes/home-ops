@@ -271,7 +271,7 @@ deployments publish. The log half is [`tasks/logs.yml`](src/deploy/tasks/logs.ym
   the play instead of looking configured. Find the message in VictoriaLogs with
   `hostname:"<hostname of pve>" "forwarding check"`. The kernel log comes from rsyslog's
   `imklog` module, which the host keeps (only the LXC guests drop it).
-- Reports the health of the NVMe drives, see [NVMe health](#nvme-health-tasksnvme-healthyml).
+- Reports the health of the NVMe drives, see [NVMe health](#nvme-health-tasksnvme-healthyml), and trims the host and its containers weekly, see [Weekly TRIM](#weekly-trim-taskstrimyml).
 - Does not touch the network, GRUB or any guest, so it is safe to run on its own:
   `--tags observability`, or the `deploy-observability` target below.
 
@@ -311,6 +311,17 @@ SMART log, and the Proxmox metric stream does not carry SMART data. So the host 
   (over 95% of rated endurance) are critical; `PVENVMeWearHigh` (over 80%), `PVENVMeSpareLow`,
   `PVENVMeHealthSourceFailing` and `PVENVMeHealthMetricsMissing` (the timer stopped) are warnings.
   They are unit-tested by `nx run pve:test`.
+
+#### Weekly TRIM ([`tasks/trim.yml`](src/deploy/tasks/trim.yml))
+
+The containers (cluster node, Pi-holes, subnet router) live on the LVM-thin pool `pve/data`, which sits on the host's single NVMe drive. Nothing told that drive which blocks the guests had freed, so it kept garbage-collecting stale data and stalled writes. This task makes the trim part of the deploy:
+
+- Enables the distro `fstrim.timer`, which trims the host's own file systems.
+- Installs [`files/pve-trim.sh`](src/deploy/files/pve-trim.sh) (to `/usr/local/lib/pve-trim/`), the `pve-trim.service` unit and the `pve-trim.timer` timer. The timer runs every Sunday at 03:30 with a random delay of up to 30 minutes and `Persistent=true`, so a host that was off then trims at the next boot. The script runs `pct fstrim` for every running container, skips stopped ones, goes on after a container that fails, and runs at idle I/O priority. `pve-trim.sh print` trims and shows the metrics instead of pushing them.
+- Checks `lvs -o discards pve/data` and fails the play with the fix (`lvchange --discards passdown pve/data`) unless it says `passdown`: with `nopassdown` or `ignore`, a trim of the containers frees blocks in the pool but never reaches the drive. A pool that does not exist is reported and skipped; set `pve_trim_thin_pool` in the play vars for a pool with another name.
+- Pushes `pve_trim_containers_trimmed`, `pve_trim_containers_failed` and `pve_trim_last_run_timestamp_seconds` after each run, plus `pve_trim_last_success_timestamp_seconds` only when every container was trimmed, to the same VictoriaMetrics endpoint as the NVMe health series. `PVETrimStale` (warning) fires when a host that has reported before has had no clean run for 10 days. It cannot fire before the first clean run. It is unit-tested by `nx run pve:test`.
+
+The deploy does not run a trim itself, so the first one is the next Sunday slot. To trim now, run `systemctl start pve-trim.service` on the host, which can take minutes and loads the drive. Check the schedule with `systemctl list-timers fstrim.timer pve-trim.timer`.
 
 ### Proxmox guests
 
@@ -472,13 +483,13 @@ with console access available as a fallback per
 
 ## Nx targets
 
-| Target                       | What it does                                                                                                                                              |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `test`                       | Unit tests of the NVMe health script (`python3 -m unittest`) and of the `pve` alert rules (`vmalert-tool` in docker). No host contact.                    |
-| `lint`                       | `ansible-playbook --syntax-check` against all three playbooks - no host contact, safe to run anytime.                                                     |
-| `deploy`                     | Runs the full playbook against `pve` over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md).                                                    |
-| `deploy-observability`       | Runs only the [observability](#8-observability-tasksobservabilityyml) tasks against `proxmox/ip` and, when set, `proxmox2/ip`. Not from an agent session. |
-| `deploy-guest-observability` | Runs only the log forwarding against the [Proxmox guests](#proxmox-guests) this repo manages. Not from an agent session.                                  |
+| Target                       | What it does                                                                                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test`                       | Unit tests of the NVMe health and container trim scripts (`python3 -m unittest`) and of the `pve` alert rules (`vmalert-tool` in docker). No host contact. |
+| `lint`                       | `ansible-playbook --syntax-check` against all three playbooks - no host contact, safe to run anytime.                                                      |
+| `deploy`                     | Runs the full playbook against `pve` over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md).                                                     |
+| `deploy-observability`       | Runs only the [observability](#8-observability-tasksobservabilityyml) tasks against `proxmox/ip` and, when set, `proxmox2/ip`. Not from an agent session.  |
+| `deploy-guest-observability` | Runs only the log forwarding against the [Proxmox guests](#proxmox-guests) this repo manages. Not from an agent session.                                   |
 
 `deploy` is deliberately excluded from `yarn deploy/all` in the root `package.json`,
 alongside `andrew-mbp`, `dorri-mbp` and `gaming-pc` - see
