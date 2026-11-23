@@ -208,3 +208,14 @@ tests:
               summary: "Proxmox host pve has not trimmed its containers for 10 days"
               description: "The weekly container trim on pve has not finished cleanly for 10 days. Without a trim the NVMe drive is never told which blocks are free and starts stalling writes. On the host run `systemctl status pve-trim.timer pve-trim.service` and `journalctl -u pve-trim`, and run `OP_VAULT=home-ops yarn nx run pve:deploy-observability` to put it back."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+
+  - name: a host that never reported a clean container trim stays quiet
+    interval: 1d
+    input_series:
+      # Only the failed-run counters exist: no pve_trim_last_success_timestamp_seconds yet.
+      - series: 'pve_trim_containers_failed{host="pve"}'
+        values: "1x30"
+    alert_rule_test:
+      - eval_time: 30d
+        alertname: PVETrimStale
+        exp_alerts: []
