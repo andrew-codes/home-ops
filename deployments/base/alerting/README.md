@@ -172,6 +172,24 @@ The gaming PC (`apps/gaming-pc`, see its [README](../../../apps/gaming-pc/README
 - **What the GPU sensor cannot see.** NVIDIA does not expose the hotspot on Blackwell, and a standard RTX 5090 has no sensor on its 12V-2x6 power connector, which can run hotter than the core. These rules protect the core and the fans.
 - **Unit tests.** `apps/gaming-pc/tests/gaming-pc-rules.test.yaml` runs the rules through `vmalert-tool` (`apps/gaming-pc/scripts/test.sh`, or `yarn nx test gaming-pc`; needs Docker and `yq`). It covers a sustained warning and critical, a spike that stays quiet, the game name appearing and disappearing, fan stop while cool and while hot, the CPU thresholds and an off PC firing nothing.
 
+## Pi-hole
+
+The two Pi-holes (`apps/pihole`, see its [README](../../../apps/pihole/README.md#observability)) are watched by three vmagent jobs, all labelled `pihole` (`pihole-1`, `pihole-2`): `pihole-dns` (a DNS query for `example.com` sent from the cluster through the blackbox exporter), `pihole-host` (node_exporter on each host) and `pihole-exporter` (the Pi-hole v6 API). The `Pi-hole` dashboard in Grafana shows them next to the FTL log. The rules are the `pihole` VMRule in `deployments/production/alerting/pihole-vmrules.yaml`.
+
+| Rule                    | Severity | Fires when                                                                                                 |
+| ----------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `PiholeDnsNotAnswering` | critical | the DNS probe to a Pi-hole fails or returns no answer for 2 minutes                                        |
+| `PiholeHostDown`        | critical | a Pi-hole host's metrics have not been scraped for 3 minutes                                               |
+| `PiholeDnsSlow`         | warning  | a Pi-hole still answers, but takes more than 0.5 seconds for 10 minutes (cached answers take milliseconds) |
+| `PiholeQueryRateHigh`   | warning  | a Pi-hole averaged more than 30 queries per second over the last 10 minute slots, for 15 minutes           |
+| `PiholeHighLoad`        | warning  | the five minute load is above 1.5 per core for 10 minutes                                                  |
+| `PiholeMemoryLow`       | warning  | under 10% of the host's memory is available for 10 minutes                                                 |
+
+- **"Is it answering" is the probe, not `up`.** A Pi-hole whose FTL has stopped still has a host that answers node_exporter, so `PiholeDnsNotAnswering` and `PiholeHostDown` are separate. The exporter keeps its last values when the API stops answering, so no rule reads its series to decide a Pi-hole is down.
+- **`TargetDown` still covers the exporter and the blackbox exporter** (jobs `pihole-exporter` and `pihole-dns`: a down target there means the monitoring broke, not a Pi-hole). It skips `pihole-host`, which `PiholeHostDown` covers with the Pi-hole's name and a critical severity.
+- **Before the secrets exist there are no targets**, so no alert fires: the probe job drops a target with no address instead of probing `:53`.
+- **Unit tests.** `apps/pihole/tests/pihole-rules.test.yaml` runs the rules through `vmalert-tool` (`apps/pihole/scripts/test-rules.sh`, or `yarn nx test pihole`; needs Docker).
+
 ## Incidents in Jira
 
 A push says something is wrong. It does not say who is on it or whether it is fixed. So a critical alert, and

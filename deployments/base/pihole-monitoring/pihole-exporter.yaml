@@ -1,0 +1,114 @@
+# Pi-hole v6 DNS metrics for both instances (apps/pihole), read from each
+# Pi-hole's own API. One exporter serves both: every series carries a
+# `hostname` label with the address it read from. vmagent scrapes it as job
+# "pihole-exporter" (deployments/production/metrics/pihole-scrape.yaml) and adds
+# the friendly `pihole` label.
+#
+# The exporter only reads. It covers queries and queries per second, the blocked
+# share, query types, replies, cache hits, upstream (forward destination) counts
+# and response times, top clients and domains, and whether blocking is on. It does
+# not cover the Pi-hole host's load and memory (node_exporter on the host does,
+# see apps/pihole) or whether the DNS port answers (the blackbox probe does).
+# When a Pi-hole stops answering the API the exporter logs a warning and keeps the
+# last values, so "is it down" comes from the host and DNS probes, not from here.
+#
+# The addresses and the web password come from the `pihole` (ip, password) and
+# `pihole2` (ip) sealed secrets, from 1Password pihole/ip, pihole/password and
+# pihole2/ip. Both instances use the one password (apps/pihole/scripts/deploy.ts).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole-exporter
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pihole-exporter
+  template:
+    metadata:
+      labels:
+        app: pihole-exporter
+    spec:
+      # A Service named `pihole` would inject a PIHOLE_PORT=tcp://... variable the
+      # exporter cannot parse. None exists today, this keeps it that way.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: pihole-exporter
+          image: ekofr/pihole-exporter:v1.4.0
+          ports:
+            - name: http
+              containerPort: 9617
+              protocol: TCP
+          env:
+            # Kubernetes expands $(NAME) from variables defined above it.
+            - name: PIHOLE_1_IP
+              valueFrom:
+                secretKeyRef:
+                  name: pihole
+                  key: ip
+            - name: PIHOLE_2_IP
+              valueFrom:
+                secretKeyRef:
+                  name: pihole2
+                  key: ip
+            - name: PIHOLE_HOSTNAME
+              value: "$(PIHOLE_1_IP),$(PIHOLE_2_IP)"
+            - name: PIHOLE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pihole
+                  key: password
+            - name: PIHOLE_PROTOCOL
+              value: http
+            - name: PIHOLE_PORT
+              value: "80"
+            # Both Pi-holes answer the API inside one scrape; a slow one must not
+            # stall the other. The exporter collects them in parallel.
+            - name: TIMEOUT
+              value: 5s
+            - name: TOP_CLIENTS_COUNT
+              value: "20"
+            - name: PORT
+              value: "9617"
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: http
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 10m
+              memory: 24Mi
+            limits:
+              memory: 96Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-exporter
+  namespace: default
+spec:
+  selector:
+    app: pihole-exporter
+  ports:
+    - name: http
+      port: 9617
+      targetPort: http
+      protocol: TCP

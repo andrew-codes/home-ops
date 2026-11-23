@@ -12,3 +12,11 @@ patches:
       kind: HelmRelease
       name: vmagent
     path: gaming-pc-scrape.yaml
+  # The two Pi-holes' metrics, host load and DNS probes (apps/pihole). It appends
+  # to the lists the patch above creates, so it must come after it.
+  - target:
+      group: helm.toolkit.fluxcd.io
+      version: v2
+      kind: HelmRelease
+      name: vmagent
+    path: pihole-scrape.yaml

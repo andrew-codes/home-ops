@@ -3,6 +3,7 @@ import type { ConfigurationApi } from "@ha/configuration-api"
 import type { Configuration } from "@ha/configuration-workspace"
 import { logger } from "@ha/logger"
 import path from "path"
+import deployObservability from "./deploy-observability"
 
 const run = async (
   configurationApi: ConfigurationApi<Configuration>,
@@ -20,6 +21,7 @@ const run = async (
     dhcpIp,
     cidr,
   })
+  await deployObservability(configurationApi)
 }
 
 export default run

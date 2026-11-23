@@ -36,7 +36,7 @@
       "executor": "nx:run-commands",
       "outputs": ["{projectRoot}/.test-runs/unit"],
       "options": {
-        "command": "jest",
+        "command": "jest && scripts/test-rules.sh",
         "cwd": "{projectRoot}"
       }
     },
@@ -45,9 +45,17 @@
       "options": {
         "commands": [
           "ansible-playbook --syntax-check --inventory localhost, src/dns-records/index.yml",
-          "ansible-playbook --syntax-check --inventory localhost, src/dns-records-list/index.yml"
+          "ansible-playbook --syntax-check --inventory localhost, src/dns-records-list/index.yml",
+          "ansible-playbook --syntax-check --inventory localhost, src/observability/index.yml"
         ],
         "parallel": false,
+        "cwd": "{projectRoot}"
+      }
+    },
+    "deploy-observability": {
+      "executor": "@ha/nx-executors:invoke",
+      "options": {
+        "module": "scripts/deploy-observability.ts",
         "cwd": "{projectRoot}"
       }
     },

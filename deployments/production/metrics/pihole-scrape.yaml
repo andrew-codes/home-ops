@@ -1,0 +1,118 @@
+# Scrapes the two Pi-holes (apps/pihole). Three jobs, all labelled `pihole`
+# (pihole-1, pihole-2) so one dashboard variable and one alert label cover them:
+#
+#   pihole-exporter  the Pi-hole v6 API through the in-cluster exporter
+#                    (deployments/base/pihole-monitoring): queries per second,
+#                    blocked share, query types, upstreams, cache, top clients,
+#                    whether blocking is on.
+#   pihole-host      node_exporter on each Pi-hole's own host (apps/pihole,
+#                    src/observability): load, memory, disk, network. This is the
+#                    "was it overwhelmed" signal, and its `up` says the host is
+#                    reachable.
+#   pihole-dns       a real DNS question to each Pi-hole from the cluster, through
+#                    the blackbox exporter: `probe_success` and
+#                    `probe_duration_seconds`. This is the "is it answering" signal.
+#
+# The addresses are not in the repo. They come from the `pihole` and `pihole2`
+# sealed secrets (key `ip`, from 1Password pihole/ip and pihole2/ip) through the
+# PIHOLE_1_IP and PIHOLE_2_IP environment variables, and vmagent expands
+# `%{PIHOLE_1_IP}` in the scrape config. The secrets are optional: until they
+# exist vmagent keeps running every other job and skips the targets, and it picks
+# them up only when the pod is recreated after the secrets exist (the variables
+# are read at startup).
+#
+# This patch appends to the env and extraScrapeConfigs lists that
+# gaming-pc-scrape.yaml creates, so it must stay after that patch in
+# kustomization.yaml.
+- op: add
+  path: /spec/values/env/-
+  value:
+    name: PIHOLE_1_IP
+    valueFrom:
+      secretKeyRef:
+        name: pihole
+        key: ip
+        optional: true
+- op: add
+  path: /spec/values/env/-
+  value:
+    name: PIHOLE_2_IP
+    valueFrom:
+      secretKeyRef:
+        name: pihole2
+        key: ip
+        optional: true
+- op: add
+  path: /spec/values/extraScrapeConfigs/-
+  value:
+    job_name: "pihole-exporter"
+    # Each scrape makes eight API calls per Pi-hole. The exporter has its own 5s
+    # timeout per call and collects both Pi-holes in parallel.
+    scrape_interval: "30s"
+    scrape_timeout: "20s"
+    static_configs:
+      - targets:
+          - "pihole-exporter.default.svc.cluster.local:9617"
+    metric_relabel_configs:
+      # The exporter labels every series with the address it read from. Replace
+      # that with the name the logs and the dashboard use. An unset variable
+      # leaves the pattern literal, which matches nothing.
+      - source_labels: ["hostname"]
+        regex: "%{PIHOLE_1_IP}"
+        target_label: "pihole"
+        replacement: "pihole-1"
+      - source_labels: ["hostname"]
+        regex: "%{PIHOLE_2_IP}"
+        target_label: "pihole"
+        replacement: "pihole-2"
+      # The top domains are a long tail of names, one series per domain. The
+      # dashboard shows top clients and query types; the domains are in the
+      # Pi-hole's own interface and in its logs.
+      - source_labels: ["__name__"]
+        regex: "pihole_top_(queries|ads)"
+        action: "drop"
+- op: add
+  path: /spec/values/extraScrapeConfigs/-
+  value:
+    job_name: "pihole-host"
+    scrape_interval: "15s"
+    scrape_timeout: "10s"
+    static_configs:
+      - targets:
+          - "%{PIHOLE_1_IP}:9100"
+        labels:
+          pihole: "pihole-1"
+      - targets:
+          - "%{PIHOLE_2_IP}:9100"
+        labels:
+          pihole: "pihole-2"
+- op: add
+  path: /spec/values/extraScrapeConfigs/-
+  value:
+    job_name: "pihole-dns"
+    scrape_interval: "15s"
+    scrape_timeout: "10s"
+    metrics_path: "/probe"
+    params:
+      module: ["dns_udp"]
+    static_configs:
+      - targets:
+          - "%{PIHOLE_1_IP}:53"
+        labels:
+          pihole: "pihole-1"
+      - targets:
+          - "%{PIHOLE_2_IP}:53"
+        labels:
+          pihole: "pihole-2"
+    relabel_configs:
+      # Without the secrets the address is just ":53". Probing that would fail
+      # and page as a Pi-hole outage, so it is dropped instead.
+      - source_labels: ["__address__"]
+        regex: "[^:]+:53"
+        action: "keep"
+      - source_labels: ["__address__"]
+        target_label: "__param_target"
+      - source_labels: ["__param_target"]
+        target_label: "instance"
+      - target_label: "__address__"
+        replacement: "pihole-blackbox.default.svc.cluster.local:9115"

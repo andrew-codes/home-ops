@@ -1,0 +1,167 @@
+---
+# Sends the Pi-hole query log and FTL log to the cluster's VictoriaLogs and
+# exposes host metrics (load, memory, disk, network) for vmagent to scrape. It
+# does not touch Pi-hole's own configuration, so it is safe to re-run and does
+# not need the Pi-hole password. See scripts/deploy-observability.ts.
+#
+# The OS logs of these hosts already reach VictoriaLogs through the rsyslog
+# forwarding of apps/pve (deploy-guest-observability); the host name those logs
+# carry (pihole-1, pihole-2) is set there, and the log files below reuse it.
+- name: Pi-hole logs and host metrics
+  hosts: all
+  become: yes
+  become_method: ansible.builtin.sudo
+  become_user: root
+  gather_facts: yes
+  connection: ssh
+  remote_user: root
+  vars:
+    # Where VictoriaLogs (syslog) is published on the Kubernetes node.
+    # observability_host is passed in by scripts/deploy-observability.ts.
+    observability_syslog_port: 30514
+    pihole_log_dir: /var/log/pihole
+  handlers:
+    - name: restart rsyslog
+      ansible.builtin.systemd:
+        name: rsyslog
+        state: restarted
+      listen: restart rsyslog
+
+    - name: restart node exporter
+      ansible.builtin.systemd:
+        name: prometheus-node-exporter
+        state: restarted
+      listen: restart node exporter
+
+  tasks:
+    - name: Check that the observability node address is set
+      ansible.builtin.assert:
+        that:
+          - observability_host is defined
+          - observability_host | string | length > 0
+        fail_msg: observability_host must be the address of the Kubernetes node.
+        quiet: true
+
+    # Logs: pihole.log (the DNS query log) and FTL.log (FTL's own log: startup,
+    # rate limiting, database and gravity events) are plain files, not syslog,
+    # so rsyslog reads them with imfile and forwards them to the same listener
+    # as the OS logs. They arrive with app_name pihole-dns and pihole-FTL.
+    - name: Install rsyslog
+      ansible.builtin.apt:
+        name: rsyslog
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+      tags: [logs]
+
+    # Ubuntu's rsyslog drops privileges to the syslog user, which cannot read
+    # files that only the pihole group may read. Debian runs it as root, and has
+    # no syslog user, so nothing changes there.
+    - name: Check whether rsyslog runs as the syslog user
+      ansible.builtin.getent:
+        database: passwd
+        key: syslog
+      failed_when: false
+      register: pihole_syslog_user
+      tags: [logs]
+
+    - name: Let the syslog user read the Pi-hole logs
+      ansible.builtin.user:
+        name: syslog
+        groups: pihole
+        append: yes
+      when: pihole_syslog_user.failed is not defined or not pihole_syslog_user.failed
+      notify: restart rsyslog
+      tags: [logs]
+
+    # `rsyslogd -N1` fails here with "Permission denied" on a temporary file
+    # (see apps/pve tasks/logs.yml), so the config is installed at its real
+    # path, the whole configuration is checked, and a config that fails is rolled
+    # back and fails the play. The restart handler only runs at the end of a
+    # successful play, so rsyslog never restarts onto a config it cannot load.
+    - name: Forward the Pi-hole log files to VictoriaLogs
+      tags: [logs]
+      block:
+        - name: Install the Pi-hole log forwarding config
+          ansible.builtin.template:
+            src: pihole-logs-rsyslog.conf.j2
+            dest: /etc/rsyslog.d/91-pihole-logs.conf
+            owner: root
+            group: root
+            mode: "0644"
+            backup: yes
+          register: pihole_rsyslog_conf
+          notify: restart rsyslog
+
+        - name: Check the full rsyslog configuration loads
+          ansible.builtin.command: rsyslogd -N1
+          register: pihole_rsyslog_check
+          changed_when: false
+          when: pihole_rsyslog_conf is changed
+      rescue:
+        - name: Restore the previous Pi-hole log forwarding config
+          ansible.builtin.copy:
+            src: "{{ pihole_rsyslog_conf.backup_file }}"
+            dest: /etc/rsyslog.d/91-pihole-logs.conf
+            remote_src: yes
+            owner: root
+            group: root
+            mode: "0644"
+          when: pihole_rsyslog_conf.backup_file | default('') | length > 0
+
+        - name: Remove the new config when there was no previous one
+          ansible.builtin.file:
+            path: /etc/rsyslog.d/91-pihole-logs.conf
+            state: absent
+          when:
+            - pihole_rsyslog_conf is changed
+            - pihole_rsyslog_conf.backup_file | default('') | length == 0
+
+        - name: Fail because rsyslog cannot load the Pi-hole log forwarding config
+          ansible.builtin.fail:
+            msg: >-
+              rsyslogd -N1 rejected the configuration, so the Pi-hole log
+              forwarding config was rolled back and rsyslog was not restarted:
+              {{ pihole_rsyslog_check.stderr | default(ansible_failed_result.msg | default('')) }}
+      always:
+        - name: Remove the config backup
+          ansible.builtin.file:
+            path: "{{ pihole_rsyslog_conf.backup_file }}"
+            state: absent
+          when: pihole_rsyslog_conf.backup_file | default('') | length > 0
+
+    - name: Ensure rsyslog is enabled and running
+      ansible.builtin.systemd:
+        name: rsyslog
+        enabled: yes
+        state: started
+      tags: [logs]
+
+    # Metrics: node_exporter's defaults (CPU, load, memory, disk, network) on
+    # port 9100, which vmagent scrapes as job pihole-host. Nothing here changes
+    # how Pi-hole runs.
+    - name: Install node exporter
+      ansible.builtin.apt:
+        name: prometheus-node-exporter
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+      tags: [metrics]
+
+    - name: Ensure node exporter is enabled and running
+      ansible.builtin.systemd:
+        name: prometheus-node-exporter
+        enabled: yes
+        state: started
+      tags: [metrics]
+
+    - name: Wait for node exporter to answer
+      ansible.builtin.uri:
+        url: http://127.0.0.1:9100/metrics
+        return_content: no
+      register: pihole_node_exporter
+      retries: 6
+      delay: 5
+      until: pihole_node_exporter.status == 200
+      changed_when: false
+      tags: [metrics]

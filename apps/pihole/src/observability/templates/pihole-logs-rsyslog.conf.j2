@@ -1,0 +1,28 @@
+# Managed by Ansible (apps/pihole). Do not edit by hand.
+# Reads the Pi-hole log files and forwards them to VictoriaLogs over TCP in
+# RFC 5424 format, next to the OS logs that 90-victorialogs.conf (apps/pve)
+# forwards. The host name is set there with global(localHostname=...), so these
+# lines carry the same hostname (pihole-1 or pihole-2).
+#
+# A ruleset of their own keeps these lines out of /var/log/syslog, where every
+# DNS query would otherwise be written a second time, and sends only this
+# stream through the forward below. The disk queue keeps messages while the
+# cluster is down.
+module(load="imfile" PollingInterval="10")
+
+ruleset(name="pihole-logs") {
+  action(type="omfwd" target="{{ observability_host }}" port="{{ observability_syslog_port }}" protocol="tcp"
+    template="RSYSLOG_SyslogProtocol23Format"
+    action.resumeRetryCount="-1"
+    queue.type="LinkedList" queue.filename="pihole-logs" queue.maxDiskSpace="100m" queue.saveOnShutdown="on")
+}
+
+# The query log: one line per query, reply and block decision.
+input(type="imfile" File="{{ pihole_log_dir }}/pihole.log" Tag="pihole-dns"
+  Severity="info" Facility="daemon" ruleset="pihole-logs"
+  PersistStateInterval="200" reopenOnTruncate="on")
+
+# FTL's own log: startup, rate limiting, database locks, gravity.
+input(type="imfile" File="{{ pihole_log_dir }}/FTL.log" Tag="pihole-FTL"
+  Severity="info" Facility="daemon" ruleset="pihole-logs"
+  PersistStateInterval="200" reopenOnTruncate="on")
