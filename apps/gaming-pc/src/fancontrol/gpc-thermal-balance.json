@@ -1,0 +1,520 @@
+{
+  "__VERSION__": "286",
+  "FanControl": {
+    "Controls": [
+      {
+        "NickName": "Chassis fan A (Fan #1, DC)",
+        "Identifier": "/lpc/nct6799d/control/0",
+        "IsHidden": false,
+        "Enable": true,
+        "SelectedFanCurve": {
+          "Name": "Chassis airflow"
+        },
+        "SelectedOffset": 0,
+        "PairedFanSensor": {
+          "Identifier": "/lpc/nct6799d/fan/0"
+        },
+        "SelectedStart": 0,
+        "SelectedStop": 0,
+        "MinimumPercent": 40,
+        "SelectedCommandStepUp": 10,
+        "SelectedCommandStepDown": 2,
+        "ManualControlValue": 50,
+        "ManualControl": false,
+        "ForceApply": true,
+        "Calibration": null,
+        "MaximumPercent": 100
+      },
+      {
+        "NickName": "CPU radiator fans (Fan #2, PWM)",
+        "Identifier": "/lpc/nct6799d/control/1",
+        "IsHidden": false,
+        "Enable": true,
+        "SelectedFanCurve": {
+          "Name": "CPU radiator fans"
+        },
+        "SelectedOffset": 0,
+        "PairedFanSensor": {
+          "Identifier": "/lpc/nct6799d/fan/1"
+        },
+        "SelectedStart": 0,
+        "SelectedStop": 0,
+        "MinimumPercent": 20,
+        "SelectedCommandStepUp": 10,
+        "SelectedCommandStepDown": 3,
+        "ManualControlValue": 50,
+        "ManualControl": false,
+        "ForceApply": true,
+        "Calibration": null,
+        "MaximumPercent": 100
+      },
+      {
+        "NickName": "Chassis fan B (Fan #3, DC)",
+        "Identifier": "/lpc/nct6799d/control/2",
+        "IsHidden": false,
+        "Enable": true,
+        "SelectedFanCurve": {
+          "Name": "Chassis airflow"
+        },
+        "SelectedOffset": 0,
+        "PairedFanSensor": {
+          "Identifier": "/lpc/nct6799d/fan/2"
+        },
+        "SelectedStart": 0,
+        "SelectedStop": 0,
+        "MinimumPercent": 40,
+        "SelectedCommandStepUp": 10,
+        "SelectedCommandStepDown": 2,
+        "ManualControlValue": 50,
+        "ManualControl": false,
+        "ForceApply": true,
+        "Calibration": null,
+        "MaximumPercent": 100
+      },
+      {
+        "NickName": "Fan #4 (nothing connected)",
+        "Identifier": "/lpc/nct6799d/control/3",
+        "IsHidden": false,
+        "Enable": false,
+        "SelectedFanCurve": null,
+        "SelectedOffset": 0,
+        "PairedFanSensor": null,
+        "SelectedStart": 0,
+        "SelectedStop": 0,
+        "MinimumPercent": 0,
+        "SelectedCommandStepUp": 8,
+        "SelectedCommandStepDown": 8,
+        "ManualControlValue": 50,
+        "ManualControl": false,
+        "ForceApply": false,
+        "Calibration": null,
+        "MaximumPercent": 100
+      },
+      {
+        "NickName": "Fan #5 (nothing connected)",
+        "Identifier": "/lpc/nct6799d/control/4",
+        "IsHidden": false,
+        "Enable": false,
+        "SelectedFanCurve": null,
+        "SelectedOffset": 0,
+        "PairedFanSensor": null,
+        "SelectedStart": 0,
+        "SelectedStop": 0,
+        "MinimumPercent": 0,
+        "SelectedCommandStepUp": 8,
+        "SelectedCommandStepDown": 8,
+        "ManualControlValue": 50,
+        "ManualControl": false,
+        "ForceApply": false,
+        "Calibration": null,
+        "MaximumPercent": 100
+      },
+      {
+        "NickName": "Fan #6 (nothing connected)",
+        "Identifier": "/lpc/nct6799d/control/5",
+        "IsHidden": false,
+        "Enable": false,
+        "SelectedFanCurve": null,
+        "SelectedOffset": 0,
+        "PairedFanSensor": null,
+        "SelectedStart": 0,
+        "SelectedStop": 0,
+        "MinimumPercent": 0,
+        "SelectedCommandStepUp": 8,
+        "SelectedCommandStepDown": 8,
+        "ManualControlValue": 50,
+        "ManualControl": false,
+        "ForceApply": false,
+        "Calibration": null,
+        "MaximumPercent": 100
+      },
+      {
+        "NickName": "Pump (Fan #7) - leave at 100%, do not enable",
+        "Identifier": "/lpc/nct6799d/control/6",
+        "IsHidden": false,
+        "Enable": false,
+        "SelectedFanCurve": null,
+        "SelectedOffset": 0,
+        "PairedFanSensor": null,
+        "SelectedStart": 0,
+        "SelectedStop": 0,
+        "MinimumPercent": 0,
+        "SelectedCommandStepUp": 8,
+        "SelectedCommandStepDown": 8,
+        "ManualControlValue": 50,
+        "ManualControl": false,
+        "ForceApply": false,
+        "Calibration": null,
+        "MaximumPercent": 100
+      },
+      {
+        "NickName": "GPU fan 1 (disabled: NVIDIA curve)",
+        "Identifier": "NVApiWrapper/0-GB202-A/control/0",
+        "IsHidden": false,
+        "Enable": false,
+        "SelectedFanCurve": {
+          "Name": "GPU fans"
+        },
+        "SelectedOffset": 0,
+        "PairedFanSensor": {
+          "Identifier": "NVApiWrapper/0-GB202-A/fan/0"
+        },
+        "SelectedStart": 0,
+        "SelectedStop": 0,
+        "MinimumPercent": 30,
+        "SelectedCommandStepUp": 15,
+        "SelectedCommandStepDown": 3,
+        "ManualControlValue": 50,
+        "ManualControl": false,
+        "ForceApply": false,
+        "Calibration": null,
+        "MaximumPercent": 100
+      },
+      {
+        "NickName": "GPU fan 2 (disabled: NVIDIA curve)",
+        "Identifier": "NVApiWrapper/0-GB202-A/control/1",
+        "IsHidden": false,
+        "Enable": false,
+        "SelectedFanCurve": {
+          "Name": "GPU fans"
+        },
+        "SelectedOffset": 0,
+        "PairedFanSensor": {
+          "Identifier": "NVApiWrapper/0-GB202-A/fan/1"
+        },
+        "SelectedStart": 0,
+        "SelectedStop": 0,
+        "MinimumPercent": 30,
+        "SelectedCommandStepUp": 15,
+        "SelectedCommandStepDown": 3,
+        "ManualControlValue": 50,
+        "ManualControl": false,
+        "ForceApply": false,
+        "Calibration": null,
+        "MaximumPercent": 100
+      }
+    ],
+    "CustomSensors": [],
+    "FanCurves": [
+      {
+        "Name": "CPU radiator fans",
+        "IsHidden": false,
+        "CommandMode": 0,
+        "SelectedTempSource": {
+          "Identifier": "/amdcpu/0/temperature/2"
+        },
+        "Points": [
+          "40,25",
+          "50,32",
+          "58,42",
+          "65,55",
+          "72,72",
+          "78,90",
+          "82,100"
+        ],
+        "MaximumTemperature": 100,
+        "MinimumTemperature": 20,
+        "MaximumCommand": 100,
+        "HysteresisConfig": {
+          "ResponseTimeUp": 3,
+          "ResponseTimeDown": 15,
+          "HysteresisValueUp": 2,
+          "HysteresisValueDown": 3,
+          "IgnoreHysteresisAtLimits": true
+        }
+      },
+      {
+        "Name": "Chassis from GPU core",
+        "IsHidden": false,
+        "CommandMode": 0,
+        "SelectedTempSource": {
+          "Identifier": "NVApiWrapper/0-GB202-A/sensor/0"
+        },
+        "Points": [
+          "45,40",
+          "55,45",
+          "62,60",
+          "68,80",
+          "72,100"
+        ],
+        "MaximumTemperature": 100,
+        "MinimumTemperature": 20,
+        "MaximumCommand": 100,
+        "HysteresisConfig": {
+          "ResponseTimeUp": 2,
+          "ResponseTimeDown": 20,
+          "HysteresisValueUp": 1,
+          "HysteresisValueDown": 3,
+          "IgnoreHysteresisAtLimits": true
+        }
+      },
+      {
+        "Name": "Chassis from socket area",
+        "IsHidden": false,
+        "CommandMode": 0,
+        "SelectedTempSource": {
+          "Identifier": "/lpc/nct6799d/temperature/22"
+        },
+        "Points": [
+          "50,40",
+          "60,52",
+          "68,72",
+          "74,92",
+          "78,100"
+        ],
+        "MaximumTemperature": 100,
+        "MinimumTemperature": 20,
+        "MaximumCommand": 100,
+        "HysteresisConfig": {
+          "ResponseTimeUp": 3,
+          "ResponseTimeDown": 20,
+          "HysteresisValueUp": 1,
+          "HysteresisValueDown": 3,
+          "IgnoreHysteresisAtLimits": true
+        }
+      },
+      {
+        "Name": "Chassis from CPU",
+        "IsHidden": false,
+        "CommandMode": 0,
+        "SelectedTempSource": {
+          "Identifier": "/amdcpu/0/temperature/2"
+        },
+        "Points": [
+          "55,40",
+          "70,50",
+          "80,75",
+          "86,100"
+        ],
+        "MaximumTemperature": 100,
+        "MinimumTemperature": 20,
+        "MaximumCommand": 100,
+        "HysteresisConfig": {
+          "ResponseTimeUp": 5,
+          "ResponseTimeDown": 30,
+          "HysteresisValueUp": 2,
+          "HysteresisValueDown": 4,
+          "IgnoreHysteresisAtLimits": true
+        }
+      },
+      {
+        "Name": "Chassis from DIMM 1",
+        "IsHidden": false,
+        "CommandMode": 0,
+        "SelectedTempSource": {
+          "Identifier": "/memory/dimm/1/temperature/0"
+        },
+        "Points": [
+          "60,40",
+          "66,52",
+          "70,68",
+          "74,88",
+          "78,100"
+        ],
+        "MaximumTemperature": 100,
+        "MinimumTemperature": 20,
+        "MaximumCommand": 100,
+        "HysteresisConfig": {
+          "ResponseTimeUp": 10,
+          "ResponseTimeDown": 30,
+          "HysteresisValueUp": 1,
+          "HysteresisValueDown": 2,
+          "IgnoreHysteresisAtLimits": true
+        }
+      },
+      {
+        "Name": "Chassis from DIMM 3",
+        "IsHidden": false,
+        "CommandMode": 0,
+        "SelectedTempSource": {
+          "Identifier": "/memory/dimm/3/temperature/0"
+        },
+        "Points": [
+          "60,40",
+          "66,52",
+          "70,68",
+          "74,88",
+          "78,100"
+        ],
+        "MaximumTemperature": 100,
+        "MinimumTemperature": 20,
+        "MaximumCommand": 100,
+        "HysteresisConfig": {
+          "ResponseTimeUp": 10,
+          "ResponseTimeDown": 30,
+          "HysteresisValueUp": 1,
+          "HysteresisValueDown": 2,
+          "IgnoreHysteresisAtLimits": true
+        }
+      },
+      {
+        "Name": "Chassis airflow",
+        "IsHidden": false,
+        "CommandMode": 0,
+        "SelectedFanCurves": [
+          {
+            "Name": "Chassis from GPU core"
+          },
+          {
+            "Name": "Chassis from socket area"
+          },
+          {
+            "Name": "Chassis from CPU"
+          },
+          {
+            "Name": "Chassis from DIMM 1"
+          },
+          {
+            "Name": "Chassis from DIMM 3"
+          }
+        ],
+        "SelectedMixFunction": 0
+      },
+      {
+        "Name": "GPU fans",
+        "IsHidden": false,
+        "CommandMode": 0,
+        "SelectedTempSource": {
+          "Identifier": "NVApiWrapper/0-GB202-A/sensor/0"
+        },
+        "Points": [
+          "50,30",
+          "56,40",
+          "62,52",
+          "67,66",
+          "71,80",
+          "74,92",
+          "77,100"
+        ],
+        "MaximumTemperature": 100,
+        "MinimumTemperature": 20,
+        "MaximumCommand": 100,
+        "HysteresisConfig": {
+          "ResponseTimeUp": 1,
+          "ResponseTimeDown": 10,
+          "HysteresisValueUp": 1,
+          "HysteresisValueDown": 2,
+          "IgnoreHysteresisAtLimits": true
+        }
+      }
+    ],
+    "FanSensors": [
+      {
+        "Identifier": "/lpc/nct6799d/fan/0",
+        "IsHidden": false,
+        "NickName": "Chassis fan A (Fan #1)"
+      },
+      {
+        "Identifier": "/lpc/nct6799d/fan/1",
+        "IsHidden": false,
+        "NickName": "CPU radiator fans (Fan #2)"
+      },
+      {
+        "Identifier": "/lpc/nct6799d/fan/2",
+        "IsHidden": false,
+        "NickName": "Chassis fan B (Fan #3)"
+      },
+      {
+        "Identifier": "/lpc/nct6799d/fan/3",
+        "IsHidden": false,
+        "NickName": "Fan #4 (unused)"
+      },
+      {
+        "Identifier": "/lpc/nct6799d/fan/4",
+        "IsHidden": false,
+        "NickName": "Fan #5 (unused)"
+      },
+      {
+        "Identifier": "/lpc/nct6799d/fan/5",
+        "IsHidden": false,
+        "NickName": "Fan #6 (unused)"
+      },
+      {
+        "Identifier": "/lpc/nct6799d/fan/6",
+        "IsHidden": false,
+        "NickName": "Pump (Fan #7)"
+      },
+      {
+        "Identifier": "/lpc/ec/fan/0",
+        "IsHidden": false,
+        "NickName": "CPU Optional Fan"
+      },
+      {
+        "Identifier": "NVApiWrapper/0-GB202-A/fan/0",
+        "IsHidden": false,
+        "NickName": "Fan 1 - NVIDIA GeForce RTX 5090"
+      },
+      {
+        "Identifier": "NVApiWrapper/0-GB202-A/fan/1",
+        "IsHidden": false,
+        "NickName": "Fan 2 - NVIDIA GeForce RTX 5090"
+      }
+    ],
+    "TemperatureSensors": [
+      {
+        "Identifier": "/amdcpu/0/temperature/2",
+        "IsHidden": false,
+        "NickName": "CPU Tctl"
+      },
+      {
+        "Identifier": "/memory/dimm/1/temperature/0",
+        "IsHidden": false,
+        "NickName": "RAM DIMM 1"
+      },
+      {
+        "Identifier": "/memory/dimm/3/temperature/0",
+        "IsHidden": false,
+        "NickName": "RAM DIMM 3"
+      },
+      {
+        "Identifier": "/lpc/nct6799d/temperature/22",
+        "IsHidden": false,
+        "NickName": "Socket and VRM area (Super I/O CPU)"
+      },
+      {
+        "Identifier": "NVApiWrapper/0-GB202-A/sensor/0",
+        "IsHidden": false,
+        "NickName": "GPU core"
+      }
+    ]
+  },
+  "Sensors": {
+    "AdlxWrapperSettings": {
+      "Enabled": true
+    },
+    "DisabledPlugins": [],
+    "DisableStorageSensors": true,
+    "LibreHardwareMonitorSettings": {
+      "Controller": true,
+      "CPU": true,
+      "EmbeddedEC": true,
+      "ExcludeUsbStorage": false,
+      "GPU": true,
+      "Memory": true,
+      "Motherboard": true,
+      "PowerMonitor": true,
+      "PSU": false,
+      "Storage": false,
+      "StorageUpdateInterval": "00:01:00",
+      "ZeroRPMOverride": true
+    },
+    "NvAPIWrapperSettings": {
+      "Enabled": true,
+      "ZeroRPMOverride": true
+    }
+  },
+  "MainWindow": {
+    "Fahrenheit": true,
+    "HideCalibration": false,
+    "HideFanSpeedCards": true,
+    "HorizontalUIOrientation": false,
+    "PrimaryColor": "#FF607D8B",
+    "SecondaryColor": "#FFAEEA00",
+    "SelectedTheme": "",
+    "ShowHiddenCards": false,
+    "SyncThemeWithWindows": true,
+    "SyncTrayIconColorWithWindows": true,
+    "TrayIconColor": null,
+    "TrayIcons": []
+  }
+}

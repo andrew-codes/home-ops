@@ -15,6 +15,7 @@ pwsh -NoProfile -File "$root/tests/drive-health.test.ps1"
 pwsh -NoProfile -File "$root/tests/storage.test.ps1"
 pwsh -NoProfile -File "$root/tests/steam-library.test.ps1"
 pwsh -NoProfile -File "$root/tests/software-vscode.test.ps1"
+pwsh -NoProfile -File "$root/tests/fancontrol.test.ps1"
 
 vmrule="$root/../../deployments/production/alerting/gaming-pc-vmrules.yaml"
 # Keep in step with the VictoriaMetrics version in deployments/base/metrics/vmsingle.yaml.

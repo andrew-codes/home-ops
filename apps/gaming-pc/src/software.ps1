@@ -49,6 +49,13 @@ $MachinePackages = @(
     # smartctl, which drive-health.ps1 (installed by monitoring.ps1) reads the
     # NVMe drives' SMART health with.
     @{ Name = 'smartmontools'; Id = 'smartmontools.smartmontools' }
+    # Fan control. Its manifest publishes an Inno installer (elevated, per
+    # machine) and a portable zip, so the Inno one is asked for by type: the
+    # zip would land in a per-user folder. Like the rest, it is installed once
+    # and not upgraded by the deploy. fancontrol.ps1 configures it and the
+    # PawnIO driver it ships is what monitoring.ps1's OhmGraphite reads CPU
+    # temperature through.
+    @{ Name = 'FanControl'; Id = 'Rem0o.FanControl'; InstallerType = 'inno' }
 )
 
 # Must not be present. Discord additionally needs the leftover-hunting below:
@@ -576,7 +583,7 @@ function Invoke-MachinePhase {
     Write-Log 'Installing machine-scope packages via winget...'
     foreach ($package in $MachinePackages) {
         Invoke-Step -Name $package.Name -Action {
-            Install-WingetPackage -Id $package.Id -Name $package.Name -Scope machine
+            Install-WingetPackage -Id $package.Id -Name $package.Name -Scope machine -InstallerType $package.InstallerType
         }.GetNewClosure()
     }
 
