@@ -8,6 +8,9 @@
 #                     Wrapped by fps-exporter.ps1 and run by a boot-time task.
 #   OhmGraphite       CPU package temperature only, through LibreHardwareMonitor
 #                     and the PawnIO driver FanControl already installs.
+#   drive-health.ps1  NVMe wear, spare, errors and temperature from smartctl
+#                     (smartmontools, installed by software.ps1), written every
+#                     5 minutes as a textfile for windows_exporter.
 #
 # Run elevated by scripts/deploy.yml. Every step is idempotent: it compares the
 # state it wants against a marker under HKLM:\SOFTWARE\gaming-pc\monitoring and
@@ -62,6 +65,8 @@ $MonitoringRoot = 'C:\ProgramData\gaming-pc\monitoring'
 $TextfileDirectory = Join-Path $MonitoringRoot 'textfile'
 $StateKey = 'HKLM:\SOFTWARE\gaming-pc\monitoring'
 $FpsTaskName = 'Gaming-PC-FPS'
+$DriveHealthTaskName = 'Gaming-PC-DriveHealth'
+$SmartctlPath = Join-Path $env:ProgramFiles 'smartmontools\bin\smartctl.exe'
 
 # ---------------------------------------------------------------------------
 # Step harness (same shape as software.ps1)
@@ -301,6 +306,71 @@ function Stop-FpsExporter {
 }
 
 # ---------------------------------------------------------------------------
+# Drive health
+# ---------------------------------------------------------------------------
+
+function Install-DriveHealth {
+    <#
+    .SYNOPSIS
+        Installs the scripts and the 5 minute task that write the NVMe SMART textfile.
+    .DESCRIPTION
+        Not a long-running process like PresentMon: each run reads a few log
+        pages and exits, as SYSTEM at BelowNormal priority. A boot trigger makes
+        the series appear without waiting for the first interval.
+    #>
+    $changed = $false
+    $scripts = 'drive-health.ps1', 'drive-health-metrics.ps1'
+    foreach ($script in $scripts) {
+        $source = Join-Path $ScriptDir $script
+        $target = Join-Path $MonitoringRoot $script
+        if (-not (Test-Path $target) -or (Get-FileHash $source -Algorithm SHA256).Hash -ne (Get-FileHash $target -Algorithm SHA256).Hash) {
+            Copy-Item -Path $source -Destination $target -Force
+            $changed = $true
+        }
+    }
+
+    # The task's command line names the smartctl path and the textfile
+    # directory, so a change to either re-registers it.
+    $taskVersion = "1|$SmartctlPath|$TextfileDirectory"
+    if (-not (Get-ScheduledTask -TaskName $DriveHealthTaskName -ErrorAction SilentlyContinue) -or (Get-State 'DriveHealthTask') -ne $taskVersion) {
+        $arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -SmartctlPath "{1}" -TextfileDirectory "{2}"' -f `
+            (Join-Path $MonitoringRoot 'drive-health.ps1'), $SmartctlPath, $TextfileDirectory
+        $action = New-ScheduledTaskAction -Execute 'pwsh.exe' -Argument $arguments -WorkingDirectory $MonitoringRoot
+        $triggers = @(
+            New-ScheduledTaskTrigger -AtStartup
+            New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 5)
+        )
+        $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+            -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
+        $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+        Register-ScheduledTask -TaskName $DriveHealthTaskName -Force `
+            -InputObject (New-ScheduledTask -Action $action -Trigger $triggers -Settings $settings -Principal $principal) | Out-Null
+        Set-State 'DriveHealthTask' $taskVersion
+        $changed = $true
+    }
+
+    if ($changed) {
+        # Run it now so the first deploy shows whether smartctl works, instead
+        # of five minutes later.
+        Start-ScheduledTask -TaskName $DriveHealthTaskName
+        Write-Log "  ${DriveHealthTaskName}: installed"
+        return 'Installed'
+    }
+    Write-Log "  ${DriveHealthTaskName}: present"
+    return 'Present'
+}
+
+function Test-DriveHealthSource {
+    # smartctl comes from software.ps1, which runs before this script. If it is
+    # missing, the task writes a drive that cannot be read instead of metrics.
+    if (-not (Test-Path $SmartctlPath)) {
+        throw "smartctl is not at $SmartctlPath; software.ps1 installs it (winget smartmontools.smartmontools)"
+    }
+    Write-Log '  smartctl: present'
+    return 'Present'
+}
+
+# ---------------------------------------------------------------------------
 # OhmGraphite
 # ---------------------------------------------------------------------------
 
@@ -445,6 +515,9 @@ Invoke-Step -Name 'Monitoring directory' -Action { Initialize-MonitoringDirector
 Invoke-Step -Name 'windows_exporter' -Action { Install-WindowsExporter }
 Invoke-Step -Name 'PresentMon' -Action { Install-PresentMon }
 Invoke-Step -Name 'OhmGraphite' -Action { Install-OhmGraphite }
+# Optional: a missing smartctl is a warning to read, not a reason to fail a
+# deploy that changed everything else, same as the sensor checks below.
+Invoke-Step -Name 'Drive health' -Optional -Action { Install-DriveHealth }
 
 # Warnings, not failures: a missing sensor is something to read about and fix on
 # the machine, not a reason to fail a deploy that changed everything else.
@@ -455,6 +528,13 @@ Invoke-Step -Name 'windows_exporter GPU sensors' -Optional -Action {
     Test-Endpoint -Name 'windows_exporter' -Url "http://localhost:$($WindowsExporter.Port)/metrics" `
         -ExpectedSeries 'windows_gpu_temperature_celsius', 'windows_exporter_collector_success{collector="gpu"} 1', 'windows_exporter_collector_success{collector="textfile"} 1'
 }
+Invoke-Step -Name 'windows_exporter drive health' -Optional -Action {
+    # The task runs once as it is registered; windows_exporter reads the file on
+    # its next scrape, and Test-Endpoint retries for half a minute.
+    Test-Endpoint -Name 'windows_exporter' -Url "http://localhost:$($WindowsExporter.Port)/metrics" `
+        -ExpectedSeries 'nvme_smart_percentage_used', 'nvme_health_collect_ok'
+}
+Invoke-Step -Name 'smartctl' -Optional -Action { Test-DriveHealthSource }
 Invoke-Step -Name 'OhmGraphite CPU sensors' -Optional -Action {
     Test-Endpoint -Name 'OhmGraphite' -Url "http://localhost:$($OhmGraphite.Port)/metrics" `
         -ExpectedSeries 'ohm_cpu_celsius'

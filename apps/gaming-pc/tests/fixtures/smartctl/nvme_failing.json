@@ -1,0 +1,80 @@
+{
+  "json_format_version": [1, 0],
+  "smartctl": {
+    "version": [7, 5],
+    "pre_release": false,
+    "svn_revision": "5714",
+    "platform_info": "x86_64-w64-mingw32-w10-22H2",
+    "build_info": "(sf-7.5-1)",
+    "argv": ["smartctl", "--json", "--all", "--device", "nvme", "/dev/nvme1"],
+    "exit_status": 0
+  },
+  "local_time": {
+    "time_t": 1795440000,
+    "asctime": "Mon Nov 23 12:00:00 2026 UTC"
+  },
+  "device": {
+    "name": "/dev/nvme1",
+    "info_name": "/dev/nvme1",
+    "type": "nvme",
+    "protocol": "NVMe"
+  },
+  "model_name": "WD_BLACK SN850X 4000GB",
+  "serial_number": "24123M800987",
+  "firmware_version": "4B2QJXD7",
+  "nvme_pci_vendor": {
+    "id": 5197,
+    "subsystem_id": 5197
+  },
+  "nvme_ieee_oui_identifier": 9528,
+  "nvme_total_capacity": 4000787030016,
+  "nvme_unallocated_capacity": 0,
+  "nvme_controller_id": 6,
+  "nvme_version": {
+    "string": "2.0",
+    "value": 131072
+  },
+  "nvme_number_of_namespaces": 1,
+  "user_capacity": {
+    "blocks": 7814037168,
+    "bytes": 4000787030016
+  },
+  "logical_block_size": 512,
+  "smart_support": {
+    "available": true,
+    "enabled": true
+  },
+  "smart_status": {
+    "passed": false,
+    "nvme": {
+      "value": 0
+    }
+  },
+  "nvme_smart_health_information_log": {
+    "critical_warning": 0,
+    "temperature": 52,
+    "available_spare": 94,
+    "available_spare_threshold": 10,
+    "percentage_used": 89,
+    "data_units_read": 90100000,
+    "data_units_written": 150600000,
+    "host_reads": 3604000000,
+    "host_writes": 4518000000,
+    "controller_busy_time": 69600,
+    "power_cycles": 905,
+    "power_on_hours": 17400,
+    "unsafe_shutdowns": 212,
+    "media_errors": 3,
+    "num_err_log_entries": 9,
+    "warning_temp_time": 120,
+    "critical_comp_time": 0,
+    "temperature_sensors": [52, 61]
+  },
+  "temperature": {
+    "current": 52
+  },
+  "power_cycle_count": 905,
+  "power_on_time": {
+    "hours": 17400
+  }
+}

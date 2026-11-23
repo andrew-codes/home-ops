@@ -5,6 +5,10 @@
 # sees the drive's speed but not its health, and the Proxmox metric stream does
 # not carry SMART data.
 #
+# The same nvme_smart_* series also come from the gaming PC (job "gaming-pc",
+# gaming-pc-vmrules.yaml), so every rule here excludes that job: a worn drive in
+# the gaming PC must not be reported as the Proxmox host's.
+#
 # The pushes arrive in bursts with gaps (the timer runs every 5 minutes, and a
 # push can be missed), so every current value goes through last_over_time and
 # presence through absent_over_time: a missed run neither fires nor mutes an alert.
@@ -28,7 +32,7 @@ spec:
             description: "The NVMe health timer on the Proxmox host has not pushed for 25 minutes, so a failing drive would go unnoticed. On the host run `systemctl status nvme-health.timer nvme-health.service` and `journalctl -u nvme-health`, and run `OP_VAULT=home-ops yarn nx run pve:deploy-observability` to put it back."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
         - alert: PVENVMeHealthSourceFailing
-          expr: last_over_time(nvme_health_collect_ok[15m]) == 0
+          expr: last_over_time(nvme_health_collect_ok{job!="gaming-pc"}[15m]) == 0
           for: 10m
           labels:
             severity: warning
@@ -43,7 +47,7 @@ spec:
         # only, 4 volatile memory backup failed, 5 persistent memory region
         # unreliable. The value is the bit field.
         - alert: PVENVMeCriticalWarning
-          expr: last_over_time(nvme_smart_critical_warning[15m]) > 0
+          expr: last_over_time(nvme_smart_critical_warning{job!="gaming-pc"}[15m]) > 0
           for: 5m
           labels:
             severity: critical
@@ -57,7 +61,7 @@ spec:
         # window from zero, so the errors a drive already had would fire the
         # alert for a day after a first deploy.
         - alert: PVENVMeMediaErrors
-          expr: max_over_time(nvme_smart_media_errors[15m]) - min_over_time(nvme_smart_media_errors[1d]) > 0
+          expr: max_over_time(nvme_smart_media_errors{job!="gaming-pc"}[15m]) - min_over_time(nvme_smart_media_errors{job!="gaming-pc"}[1d]) > 0
           for: 5m
           labels:
             severity: critical
@@ -67,7 +71,7 @@ spec:
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
         # Warning from 80% up to 95% and critical above, so one drive does not push twice.
         - alert: PVENVMeWearHigh
-          expr: last_over_time(nvme_smart_percentage_used[15m]) > 80 <= 95
+          expr: last_over_time(nvme_smart_percentage_used{job!="gaming-pc"}[15m]) > 80 <= 95
           for: 15m
           labels:
             severity: warning
@@ -76,7 +80,7 @@ spec:
             description: "{{ $labels.model }} ({{ $labels.device }}) on {{ $labels.host }} has used {{ $value | humanize }}% of its rated endurance. Plan its replacement."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
         - alert: PVENVMeWearCritical
-          expr: last_over_time(nvme_smart_percentage_used[15m]) > 95
+          expr: last_over_time(nvme_smart_percentage_used{job!="gaming-pc"}[15m]) > 95
           for: 15m
           labels:
             severity: critical
@@ -88,8 +92,8 @@ spec:
         # fires earlier, while 10 points of spare capacity are left.
         - alert: PVENVMeSpareLow
           expr: >-
-            last_over_time(nvme_smart_available_spare_percent[15m])
-            <= last_over_time(nvme_smart_available_spare_threshold_percent[15m]) + 10
+            last_over_time(nvme_smart_available_spare_percent{job!="gaming-pc"}[15m])
+            <= last_over_time(nvme_smart_available_spare_threshold_percent{job!="gaming-pc"}[15m]) + 10
           for: 15m
           labels:
             severity: warning

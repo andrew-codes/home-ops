@@ -219,3 +219,42 @@ tests:
       - eval_time: 30d
         alertname: PVETrimStale
         exp_alerts: []
+
+  # The gaming PC reports the same nvme_smart_* series (apps/gaming-pc, job
+  # "gaming-pc"). Its own rules cover it, so none of these may fire for it.
+  - name: the gaming pc's drives are not the proxmox host's
+    interval: 1m
+    input_series:
+      - series: "nvme_health_push_timestamp_seconds"
+        values: "1x120"
+      - series: 'nvme_health_collect_ok{job="gaming-pc",host="gaming-pc",device="nvme0"}'
+        values: "0x120"
+      - series: 'nvme_smart_critical_warning{job="gaming-pc",host="gaming-pc",device="nvme0"}'
+        values: "4x120"
+      - series: 'nvme_smart_media_errors{job="gaming-pc",host="gaming-pc",device="nvme0"}'
+        values: "0x30 5x90"
+      - series: 'nvme_smart_percentage_used{job="gaming-pc",host="gaming-pc",device="nvme0"}'
+        values: "99x120"
+      - series: 'nvme_smart_available_spare_percent{job="gaming-pc",host="gaming-pc",device="nvme0"}'
+        values: "5x120"
+      - series: 'nvme_smart_available_spare_threshold_percent{job="gaming-pc",host="gaming-pc",device="nvme0"}'
+        values: "10x120"
+    alert_rule_test:
+      - eval_time: 100m
+        alertname: PVENVMeHealthSourceFailing
+        exp_alerts: []
+      - eval_time: 100m
+        alertname: PVENVMeCriticalWarning
+        exp_alerts: []
+      - eval_time: 100m
+        alertname: PVENVMeMediaErrors
+        exp_alerts: []
+      - eval_time: 100m
+        alertname: PVENVMeWearHigh
+        exp_alerts: []
+      - eval_time: 100m
+        alertname: PVENVMeWearCritical
+        exp_alerts: []
+      - eval_time: 100m
+        alertname: PVENVMeSpareLow
+        exp_alerts: []

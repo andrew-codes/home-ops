@@ -310,6 +310,8 @@ SMART log, and the Proxmox metric stream does not carry SMART data. So the host 
   `PVENVMeCriticalWarning`, `PVENVMeMediaErrors` (new errors in the last day) and `PVENVMeWearCritical`
   (over 95% of rated endurance) are critical; `PVENVMeWearHigh` (over 80%), `PVENVMeSpareLow`,
   `PVENVMeHealthSourceFailing` and `PVENVMeHealthMetricsMissing` (the timer stopped) are warnings.
+  They exclude `job="gaming-pc"`: the gaming PC reports the same `nvme_smart_*` series
+  ([`apps/gaming-pc`](../gaming-pc/README.md#drive-health)) and has rules of its own.
   They are unit-tested by `nx run pve:test`.
 
 #### Weekly TRIM ([`tasks/trim.yml`](src/deploy/tasks/trim.yml))
