@@ -1,0 +1,186 @@
+# vmalert-tool unit tests for deployments/production/alerting/pve-vmrules.yaml. Run
+# with scripts/test-rules.sh. The series are what the NVMe health timer
+# (src/deploy/files/nvme-health.py) pushes for a healthy drive and for each failure
+# the rules must catch.
+rule_files:
+  - rules.yaml
+evaluation_interval: 1m
+
+tests:
+  - name: a healthy drive stays quiet
+    interval: 1m
+    input_series:
+      - series: "nvme_health_push_timestamp_seconds"
+        values: "1x120"
+      - series: 'nvme_health_collect_ok{host="pve",device="nvme0"}'
+        values: "1x120"
+      - series: 'nvme_smart_critical_warning{host="pve",device="nvme0"}'
+        values: "0x120"
+      - series: 'nvme_smart_media_errors{host="pve",device="nvme0"}'
+        values: "0x120"
+      - series: 'nvme_smart_percentage_used{host="pve",device="nvme0"}'
+        values: "7x120"
+      - series: 'nvme_smart_available_spare_percent{host="pve",device="nvme0"}'
+        values: "100x120"
+      - series: 'nvme_smart_available_spare_threshold_percent{host="pve",device="nvme0"}'
+        values: "5x120"
+    alert_rule_test:
+      - eval_time: 100m
+        alertname: PVENVMeHealthMetricsMissing
+        exp_alerts: []
+      - eval_time: 100m
+        alertname: PVENVMeHealthSourceFailing
+        exp_alerts: []
+      - eval_time: 100m
+        alertname: PVENVMeCriticalWarning
+        exp_alerts: []
+      - eval_time: 100m
+        alertname: PVENVMeMediaErrors
+        exp_alerts: []
+      - eval_time: 100m
+        alertname: PVENVMeWearHigh
+        exp_alerts: []
+      - eval_time: 100m
+        alertname: PVENVMeWearCritical
+        exp_alerts: []
+      - eval_time: 100m
+        alertname: PVENVMeSpareLow
+        exp_alerts: []
+
+  - name: a timer that stopped pushing fires
+    interval: 1m
+    input_series:
+      - series: "nvme_health_push_timestamp_seconds"
+        values: "1x10 _x60"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: PVENVMeHealthMetricsMissing
+        exp_alerts: []
+      - eval_time: 45m
+        alertname: PVENVMeHealthMetricsMissing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "Proxmox host NVMe drive health is not being reported"
+              description: "The NVMe health timer on the Proxmox host has not pushed for 25 minutes, so a failing drive would go unnoticed. On the host run `systemctl status nvme-health.timer nvme-health.service` and `journalctl -u nvme-health`, and run `OP_VAULT=home-ops yarn nx run pve:deploy-observability` to put it back."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+
+  - name: a drive that cannot be read fires
+    interval: 1m
+    input_series:
+      - series: 'nvme_health_collect_ok{host="pve",device="nvme0"}'
+        values: "0x30"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: PVENVMeHealthSourceFailing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              host: pve
+              device: nvme0
+            exp_annotations:
+              summary: "Proxmox host cannot read the SMART log of nvme0"
+              description: "`nvme smart-log` failed for nvme0 on pve for 10 minutes. The drive may have stopped answering (check `dmesg | grep -i nvme` and `nvme smart-log /dev/nvme0` on the host), or nvme-cli changed its output."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+
+  - name: a critical warning is critical
+    interval: 1m
+    input_series:
+      - series: 'nvme_smart_critical_warning{host="pve",device="nvme0",model="Sabrent",serial="S1"}'
+        values: "0x5 4x30"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: PVENVMeCriticalWarning
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              host: pve
+              device: nvme0
+              model: Sabrent
+              serial: S1
+            exp_annotations:
+              summary: "NVMe drive nvme0 on the Proxmox host reports a critical warning"
+              description: "Sabrent (nvme0, serial S1) on pve has critical_warning=4 (bit field: 1 spare capacity below threshold, 2 temperature, 4 reliability degraded, 8 read only, 16 volatile memory backup failed). Every guest on the host runs on this drive: run `nvme smart-log /dev/nvme0` and back up now."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+
+  - name: new media errors fire and old ones do not
+    interval: 1m
+    input_series:
+      # Two errors long ago, then a third one 10 minutes in.
+      - series: 'nvme_smart_media_errors{host="pve",device="nvme0",model="Sabrent",serial="S1"}'
+        values: "2x10 3x60"
+      - series: 'nvme_smart_media_errors{host="pve",device="nvme1",model="Other",serial="S2"}'
+        values: "2x70"
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: PVENVMeMediaErrors
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              host: pve
+              device: nvme0
+              model: Sabrent
+              serial: S1
+            exp_annotations:
+              summary: "NVMe drive nvme0 on the Proxmox host logged new media errors"
+              description: "Sabrent (nvme0, serial S1) on pve logged 1 new media and data integrity errors in the last day. The drive is returning bad data or failing. Run `nvme smart-log /dev/nvme0` and `journalctl -k | grep -i nvme` on the host, and plan to replace it."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+
+  - name: wear warns at 80% and turns critical above 95%
+    interval: 1m
+    input_series:
+      - series: 'nvme_smart_percentage_used{host="pve",device="nvme0",model="Sabrent"}'
+        values: "85x40 97x60"
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: PVENVMeWearHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              host: pve
+              device: nvme0
+              model: Sabrent
+            exp_annotations:
+              summary: "NVMe drive nvme0 on the Proxmox host is 85% worn"
+              description: "Sabrent (nvme0) on pve has used 85% of its rated endurance. Plan its replacement."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+      - eval_time: 30m
+        alertname: PVENVMeWearCritical
+        exp_alerts: []
+      - eval_time: 80m
+        alertname: PVENVMeWearHigh
+        exp_alerts: []
+      - eval_time: 80m
+        alertname: PVENVMeWearCritical
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              host: pve
+              device: nvme0
+              model: Sabrent
+            exp_annotations:
+              summary: "NVMe drive nvme0 on the Proxmox host is almost worn out (97%)"
+              description: "Sabrent (nvme0) on pve has used 97% of its rated endurance and can fail at any time. Replace it now."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+
+  - name: spare capacity near the drive's threshold fires
+    interval: 1m
+    input_series:
+      - series: 'nvme_smart_available_spare_percent{host="pve",device="nvme0",model="Sabrent"}'
+        values: "14x30"
+      - series: 'nvme_smart_available_spare_threshold_percent{host="pve",device="nvme0",model="Sabrent"}'
+        values: "5x30"
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: PVENVMeSpareLow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              host: pve
+              device: nvme0
+              model: Sabrent
+            exp_annotations:
+              summary: "NVMe drive nvme0 on the Proxmox host is running out of spare capacity"
+              description: "Sabrent (nvme0) on pve has 14% spare capacity left, within 10 points of the drive's own threshold. The drive is replacing worn out cells. Plan its replacement."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox

@@ -1,0 +1,40 @@
+# Managed by Ansible (resources/k8s). Used by `kubeadm init --config` in
+# playbooks/setup-k8s.yml. The live cluster keeps its own copy in the
+# kube-system/kubeadm-config ConfigMap, which `kubeadm upgrade` reads, so a
+# change here does not reach an existing cluster by itself: edit that
+# ConfigMap and the static pod manifests on the node by hand as well.
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+networking:
+  podSubnet: "{{ podNetwork }}"
+etcd:
+  local:
+    extraArgs:
+      # Serve etcd metrics on the node address as well as loopback so vmagent
+      # (job "etcd" in deployments/base/metrics) can scrape them. The default
+      # is loopback only.
+      - name: listen-metrics-urls
+        value: "http://127.0.0.1:2381,http://{{ inventory_hostname }}:2381"
+# A single NVMe stall of several seconds blocks etcd on fdatasync, so the
+# apiserver cannot answer a lease renewal within the default 10s/5s window
+# and both controllers exit with "leaderelection lost". These longer leader
+# election timeouts (default 15s lease, 10s renew deadline, 2s retry) let
+# them ride out a stall instead of restarting and cascading into every
+# other lease holder. Mitigation only: a stall longer than the renew
+# deadline still interrupts the cluster.
+controllerManager:
+  extraArgs:
+    - name: leader-elect-lease-duration
+      value: "60s"
+    - name: leader-elect-renew-deadline
+      value: "45s"
+    - name: leader-elect-retry-period
+      value: "10s"
+scheduler:
+  extraArgs:
+    - name: leader-elect-lease-duration
+      value: "60s"
+    - name: leader-elect-renew-deadline
+      value: "45s"
+    - name: leader-elect-retry-period
+      value: "10s"

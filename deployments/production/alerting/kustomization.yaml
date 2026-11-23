@@ -8,3 +8,4 @@ resources:
   - pbs-vmrules.yaml
   - gaming-pc-vmrules.yaml
   - pihole-vmrules.yaml
+  - pve-vmrules.yaml

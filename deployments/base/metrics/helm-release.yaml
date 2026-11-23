@@ -118,6 +118,28 @@ spec:
             - source_labels:
                 - "__meta_kubernetes_endpoint_node_name"
               target_label: "node"
+        # etcd's own metrics (WAL fsync and backend commit latency). etcd runs as a
+        # static pod on the control plane node and serves them over plain HTTP on
+        # port 2381, on the node address as well as loopback (the
+        # listen-metrics-urls etcd flag set in resources/k8s). Each node is
+        # scraped on its own InternalIP, so no address is written down here.
+        - job_name: "etcd"
+          kubernetes_sd_configs:
+            - role: "node"
+          relabel_configs:
+            # Only control plane nodes run etcd.
+            - source_labels:
+                - "__meta_kubernetes_node_labelpresent_node_role_kubernetes_io_control_plane"
+              action: "keep"
+              regex: "true"
+            - source_labels:
+                - "__meta_kubernetes_node_name"
+              target_label: "node"
+            - source_labels:
+                - "__address__"
+              regex: "([^:]+)(?::\\d+)?"
+              target_label: "__address__"
+              replacement: "${1}:2381"
         # Kubernetes object state (deployments/base/exporters). No namespace, pod
         # or node target labels are added here: they would collide with the labels
         # kube-state-metrics puts on its own series.

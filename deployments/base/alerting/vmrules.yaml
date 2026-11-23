@@ -294,6 +294,78 @@ spec:
             description: "{{ $labels.mountpoint }} ({{ $labels.device }}, {{ $labels.fstype }}) on node {{ $labels.node }} has only {{ $value | humanizePercentage }} of its space left. Pods on the node will start failing and the kubelet will evict them."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=Node%20Exporter
 ---
+# Storage stalls. The node's single NVMe has stalled writes for minutes at a
+# time, which blocks etcd on fdatasync, makes the API server miss deadlines and
+# restarts kube-controller-manager and kube-scheduler. These rules watch the
+# chain from the disk up so the cause shows before the restarts do. node-exporter
+# on the node reports the disks of the host the node runs on, so nvme0n1 is the
+# physical drive.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: storage-stalls
+spec:
+  groups:
+    - name: storage-stalls
+      rules:
+        # Average time a write took over the last 5 minutes. Normal is about
+        # 2.5 ms; the stalls reached 0.2 to 1.3 s. Divides by the write rate, so
+        # an idle disk gives no value instead of a false zero.
+        - alert: NodeDiskWriteLatencyHigh
+          expr: >-
+            (
+              rate(node_disk_write_time_seconds_total{job="node-exporter",device=~"nvme[0-9]+n[0-9]+"}[5m])
+              / rate(node_disk_writes_completed_total{job="node-exporter",device=~"nvme[0-9]+n[0-9]+"}[5m])
+            ) > 0.1
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Disk {{ $labels.device }} on node {{ $labels.node }} is writing slowly"
+            description: "Writes to {{ $labels.device }} on node {{ $labels.node }} took {{ $value | humanizeDuration }} on average over the last 5 minutes (normal is a few milliseconds). The drive is stalling, which slows etcd and the API server and can restart the control plane components."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Node%20Exporter
+        # Share of the time that tasks on the node were stalled waiting for I/O
+        # (pressure stall information). 0.2 means a fifth of the time; the
+        # stalls reached 0.7.
+        - alert: NodeIOStallPressureHigh
+          expr: rate(node_pressure_io_stalled_seconds_total{job="node-exporter"}[5m]) > 0.2
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Node {{ $labels.node }} is stalled on disk I/O"
+            description: "All tasks on node {{ $labels.node }} were stalled waiting for disk I/O {{ $value | humanizePercentage }} of the time over the last 5 minutes. The disk is not completing requests."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Node%20Exporter
+        # etcd flushes its write ahead log with fdatasync on every write, and
+        # recommends staying under 10 ms at p99. 0.5 s is far past anything but a
+        # stalled disk. Needs the etcd scrape job (deployments/base/metrics).
+        - alert: EtcdSlowFsync
+          expr: >-
+            histogram_quantile(0.99,
+              sum by (le, instance, node) (rate(etcd_disk_wal_fsync_duration_seconds_bucket{job="etcd"}[5m]))
+            ) > 0.5
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "etcd on node {{ $labels.node }} is syncing to disk slowly"
+            description: "The 99th percentile of etcd's write ahead log fsync on {{ $labels.instance }} is {{ $value | humanizeDuration }} over the last 5 minutes (it should be milliseconds). The disk under /var/lib/etcd is stalling, and the API server will be slow or time out."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+        # Long running requests (watches, exec and port-forward connections) last
+        # for as long as the client keeps them open, so they are left out.
+        - alert: KubeAPIServerSlow
+          expr: >-
+            histogram_quantile(0.99,
+              sum by (le, instance) (rate(apiserver_request_duration_seconds_bucket{job="kubernetes-apiservers",verb!~"WATCH|CONNECT"}[5m]))
+            ) > 5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Kubernetes API server is answering slowly"
+            description: "The 99th percentile of API server request time on {{ $labels.instance }} is {{ $value | humanizeDuration }} over the last 5 minutes. Controllers can miss their leader election deadline and restart. The usual cause is etcd waiting on a stalled disk, see EtcdSlowFsync and NodeDiskWriteLatencyHigh."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+---
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMRule
 metadata:

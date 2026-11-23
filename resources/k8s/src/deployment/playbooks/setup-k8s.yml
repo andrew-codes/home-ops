@@ -14,8 +14,17 @@
         path: /etc/kubernetes/admin.conf
       register: kubeadm_init_check
 
+    - name: Render the kubeadm configuration
+      template:
+        src: "{{ playbook_dir }}/../templates/kubeadm-config.yaml.j2"
+        dest: /root/kubeadm-config.yaml
+        owner: root
+        group: root
+        mode: "0600"
+      when: not kubeadm_init_check.stat.exists
+
     - name: Initializing kubernetes cluster
-      shell: kubeadm init --pod-network-cidr="{{ podNetwork  }}"
+      shell: kubeadm init --config /root/kubeadm-config.yaml
       when: not kubeadm_init_check.stat.exists
 
     - name: Create directory for kube config

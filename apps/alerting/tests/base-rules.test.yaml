@@ -54,6 +54,110 @@ tests:
               description: "The kubelet on node k8s-main (job kubernetes-nodes) has reported up=0 for 5 minutes. The node may be down or not ready, and the pods on it may be offline."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
 
+  # Every minute the disk completes 60 writes and spends 30 s on them, so a
+  # write takes half a second.
+  - name: a stalled disk fires the write latency and I/O pressure alerts
+    interval: 1m
+    input_series:
+      - series: 'node_disk_write_time_seconds_total{job="node-exporter",device="nvme0n1",node="k8s-main"}'
+        values: "0+30x30"
+      - series: 'node_disk_writes_completed_total{job="node-exporter",device="nvme0n1",node="k8s-main"}'
+        values: "0+60x30"
+      - series: 'node_disk_write_time_seconds_total{job="node-exporter",device="dm-3",node="k8s-main"}'
+        values: "0+30x30"
+      - series: 'node_disk_writes_completed_total{job="node-exporter",device="dm-3",node="k8s-main"}'
+        values: "0+60x30"
+      # 30 s stalled per 60 s.
+      - series: 'node_pressure_io_stalled_seconds_total{job="node-exporter",node="k8s-main"}'
+        values: "0+30x30"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: NodeDiskWriteLatencyHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: node-exporter
+              device: nvme0n1
+              node: k8s-main
+            exp_annotations:
+              summary: "Disk nvme0n1 on node k8s-main is writing slowly"
+              description: "Writes to nvme0n1 on node k8s-main took 500ms on average over the last 5 minutes (normal is a few milliseconds). The drive is stalling, which slows etcd and the API server and can restart the control plane components."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Node%20Exporter
+      - eval_time: 10m
+        alertname: NodeIOStallPressureHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: node-exporter
+              node: k8s-main
+            exp_annotations:
+              summary: "Node k8s-main is stalled on disk I/O"
+              description: "All tasks on node k8s-main were stalled waiting for disk I/O 50% of the time over the last 5 minutes. The disk is not completing requests."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Node%20Exporter
+
+  # A healthy disk completes writes in about 2.5 ms and is stalled 1% of the time.
+  - name: a healthy disk stays quiet
+    interval: 1m
+    input_series:
+      - series: 'node_disk_write_time_seconds_total{job="node-exporter",device="nvme0n1",node="k8s-main"}'
+        values: "0+0.15x30"
+      - series: 'node_disk_writes_completed_total{job="node-exporter",device="nvme0n1",node="k8s-main"}'
+        values: "0+60x30"
+      - series: 'node_pressure_io_stalled_seconds_total{job="node-exporter",node="k8s-main"}'
+        values: "0+0.6x30"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: NodeDiskWriteLatencyHigh
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: NodeIOStallPressureHigh
+        exp_alerts: []
+
+  # Every minute 58 of 60 fsyncs finish within 5 ms and two take longer than a
+  # second. Of 60 API requests a minute, 50 take longer than 10 s.
+  - name: slow etcd fsync and slow API requests fire
+    interval: 1m
+    input_series:
+      - series: 'etcd_disk_wal_fsync_duration_seconds_bucket{job="etcd",instance="10.2.0.144:2381",node="k8s-main",le="0.005"}'
+        values: "0+58x30"
+      - series: 'etcd_disk_wal_fsync_duration_seconds_bucket{job="etcd",instance="10.2.0.144:2381",node="k8s-main",le="1"}'
+        values: "0+58x30"
+      - series: 'etcd_disk_wal_fsync_duration_seconds_bucket{job="etcd",instance="10.2.0.144:2381",node="k8s-main",le="+Inf"}'
+        values: "0+60x30"
+      - series: 'apiserver_request_duration_seconds_bucket{job="kubernetes-apiservers",instance="10.2.0.144:6443",verb="GET",le="1"}'
+        values: "0+10x30"
+      - series: 'apiserver_request_duration_seconds_bucket{job="kubernetes-apiservers",instance="10.2.0.144:6443",verb="GET",le="10"}'
+        values: "0+10x30"
+      - series: 'apiserver_request_duration_seconds_bucket{job="kubernetes-apiservers",instance="10.2.0.144:6443",verb="GET",le="+Inf"}'
+        values: "0+60x30"
+      # Watches stay open for minutes and must not count.
+      - series: 'apiserver_request_duration_seconds_bucket{job="kubernetes-apiservers",instance="10.2.0.144:6443",verb="WATCH",le="1"}'
+        values: "0+0x30"
+      - series: 'apiserver_request_duration_seconds_bucket{job="kubernetes-apiservers",instance="10.2.0.144:6443",verb="WATCH",le="+Inf"}'
+        values: "0+60x30"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: EtcdSlowFsync
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              instance: "10.2.0.144:2381"
+              node: k8s-main
+            exp_annotations:
+              summary: "etcd on node k8s-main is syncing to disk slowly"
+              description: "The 99th percentile of etcd's write ahead log fsync on 10.2.0.144:2381 is 1s over the last 5 minutes (it should be milliseconds). The disk under /var/lib/etcd is stalling, and the API server will be slow or time out."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+      - eval_time: 10m
+        alertname: KubeAPIServerSlow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              instance: "10.2.0.144:6443"
+            exp_annotations:
+              summary: "Kubernetes API server is answering slowly"
+              description: "The 99th percentile of API server request time on 10.2.0.144:6443 is 10s over the last 5 minutes. Controllers can miss their leader election deadline and restart. The usual cause is etcd waiting on a stalled disk, see EtcdSlowFsync and NodeDiskWriteLatencyHigh."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Kubernetes
+
   # The heartbeat moves forward every minute.
   - name: a working sync stays quiet
     interval: 1m
