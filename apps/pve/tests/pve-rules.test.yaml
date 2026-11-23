@@ -184,3 +184,38 @@ tests:
               summary: "NVMe drive nvme0 on the Proxmox host is running out of spare capacity"
               description: "Sabrent (nvme0) on pve has 14% spare capacity left, within 10 points of the drive's own threshold. The drive is replacing worn out cells. Plan its replacement."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+
+  - name: a container trim that last succeeded long ago fires and a recent one does not
+    interval: 1d
+    input_series:
+      # Succeeded on day 0 only.
+      - series: 'pve_trim_last_success_timestamp_seconds{host="pve"}'
+        values: "1 _x30"
+      # Succeeded on day 7: 5 days old at the 12 day mark.
+      - series: 'pve_trim_last_success_timestamp_seconds{host="pve2"}'
+        values: "_x7 1 _x23"
+    alert_rule_test:
+      - eval_time: 8d
+        alertname: PVETrimStale
+        exp_alerts: []
+      - eval_time: 12d
+        alertname: PVETrimStale
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              host: pve
+            exp_annotations:
+              summary: "Proxmox host pve has not trimmed its containers for 10 days"
+              description: "The weekly container trim on pve has not finished cleanly for 10 days. Without a trim the NVMe drive is never told which blocks are free and starts stalling writes. On the host run `systemctl status pve-trim.timer pve-trim.service` and `journalctl -u pve-trim`, and run `OP_VAULT=home-ops yarn nx run pve:deploy-observability` to put it back."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+
+  - name: a host that never reported a clean container trim stays quiet
+    interval: 1d
+    input_series:
+      # Only the failed-run counters exist: no pve_trim_last_success_timestamp_seconds yet.
+      - series: 'pve_trim_containers_failed{host="pve"}'
+        values: "1x30"
+    alert_rule_test:
+      - eval_time: 30d
+        alertname: PVETrimStale
+        exp_alerts: []

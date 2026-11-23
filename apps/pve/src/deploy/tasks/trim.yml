@@ -1,0 +1,90 @@
+---
+# Weekly TRIM for the host and its containers. Containers live on the LVM-thin
+# pool pve/data, which sits on the host's single NVMe drive. Without a trim, freed
+# blocks are never handed back, so the drive keeps garbage-collecting live data
+# and stalls writes. Three parts:
+#   1. the distro fstrim.timer trims the host's own file systems;
+#   2. pve-trim.timer runs `pct fstrim` for every running container (Sunday 03:30
+#      plus a random delay) and reports the last clean run to VictoriaMetrics;
+#   3. a check that the thin pool passes discards down to the drive.
+# Nothing here runs a trim during the deploy, and nothing touches the network,
+# GRUB or the guests. The node address comes from observability_host and the port
+# from observability_influx_port, both play variables.
+- name: Enable the distro fstrim timer for the host file systems
+  ansible.builtin.systemd:
+    name: fstrim.timer
+    enabled: yes
+    state: started
+
+- name: Create the container trim directory
+  ansible.builtin.file:
+    path: /usr/local/lib/pve-trim
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the container trim script
+  ansible.builtin.copy:
+    src: pve-trim.sh
+    dest: /usr/local/lib/pve-trim/pve-trim.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the container trim service
+  ansible.builtin.template:
+    src: pve-trim.service.j2
+    dest: /etc/systemd/system/pve-trim.service
+    owner: root
+    group: root
+    mode: "0644"
+  register: pve_trim_service
+
+- name: Install the container trim timer
+  ansible.builtin.copy:
+    src: pve-trim.timer
+    dest: /etc/systemd/system/pve-trim.timer
+    owner: root
+    group: root
+    mode: "0644"
+  register: pve_trim_timer
+
+- name: Reload systemd units after a container trim unit change
+  ansible.builtin.systemd:
+    daemon_reload: yes
+  when: pve_trim_service is changed or pve_trim_timer is changed
+
+- name: Ensure the container trim timer is enabled and running
+  ansible.builtin.systemd:
+    name: pve-trim.timer
+    enabled: yes
+    state: started
+
+# Discards only reach the drive if the thin pool passes them down. lvs prints
+# "passdown" (the default), "nopassdown" (the pool frees its own blocks but the
+# drive never hears of it) or "ignore". A pool that does not exist (rc 5) is
+# reported and skipped, so a host on other storage does not fail the play.
+- name: Read how the thin pool handles discards
+  ansible.builtin.command:
+    argv: [lvs, --noheadings, -o, discards, "{{ pve_trim_thin_pool }}"]
+  register: pve_trim_discards
+  changed_when: false
+  failed_when: false
+
+- name: Report a missing thin pool
+  ansible.builtin.debug:
+    msg: >-
+      Thin pool {{ pve_trim_thin_pool }} was not found (lvs exit code {{ pve_trim_discards.rc }}),
+      so the discard passdown check was skipped. Set pve_trim_thin_pool if the pool has another name.
+  when: pve_trim_discards.rc != 0
+
+- name: Require the thin pool to pass discards down to the drive
+  ansible.builtin.assert:
+    that: pve_trim_discards.stdout | trim == 'passdown'
+    fail_msg: >-
+      Thin pool {{ pve_trim_thin_pool }} has discards '{{ pve_trim_discards.stdout | trim }}', not
+      'passdown', so a trim of the containers never reaches the NVMe drive. On the host run
+      `lvchange --discards passdown {{ pve_trim_thin_pool }}` and deploy again.
+    success_msg: Thin pool {{ pve_trim_thin_pool }} passes discards down to the drive.
+  when: pve_trim_discards.rc == 0

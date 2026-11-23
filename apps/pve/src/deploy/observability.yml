@@ -16,6 +16,8 @@
     observability_metric_server_id: victoriametrics
     observability_influx_organization: proxmox
     observability_influx_bucket: proxmox
+    # LVM-thin pool that backs the containers; tasks/trim.yml checks it passes discards down.
+    pve_trim_thin_pool: pve/data
   handlers:
     - import_tasks: handlers/main.yml
 
