@@ -93,6 +93,48 @@ $text = New-DriveHealthText -HostName 'gaming-pc' -Timestamp 1 -Drives @()
 Assert-Equal '0' (Get-Samples $text)['nvme_health_drives{host="gaming-pc"}'] 'no drives is a count of 0'
 Assert-Equal '0' (@((Get-Samples $text).Keys | Where-Object { $_ -like 'nvme_health_collect_ok*' }).Count) 'no drives, no read failures'
 
+# The owner's machine: the three NVMe drives are one AMD RAID array, so the scan
+# lists two scsi devices (the array and a USB stick) and no NVMe one. That is a
+# normal state: no drives, no read failures, and the array is what is reported.
+$raidScan = Get-NvmeScanDevices (Read-Fixture 'scan_amd_raid.json')
+Assert-Equal '0' @($raidScan).Count 'scsi devices are not NVMe drives'
+Assert-Equal '0' @(Get-NvmeScanDevices ([pscustomobject]@{ devices = $null })).Count 'a scan with no devices at all is fine'
+
+function Read-Storage {
+    param([string]$Name)
+    Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'fixtures' 'storage' $Name) | ConvertFrom-Json
+}
+$storage = Read-Storage 'amd_raid_healthy.json'
+$text = New-DriveHealthText -HostName 'gaming-pc' -Timestamp 1 -Drives @() -ArrayDisks @($storage.disks) -Volumes @($storage.volumes)
+$s = Get-Samples $text
+$array = 'array="AMD-RAID Array 1",host="gaming-pc"'
+Assert-Equal '0' $s['nvme_health_drives{host="gaming-pc"}'] 'array machine: no NVMe drives'
+Assert-Equal '0' (@($s.Keys | Where-Object { $_ -like 'nvme_health_collect_ok*' }).Count) 'array machine: no read failure'
+Assert-Equal '0' $s['gaming_pc_array_health_status{array="AMD-RAID Array 1",bus_type="RAID",host="gaming-pc",media_type="SSD"}'] 'a healthy array is 0'
+Assert-Equal '1' $s['gaming_pc_array_operational_status_info{array="AMD-RAID Array 1",host="gaming-pc",status="OK"}'] 'operational status info'
+Assert-Equal '6001175126016' $s["gaming_pc_array_size_bytes{$array}"] 'array size'
+Assert-Equal '1' $s['gaming_pc_array_collect_ok{host="gaming-pc"}'] 'array was read'
+Assert-Equal '0' (@($s.Keys | Where-Object { $_ -like '*USB*' }).Count) 'the USB stick is not reported'
+Assert-Equal '500000000000' $s['gaming_pc_volume_free_bytes{host="gaming-pc",role="system",volume="C:"}'] 'system volume free'
+Assert-Equal '4000000000000' $s['gaming_pc_volume_size_bytes{host="gaming-pc",role="data",volume="D:"}'] 'data volume size'
+Assert-Equal '0' @($text -split "`n" | Where-Object { $_ -match 'serial' }).Count 'no serial number is printed'
+
+# Health values: Warning 1, Unhealthy 2, anything else (Unknown) 3.
+Assert-Equal '1' (Get-ArrayHealthValue 'Warning') 'Warning is 1'
+Assert-Equal '2' (Get-ArrayHealthValue 'Unhealthy') 'Unhealthy is 2'
+Assert-Equal '3' (Get-ArrayHealthValue 'Unknown') 'Unknown is 3'
+Assert-Equal '3' (Get-ArrayHealthValue $null) 'no health is 3'
+
+# Windows could not be asked: reported as collect_ok 0, no array series.
+$text = New-DriveHealthText -HostName 'gaming-pc' -Timestamp 1 -Drives @() -ArrayError 'boom'
+$s = Get-Samples $text
+Assert-Equal '0' $s['gaming_pc_array_collect_ok{host="gaming-pc"}'] 'a failed array read is collect_ok 0'
+Assert-Equal '0' (@($s.Keys | Where-Object { $_ -like 'gaming_pc_array_health*' }).Count) 'and no array series'
+
+# A machine that reports drives only (no array parameters) writes no array series.
+$s = Get-Samples (New-DriveHealthText -HostName 'gaming-pc' -Timestamp 1 -Drives @())
+Assert-Equal '0' (@($s.Keys | Where-Object { $_ -like 'gaming_pc_array*' }).Count) 'no array parameters, no array series'
+
 # Label values are escaped, and an empty one is left out.
 $line = Format-PrometheusSample -Name 'm' -Value 1.5 -Labels @{ a = 'x"y\z'; b = '' }
 Assert-Equal 'm{a="x\"y\\z"} 1.5' $line 'label escaping and empty labels'
@@ -119,7 +161,7 @@ esac
 "@
         & chmod +x $fake
         $pwsh = (Get-Process -Id $PID).Path
-        $out = & $pwsh -NoProfile -File (Join-Path $PSScriptRoot '..' 'src' 'drive-health.ps1') -SmartctlPath $fake -Print
+        $out = & $pwsh -NoProfile -File (Join-Path $PSScriptRoot '..' 'src' 'drive-health.ps1') -SmartctlPath $fake -StorageJsonPath (Join-Path $PSScriptRoot 'fixtures' 'storage' 'amd_raid_healthy.json') -Print
         $s = Get-Samples ($out -join "`n")
         Assert-Equal '2' $s['nvme_health_drives{host="gaming-pc"}'] 'end to end: two NVMe drives, the SATA one is skipped'
         Assert-Equal '3' $s["nvme_smart_percentage_used$healthy"] 'end to end: wear of the healthy drive'
@@ -132,6 +174,24 @@ esac
         $s = Get-Samples ($out -join "`n")
         Assert-Equal '0' $s['nvme_health_collect_ok{device="scan",host="gaming-pc"}'] 'end to end: a smartctl that prints nothing is collect_ok 0'
         Assert-Equal '0' (@($s.Keys | Where-Object { $_ -like 'nvme_smart_*' }).Count) 'end to end: and no SMART series'
+
+        # The AMD RAID machine: a scan of two scsi devices, and the array read
+        # from a storage fixture (Get-PhysicalDisk does not exist here).
+        Set-Content -LiteralPath $fake -Value @"
+#!/bin/sh
+case "`$*" in
+  *--scan*) cat '$fixtures/scan_amd_raid.json' ;;
+  *) exit 2 ;;
+esac
+"@
+        foreach ($case in @(@('amd_raid_healthy.json', '0'), @('amd_raid_degraded.json', '1'))) {
+            $out = & $pwsh -NoProfile -File (Join-Path $PSScriptRoot '..' 'src' 'drive-health.ps1') -SmartctlPath $fake -StorageJsonPath (Join-Path $PSScriptRoot 'fixtures' 'storage' $case[0]) -Print
+            $s = Get-Samples ($out -join "`n")
+            Assert-Equal '0' $s['nvme_health_drives{host="gaming-pc"}'] "end to end ($($case[0])): scsi devices are not drives"
+            Assert-Equal '0' (@($s.Keys | Where-Object { $_ -like 'nvme_health_collect_ok*' }).Count) "end to end ($($case[0])): and not a failure"
+            Assert-Equal $case[1] $s['gaming_pc_array_health_status{array="AMD-RAID Array 1",bus_type="RAID",host="gaming-pc",media_type="SSD"}'] "end to end ($($case[0])): array health"
+            Assert-Equal '1' $s['gaming_pc_array_collect_ok{host="gaming-pc"}'] "end to end ($($case[0])): array was read"
+        }
     }
     finally {
         Remove-Item -LiteralPath $fake -Force -ErrorAction SilentlyContinue

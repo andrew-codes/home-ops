@@ -1,11 +1,16 @@
-# Reads the SMART health of this machine's NVMe drives with smartctl and writes
-# it as a Prometheus textfile for windows_exporter, which vmagent scrapes as the
+# Reads the SMART health of this machine's NVMe drives with smartctl, and the
+# health of its disk array and the free space of its volumes from Windows, and
+# writes them as a Prometheus textfile for windows_exporter, which vmagent scrapes as the
 # gaming-pc job. The series are the same ones the Proxmox host reports, so the
 # Hardware health dashboard shows this machine under its Machine filter.
 #
 # Run every 5 minutes by the Gaming-PC-DriveHealth scheduled task (monitoring.ps1)
 # as SYSTEM. One run reads one small log page per drive, at BelowNormal priority.
 # See drive-health-metrics.ps1 for the series and README.md#drive-health.
+#
+# The NVMe drives are combined into one array in the BIOS (AMD RAID), so smartctl
+# finds no NVMe device and the array health is what gets reported. Finding no
+# NVMe device is normal, not a failure.
 #
 #   pwsh -File drive-health.ps1 -Print      write the metrics to the console (a dry run)
 param(
@@ -18,6 +23,10 @@ param(
     [string]$HostName = 'gaming-pc',
 
     [int]$CommandTimeoutSeconds = 30,
+
+    # Reads the physical disks and volumes from this JSON file ({"disks":[],
+    # "volumes":[]}) instead of Windows. For tests, where Get-PhysicalDisk does not exist.
+    [string]$StorageJsonPath,
 
     [switch]$Print
 )
@@ -80,7 +89,28 @@ foreach ($device in $devices) {
     }
 }
 
+function Get-StorageReport {
+    # The disks and fixed volumes Windows reports. The RAID array is one
+    # physical disk here; Select-ArrayDisks drops USB sticks.
+    if ($StorageJsonPath) {
+        $report = Get-Content -LiteralPath $StorageJsonPath -Raw | ConvertFrom-Json
+        return @{ Disks = @($report.disks); Volumes = @($report.volumes) }
+    }
+    $disks = Get-PhysicalDisk | Select-Object FriendlyName, HealthStatus, OperationalStatus, Size, BusType, MediaType
+    $systemLetter = ($env:SystemDrive -replace ':', '')
+    $volumes = Get-Volume | Where-Object { $_.DriveType -eq 'Fixed' -and $_.DriveLetter } |
+        Select-Object DriveLetter, Size, SizeRemaining, @{ Name = 'IsSystem'; Expression = { "$($_.DriveLetter)" -eq $systemLetter } }
+    return @{ Disks = @($disks); Volumes = @($volumes) }
+}
+
+# Never thrown, for the same reason as the scan above: the file is replaced on every run.
+$storage = @{ Disks = @(); Volumes = @() }
+$arrayError = $null
+try { $storage = Get-StorageReport }
+catch { $arrayError = $_.Exception.Message }
+
 $text = New-DriveHealthText -Drives $drives -HostName $HostName -Timestamp ([DateTimeOffset]::UtcNow.ToUnixTimeSeconds()) `
+    -ArrayDisks $storage.Disks -Volumes $storage.Volumes -ArrayError $arrayError `
     -OnError { param($Message) [Console]::Error.WriteLine($Message) }
 
 if ($Print) {

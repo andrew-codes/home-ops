@@ -11,6 +11,13 @@
 # Only NVMe drives are reported. A SATA SSD or hard disk has no standard wear or
 # spare field in smartctl's JSON (each vendor names its own attribute), so it is
 # left out rather than guessed at; README.md#drive-health says so.
+#
+# A machine whose NVMe drives are combined into one array in the BIOS (AMD RAID)
+# exposes only the array to Windows: smartctl --scan lists scsi devices and no
+# nvme one, and smartctl cannot read per-drive SMART through the RAID driver. That
+# is a normal state, not a failure. What Windows can read is the array's health
+# (Get-PhysicalDisk), so that is reported too, as gaming_pc_array_* series, with
+# the free space of the fixed volumes. See ConvertTo-ArrayMetricLines.
 
 # Metric name -> field in nvme_smart_health_information_log of `smartctl -j`.
 $script:DriveSmartFields = [ordered]@{
@@ -117,10 +124,71 @@ function ConvertTo-DriveMetricLines {
     return $lines
 }
 
+function Get-ArrayHealthValue {
+    # Get-PhysicalDisk HealthStatus as a number: 0 Healthy, 1 Warning,
+    # 2 Unhealthy, 3 Unknown (or anything else, so a new value is not silently OK).
+    param([AllowNull()][object]$HealthStatus)
+    switch ("$HealthStatus") {
+        'Healthy' { return 0 }
+        'Warning' { return 1 }
+        'Unhealthy' { return 2 }
+        default { return 3 }
+    }
+}
+
+function Select-ArrayDisks {
+    # The disks worth reporting: not a USB stick or a card. The AMD RAID array
+    # shows up as one physical disk with BusType RAID.
+    param([AllowNull()][AllowEmptyCollection()][object[]]$Disks)
+    $excluded = 'USB', 'SD', 'MMC', 'Virtual', 'File Backed Virtual'
+    return @($Disks | Where-Object { $_ -and ("$($_.BusType)" -notin $excluded) })
+}
+
+function ConvertTo-ArrayMetricLines {
+    <#
+    .SYNOPSIS
+        The sample lines for the disks and volumes Windows reports.
+    .DESCRIPTION
+        Disks are objects with FriendlyName, HealthStatus, OperationalStatus,
+        Size, BusType and MediaType (what Get-PhysicalDisk returns); volumes have
+        DriveLetter, Size, SizeRemaining and IsSystem. The serial number is not
+        read: the series are labelled by the array's name only.
+    #>
+    param(
+        [AllowNull()][AllowEmptyCollection()][object[]]$Disks,
+        [AllowNull()][AllowEmptyCollection()][object[]]$Volumes,
+        [Parameter(Mandatory = $true)][string]$HostName
+    )
+
+    $lines = [Collections.Generic.List[string]]::new()
+    foreach ($disk in (Select-ArrayDisks $Disks)) {
+        $labels = @{ host = $HostName; array = $disk.FriendlyName; bus_type = "$($disk.BusType)"; media_type = "$($disk.MediaType)" }
+        $lines.Add((Format-PrometheusSample -Name 'gaming_pc_array_health_status' -Value (Get-ArrayHealthValue $disk.HealthStatus) -Labels $labels))
+        foreach ($status in @($disk.OperationalStatus)) {
+            $lines.Add((Format-PrometheusSample -Name 'gaming_pc_array_operational_status_info' -Value 1 -Labels @{ host = $HostName; array = $disk.FriendlyName; status = "$status" }))
+        }
+        $size = Get-SmartNumber $disk.Size
+        if ($null -ne $size) {
+            $lines.Add((Format-PrometheusSample -Name 'gaming_pc_array_size_bytes' -Value $size -Labels @{ host = $HostName; array = $disk.FriendlyName }))
+        }
+    }
+    foreach ($volume in @($Volumes | Where-Object { $_ })) {
+        $labels = @{ host = $HostName; volume = "$($volume.DriveLetter):"; role = $(if ($volume.IsSystem) { 'system' } else { 'data' }) }
+        $size = Get-SmartNumber $volume.Size
+        $free = Get-SmartNumber $volume.SizeRemaining
+        if ($null -ne $size -and $null -ne $free) {
+            $lines.Add((Format-PrometheusSample -Name 'gaming_pc_volume_size_bytes' -Value $size -Labels $labels))
+            $lines.Add((Format-PrometheusSample -Name 'gaming_pc_volume_free_bytes' -Value $free -Labels $labels))
+        }
+    }
+    return $lines
+}
+
 function New-DriveHealthText {
     <#
     .SYNOPSIS
-        The whole textfile: one block per drive, then the drive count and timestamp.
+        The whole textfile: one block per drive, the array and volumes, then the
+        drive count and timestamp.
     .PARAMETER Drives
         One hashtable per drive: Device (the name from `smartctl --scan`) and
         either Smart (the parsed JSON) or Error (why it could not be read).
@@ -129,6 +197,11 @@ function New-DriveHealthText {
         [Parameter(Mandatory = $true)][AllowEmptyCollection()][object[]]$Drives,
         [Parameter(Mandatory = $true)][string]$HostName,
         [Parameter(Mandatory = $true)][long]$Timestamp,
+        # What Get-PhysicalDisk and Get-Volume returned, see ConvertTo-ArrayMetricLines,
+        # or why they could not be read. Omit for a machine that reports drives only.
+        [object[]]$ArrayDisks,
+        [object[]]$Volumes,
+        [string]$ArrayError,
         [scriptblock]$OnError = { param($Message) }
     )
 
@@ -147,6 +220,17 @@ function New-DriveHealthText {
             $ok = 0
         }
         $lines.Add((Format-PrometheusSample -Name 'nvme_health_collect_ok' -Value $ok -Labels @{ host = $HostName; device = $device }))
+    }
+    if ($PSBoundParameters.ContainsKey('ArrayDisks') -or $ArrayError) {
+        $arrayOk = 1
+        if ($ArrayError) {
+            & $OnError "array: $ArrayError"
+            $arrayOk = 0
+        }
+        else {
+            foreach ($line in (ConvertTo-ArrayMetricLines -Disks $ArrayDisks -Volumes $Volumes -HostName $HostName)) { $lines.Add($line) }
+        }
+        $lines.Add((Format-PrometheusSample -Name 'gaming_pc_array_collect_ok' -Value $arrayOk -Labels @{ host = $HostName }))
     }
     # Written last, so it only appears when the run got this far. It is not
     # nvme_health_push_timestamp_seconds: the pve alert that watches that

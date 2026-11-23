@@ -530,9 +530,11 @@ Invoke-Step -Name 'windows_exporter GPU sensors' -Optional -Action {
 }
 Invoke-Step -Name 'windows_exporter drive health' -Optional -Action {
     # The task runs once as it is registered; windows_exporter reads the file on
-    # its next scrape, and Test-Endpoint retries for half a minute.
+    # its next scrape, and Test-Endpoint retries for half a minute. The array
+    # health, not nvme_smart_*: with the drives in an AMD RAID array there is no
+    # NVMe device for smartctl to read, see README.md#drive-health.
     Test-Endpoint -Name 'windows_exporter' -Url "http://localhost:$($WindowsExporter.Port)/metrics" `
-        -ExpectedSeries 'nvme_smart_percentage_used', 'nvme_health_collect_ok'
+        -ExpectedSeries 'gaming_pc_array_health_status', 'gaming_pc_drive_health_timestamp_seconds'
 }
 Invoke-Step -Name 'smartctl' -Optional -Action { Test-DriveHealthSource }
 Invoke-Step -Name 'OhmGraphite CPU sensors' -Optional -Action {

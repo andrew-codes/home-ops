@@ -1,0 +1,38 @@
+{
+  "disks": [
+    {
+      "FriendlyName": "AMD-RAID Array 1",
+      "HealthStatus": "Warning",
+      "OperationalStatus": [
+        "Degraded"
+      ],
+      "Size": 6001175126016,
+      "BusType": "RAID",
+      "MediaType": "SSD"
+    },
+    {
+      "FriendlyName": "USB DISK 3.0",
+      "HealthStatus": "Healthy",
+      "OperationalStatus": [
+        "OK"
+      ],
+      "Size": 30751006720,
+      "BusType": "USB",
+      "MediaType": "Unspecified"
+    }
+  ],
+  "volumes": [
+    {
+      "DriveLetter": "C",
+      "Size": 2000000000000,
+      "SizeRemaining": 500000000000,
+      "IsSystem": true
+    },
+    {
+      "DriveLetter": "D",
+      "Size": 4000000000000,
+      "SizeRemaining": 1000000000000,
+      "IsSystem": false
+    }
+  ]
+}
