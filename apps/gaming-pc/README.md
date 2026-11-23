@@ -254,8 +254,7 @@ under Prerequisites for what it is and the one-time manual step it requires.
 
 ### NUT UPS monitoring
 
-> [!WARNING]
-> **A misconfigured client here can shut this machine down unexpectedly.** Verify
+> [!WARNING] > **A misconfigured client here can shut this machine down unexpectedly.** Verify
 > the NUT server address, UPS name and thresholds below against the real Synology
 > NAS before relying on this, or before merging a change to it.
 
@@ -343,7 +342,8 @@ on them.
 
 ### What runs on the PC
 
-[`src/monitoring.ps1`](src/monitoring.ps1) installs and converges three things.
+[`src/monitoring.ps1`](src/monitoring.ps1) installs and converges the three things below, plus the
+[drive health task](#drive-health).
 The deploy task `Install and configure the metrics exporters` runs it, and its
 last line (`RESULT changed=N warnings=N failures=N`) is what the task reads.
 Everything is pinned to an exact version and SHA-256 (the digest GitHub publishes
@@ -356,13 +356,61 @@ the version, URL and hash at the top of the script.
 | **PresentMon** 2.6.0 console, started at boot by the `Gaming-PC-FPS` task as SYSTEM, wrapped by [`src/fps-exporter.ps1`](src/fps-exporter.ps1) | Frame times through event tracing (ETW), summarised by [`src/fps-summary.ps1`](src/fps-summary.ps1) every 30 s into `C:\ProgramData\gaming-pc\monitoring\textfile\gaming-pc-fps.prom`: `gaming_pc_fps_average`, `gaming_pc_fps_1pct_low`, `gaming_pc_frametime_p99_milliseconds`, `gaming_pc_frametime_max_milliseconds`, `gaming_pc_frames_total` and `gaming_pc_active_app_info{app}` | It does not inject into or hook any game. The file is empty when no game is running, so the series disappear instead of freezing.                 |
 | **OhmGraphite** 0.38.0, port 4445, Prometheus pull mode                                                                                        | CPU temperature only (`ohm_cpu_celsius`, plus package power and clocks)                                                                                                                                                                                                                                                                                                                 | A second reader of the same LibreHardwareMonitor stack FanControl already runs, through the PawnIO driver FanControl installs. It adds no driver. |
 
-Where things live: `C:\Program Files\windows_exporter`, `C:\Program Files\OhmGraphite`
-and `C:\ProgramData\gaming-pc\monitoring` (PresentMon, the two FPS scripts, the
-textfile directory and `fps-exporter.log`). The monitoring directory is locked to
+Where things live: `C:\Program Files\windows_exporter`, `C:\Program Files\OhmGraphite`,
+`C:\Program Files\smartmontools` and `C:\ProgramData\gaming-pc\monitoring` (PresentMon,
+the FPS and drive health scripts, the textfile directory and `fps-exporter.log`). The monitoring directory is locked to
 administrators, because a SYSTEM task runs the scripts in it and windows_exporter
 reads its textfile directory. The scripts are copied there out of
 `developer\tools` because the deploy empties and refills that directory (every entry
 except `dxl`, which stays untouched).
+
+### Drive health
+
+The Hardware health dashboard (`deployments/base/grafana/dashboards/hardware-health.json`)
+shows this machine's NVMe drives next to the Proxmox host's and the NAS's: wear, spare
+capacity, media errors, temperature, power-on age and data written, under the same
+`Machine` filter (`gaming-pc`) and with the same OK and WATCH status logic. windows_exporter
+has no SMART data, so this is its own piece:
+
+- **smartctl** (`smartmontools.smartmontools`, installed by [`src/software.ps1`](src/software.ps1)
+  from winget like the other machine-wide packages).
+- **`Gaming-PC-DriveHealth`**, a scheduled task registered by `monitoring.ps1`. It runs as
+  SYSTEM at boot and every 5 minutes, at BelowNormal priority, with a 2 minute limit. Each run
+  is [`src/drive-health.ps1`](src/drive-health.ps1): `smartctl --scan`, then one
+  `smartctl --all` per NVMe drive. [`src/drive-health-metrics.ps1`](src/drive-health-metrics.ps1)
+  turns the JSON into Prometheus text, which is written atomically to
+  `C:\ProgramData\gaming-pc\monitoring\textfile\gaming-pc-drive-health.prom`. windows_exporter
+  already serves that directory, so there is no new port, firewall rule or scrape config.
+- **The series are the pve host's, not new ones.** `nvme_smart_*`, `nvme_capacity_bytes` and
+  `nvme_health_collect_ok` with the labels `host` (`gaming-pc`), `device` (`nvme0`), `model` and
+  `serial`, exactly as [`apps/pve`](../pve/README.md) pushes them, so no dashboard panel has a
+  query of its own for this machine. vmagent adds `job="gaming-pc"`, which is how the alert rules
+  tell the two apart: the `pve` rules exclude that job and the
+  [`gaming-pc-drives`](../../deployments/base/alerting/README.md#gaming-pc) rules read only it.
+  The heartbeat is `gaming_pc_drive_health_timestamp_seconds`, not `nvme_health_push_timestamp_seconds`,
+  so the Proxmox heartbeat alert is not satisfied by this machine.
+- **Only NVMe drives.** A SATA SSD or hard disk has no standard wear or spare field in
+  smartctl's JSON (each vendor names its own attribute), so it is left out instead of guessed at.
+  The Hardware health `Gaps` panel says so.
+- **Gameplay cost.** One NVMe SMART log read per drive every 5 minutes, which is a single
+  admin command to the controller. That is not the continuous storage polling that
+  LibreHardwareMonitor does and that OhmGraphite keeps switched off below. If a hitch ever lines up
+  with the 5 minute mark, lengthen the interval in `Install-DriveHealth`.
+- **A failed read is data, not a missing file.** A drive smartctl cannot read, or a smartctl that
+  cannot run, becomes `nvme_health_collect_ok 0` (device `scan` for the latter) and the file is still
+  replaced, so old values are never served as current. `GamingPCNvmeHealthSourceFailing` fires on it.
+- **The PC is often off.** The series only exist while it is on, and the dashboard reads them
+  through a 15 minute window, so its rows empty out 15 minutes after shutdown. No alert fires for that.
+
+Checks on the first deploy: the deploy prints a warning when `smartctl.exe` is missing or when
+windows_exporter does not answer with `nvme_smart_percentage_used` after the task's first run. By hand:
+
+```powershell
+& "$env:ProgramFiles\smartmontools\bin\smartctl.exe" --scan --json
+& "$env:ProgramFiles\smartmontools\bin\smartctl.exe" --all /dev/nvme0
+Get-ScheduledTaskInfo -TaskName Gaming-PC-DriveHealth
+pwsh -NoProfile -File C:\ProgramData\gaming-pc\monitoring\drive-health.ps1 -Print
+```
 
 ### Why these, and what each is not
 
@@ -486,7 +534,7 @@ fails the deploy:
   Pick a game in the **Game** filter to see its FPS, frame time, temperatures, GPU power and
   GPU utilisation over time, only for the periods it was the current application, so you can
   compare a session before and after a settings change.
-  The thermal alert rules are in the alerting
+  The thermal and drive health alert rules are in the alerting
   [README](../../deployments/base/alerting/README.md#gaming-pc). The PC is often
   off, so nothing alerts on it being down, and `TargetDown` skips the `gaming-pc` job.
 
@@ -495,7 +543,10 @@ fails the deploy:
 `yarn nx test gaming-pc` runs [`tests/fps-summary.test.ps1`](tests/fps-summary.test.ps1)
 (the summariser, with a fake clock and no PresentMon; needs `pwsh`),
 [`tests/ohmgraphite-config.test.ps1`](tests/ohmgraphite-config.test.ps1) (the generated
-OhmGraphite config; needs `pwsh`) and the `vmalert-tool` tests for the alert rules in
+OhmGraphite config; needs `pwsh`),
+[`tests/drive-health.test.ps1`](tests/drive-health.test.ps1) (the drive health metrics from
+`smartctl --json` fixtures in [`tests/fixtures/smartctl`](tests/fixtures/smartctl), and the whole
+script against a stand-in smartctl; needs `pwsh`) and the `vmalert-tool` tests for the alert rules in
 [`tests/gaming-pc-rules.test.yaml`](tests/gaming-pc-rules.test.yaml) (needs Docker
 and `yq`). All run in the pull request checks.
 

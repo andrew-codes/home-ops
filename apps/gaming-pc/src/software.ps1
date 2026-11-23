@@ -46,6 +46,9 @@ $MachinePackages = @(
     @{ Name = 'Microsoft Visual C++ Redistributable'; Id = 'Microsoft.VCRedist.2015+.x64' }
     @{ Name = 'Tailscale'; Id = 'Tailscale.Tailscale' }
     @{ Name = 'Zed'; Id = 'ZedIndustries.Zed' }
+    # smartctl, which drive-health.ps1 (installed by monitoring.ps1) reads the
+    # NVMe drives' SMART health with.
+    @{ Name = 'smartmontools'; Id = 'smartmontools.smartmontools' }
 )
 
 # Must not be present. Discord additionally needs the leftover-hunting below:
