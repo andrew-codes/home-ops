@@ -1,0 +1,67 @@
+---
+# Reports the SMART health of the host's NVMe drives (wear, media errors, critical
+# warning, temperature) to VictoriaMetrics every 5 minutes, so a drive that is
+# failing shows up before it stalls the guests. src/deploy/files/nvme-health.py is a
+# file on the host, not an inline command. The node address comes from
+# observability_host and the port from observability_influx_port, both play
+# variables. Nothing here touches the network, GRUB or the guests.
+- name: Install nvme-cli (reads the SMART log of the drives)
+  ansible.builtin.apt:
+    name: nvme-cli
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Create the NVMe health collector directory
+  ansible.builtin.file:
+    path: /usr/local/lib/nvme-health
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the NVMe health collector script
+  ansible.builtin.copy:
+    src: nvme-health.py
+    dest: /usr/local/lib/nvme-health/nvme-health.py
+    owner: root
+    group: root
+    mode: "0755"
+  register: nvme_health_script
+
+- name: Install the NVMe health collector service
+  ansible.builtin.template:
+    src: nvme-health.service.j2
+    dest: /etc/systemd/system/nvme-health.service
+    owner: root
+    group: root
+    mode: "0644"
+  register: nvme_health_service
+
+- name: Install the NVMe health collector timer
+  ansible.builtin.copy:
+    src: nvme-health.timer
+    dest: /etc/systemd/system/nvme-health.timer
+    owner: root
+    group: root
+    mode: "0644"
+  register: nvme_health_timer
+
+- name: Reload systemd units after an NVMe health collector unit change
+  ansible.builtin.systemd:
+    daemon_reload: yes
+  when: nvme_health_service is changed or nvme_health_timer is changed
+
+- name: Ensure the NVMe health collector timer is enabled and running
+  ansible.builtin.systemd:
+    name: nvme-health.timer
+    enabled: yes
+    state: started
+
+# Push once now, so the series exist without waiting for the first timer run and
+# a script or unit that does not work fails the deploy.
+- name: Run the NVMe health collector once after a change
+  ansible.builtin.systemd:
+    name: nvme-health.service
+    state: started
+  when: nvme_health_script is changed or nvme_health_service is changed

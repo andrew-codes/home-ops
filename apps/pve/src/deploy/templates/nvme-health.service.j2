@@ -1,0 +1,14 @@
+# Managed by apps/pve (src/deploy/tasks/nvme-health.yml). Edits are overwritten.
+[Unit]
+Description=Report the SMART health of the NVMe drives to VictoriaMetrics
+Documentation=https://docs.home.smith-simms.family/wiki/spaces/HA/overview
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/nvme-health/nvme-health.py push http://{{ observability_host }}:{{ observability_influx_port }}/api/v1/import/prometheus
+# The script times each nvme call out, and this stops a run that hangs anyway
+# before the next one starts.
+TimeoutStartSec=300
+Nice=10

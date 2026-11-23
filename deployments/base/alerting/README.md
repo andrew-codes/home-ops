@@ -53,14 +53,30 @@ datasource through a `datasource` variable, which resolves to the default `victo
 
 The rules built on them:
 
-| Rule                                                           | Severity | Fires when                                                                                |
-| -------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------- |
-| `NodeFilesystemFillingUp`                                      | warning  | a node disk has under 40% free and is predicted to run out within 24 hours (6 hour trend) |
-| `NodeFilesystemSpaceLow`                                       | warning  | a node disk has under 10% free for 15 minutes                                             |
-| `NodeFilesystemAlmostFull`                                     | critical | a node disk has under 3% free for 5 minutes                                               |
-| `KubePodCrashLooping`                                          | warning  | a container is in `CrashLoopBackOff` for 10 minutes                                       |
-| `KubePodRestartingTooOften`                                    | warning  | a container restarted more than 5 times in an hour                                        |
-| `NodeExporterTargetsMissing`, `KubeStateMetricsTargetsMissing` | warning  | an exporter has no scrape target for 10 minutes, so the rules above cannot fire           |
+| Rule                                                           | Severity | Fires when                                                                                 |
+| -------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------ |
+| `NodeFilesystemFillingUp`                                      | warning  | a node disk has under 40% free and is predicted to run out within 24 hours (6 hour trend)  |
+| `NodeFilesystemSpaceLow`                                       | warning  | a node disk has under 10% free for 15 minutes                                              |
+| `NodeFilesystemAlmostFull`                                     | critical | a node disk has under 3% free for 5 minutes                                                |
+| `KubePodCrashLooping`                                          | warning  | a container is in `CrashLoopBackOff` for 10 minutes                                        |
+| `KubePodRestartingTooOften`                                    | warning  | a container restarted more than 5 times in an hour                                         |
+| `NodeExporterTargetsMissing`, `KubeStateMetricsTargetsMissing` | warning  | an exporter has no scrape target for 10 minutes, so the rules above cannot fire            |
+| `NodeDiskWriteLatencyHigh`                                     | warning  | writes to an NVMe disk of a node take over 100 ms on average (5 minute rate) for 2 minutes |
+| `NodeIOStallPressureHigh`                                      | warning  | tasks on a node are stalled on disk I/O more than 20% of the time (5 minute rate)          |
+| `EtcdSlowFsync`                                                | warning  | etcd's write ahead log fsync p99 is over 0.5 s for 2 minutes                               |
+| `KubeAPIServerSlow`                                            | warning  | the API server's request p99 (watches and connects excluded) is over 5 s for 5 minutes     |
+
+The four storage stall rules (`storage-stalls` VMRule) watch the chain from the disk up to the control
+plane. The node's single NVMe has stalled writes for minutes at a time, which blocks etcd on `fdatasync`,
+makes the API server miss deadlines and restarts kube-controller-manager and kube-scheduler. They need
+node-exporter, the API server scrape job and the `etcd` scrape job. etcd is a static pod that serves
+metrics over plain HTTP on port 2381; the `etcd` job in `deployments/base/metrics/helm-release.yaml`
+scrapes each control plane node on its InternalIP, which only works once the etcd flag
+`listen-metrics-urls` includes the node address (set in `resources/k8s/src/deployment/templates/kubeadm-config.yaml.j2`
+for a fresh cluster; an existing cluster needs the manual edit in the PR that added it). Until then the
+`etcd` target is down and `TargetDown` fires for it. node-exporter reports the host's disks, because the
+node is an LXC container, so `nvme0n1` is the physical drive. The drive's health (wear, media errors) is
+reported by the Proxmox host itself, see [pve](../../../apps/pve/README.md#nvme-health-tasksnvme-healthyml).
 
 The disk rules skip `tmpfs`, `overlay`, `squashfs`, read-only and network file systems. Network volumes
 (PVCs) are covered by the `PersistentVolume*` rules from the kubelet volume stats. A scrape target that

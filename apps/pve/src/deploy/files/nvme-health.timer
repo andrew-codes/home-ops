@@ -1,0 +1,11 @@
+# Managed by apps/pve (src/deploy/tasks/nvme-health.yml). Edits are overwritten.
+[Unit]
+Description=Report the SMART health of the NVMe drives every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

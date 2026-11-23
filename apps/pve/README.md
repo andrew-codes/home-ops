@@ -265,6 +265,13 @@ deployments publish. The log half is [`tasks/logs.yml`](src/deploy/tasks/logs.ym
   If it already exists, it compares server, port, protocol, organization, bucket and the disabled
   flag, and runs `pvesh set` only on drift. No token is set: VictoriaMetrics ignores the token,
   organization and bucket, and the token is optional over HTTP.
+- Checks that logs really leave the host. After the rsyslog restart it logs a
+  `forwarding check` message with `logger` and requires an established TCP connection to
+  the VictoriaLogs port, retrying for 30 seconds, so a host that forwards nothing fails
+  the play instead of looking configured. Find the message in VictoriaLogs with
+  `hostname:"<hostname of pve>" "forwarding check"`. The kernel log comes from rsyslog's
+  `imklog` module, which the host keeps (only the LXC guests drop it).
+- Reports the health of the NVMe drives, see [NVMe health](#nvme-health-tasksnvme-healthyml).
 - Does not touch the network, GRUB or any guest, so it is safe to run on its own:
   `--tags observability`, or the `deploy-observability` target below.
 
@@ -278,6 +285,32 @@ cluster name is the `cluster_name:` line in that file. Hosts that share a cluste
 metric server entry, and only the first of them in play order lists, creates and reconciles it.
 A standalone host (no `corosync.conf`) manages its own entry. rsyslog is configured on every host
 either way.
+
+#### NVMe health ([`tasks/nvme-health.yml`](src/deploy/tasks/nvme-health.yml))
+
+Every guest on this host, the Kubernetes node included, runs on the host's NVMe drive. When
+that drive stalls writes for minutes (as it did in November 2026), etcd on the Kubernetes
+node stalls with it. node-exporter in the guest sees the drive's latency but cannot read its
+SMART log, and the Proxmox metric stream does not carry SMART data. So the host reports it:
+
+- Installs `nvme-cli` and [`files/nvme-health.py`](src/deploy/files/nvme-health.py), run every
+  5 minutes by the `nvme-health.timer` systemd timer. The script (python3 standard library only)
+  runs `nvme smart-log` for each controller in `/sys/class/nvme` and POSTs the result to
+  VictoriaMetrics (`/api/v1/import/prometheus` on the same NodePort as the metric server).
+  `python3 /usr/local/lib/nvme-health/nvme-health.py print` shows what it would send.
+- Series, labelled `host`, `device` (`nvme0`), `model` and `serial`: `nvme_smart_critical_warning`,
+  `nvme_smart_percentage_used`, `nvme_smart_available_spare_percent`,
+  `nvme_smart_available_spare_threshold_percent`, `nvme_smart_media_errors`,
+  `nvme_smart_error_log_entries`, `nvme_smart_temperature_celsius`, `nvme_smart_unsafe_shutdowns`,
+  `nvme_smart_power_on_hours`, `nvme_smart_data_units_written`/`_read` and the two temperature
+  time counters. `nvme_health_collect_ok` is 0 for a drive whose SMART log cannot be read, and
+  `nvme_health_push_timestamp_seconds` is the heartbeat.
+- The rules are the `pve` VMRule in
+  [`deployments/production/alerting/pve-vmrules.yaml`](../../deployments/production/alerting/pve-vmrules.yaml):
+  `PVENVMeCriticalWarning`, `PVENVMeMediaErrors` (new errors in the last day) and `PVENVMeWearCritical`
+  (over 95% of rated endurance) are critical; `PVENVMeWearHigh` (over 80%), `PVENVMeSpareLow`,
+  `PVENVMeHealthSourceFailing` and `PVENVMeHealthMetricsMissing` (the timer stopped) are warnings.
+  They are unit-tested by `nx run pve:test`.
 
 ### Proxmox guests
 
@@ -441,6 +474,7 @@ with console access available as a fallback per
 
 | Target                       | What it does                                                                                                                                              |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test`                       | Unit tests of the NVMe health script (`python3 -m unittest`) and of the `pve` alert rules (`vmalert-tool` in docker). No host contact.                    |
 | `lint`                       | `ansible-playbook --syntax-check` against all three playbooks - no host contact, safe to run anytime.                                                     |
 | `deploy`                     | Runs the full playbook against `pve` over SSH. Not from an agent session - see [AGENTS.md](AGENTS.md).                                                    |
 | `deploy-observability`       | Runs only the [observability](#8-observability-tasksobservabilityyml) tasks against `proxmox/ip` and, when set, `proxmox2/ip`. Not from an agent session. |

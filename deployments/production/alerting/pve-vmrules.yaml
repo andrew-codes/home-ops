@@ -1,0 +1,99 @@
+---
+# Proxmox VE host drive health. The series come from the systemd timer that
+# apps/pve installs (src/deploy/files/nvme-health.py), which pushes the SMART log
+# of each NVMe drive of the host every 5 minutes. node-exporter in the k8s guest
+# sees the drive's speed but not its health, and the Proxmox metric stream does
+# not carry SMART data.
+#
+# The pushes arrive in bursts with gaps (the timer runs every 5 minutes, and a
+# push can be missed), so every current value goes through last_over_time and
+# presence through absent_over_time: a missed run neither fires nor mutes an alert.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: pve
+spec:
+  groups:
+    - name: pve-nvme-source
+      rules:
+        # If the timer stops, a failing drive would go unnoticed, so its own
+        # heartbeat is an alert too. nvme_health_push_timestamp_seconds is written last in each run.
+        - alert: PVENVMeHealthMetricsMissing
+          expr: absent_over_time(nvme_health_push_timestamp_seconds[20m])
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox host NVMe drive health is not being reported"
+            description: "The NVMe health timer on the Proxmox host has not pushed for 25 minutes, so a failing drive would go unnoticed. On the host run `systemctl status nvme-health.timer nvme-health.service` and `journalctl -u nvme-health`, and run `OP_VAULT=home-ops yarn nx run pve:deploy-observability` to put it back."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+        - alert: PVENVMeHealthSourceFailing
+          expr: last_over_time(nvme_health_collect_ok[15m]) == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Proxmox host cannot read the SMART log of {{ $labels.device }}"
+            description: "`nvme smart-log` failed for {{ $labels.device }} on {{ $labels.host }} for 10 minutes. The drive may have stopped answering (check `dmesg | grep -i nvme` and `nvme smart-log /dev/{{ $labels.device }}` on the host), or nvme-cli changed its output."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+    - name: pve-nvme-health
+      rules:
+        # The drive itself reports a problem: bit 0 spare below threshold, 1
+        # temperature over a threshold, 2 media reliability degraded, 3 read
+        # only, 4 volatile memory backup failed, 5 persistent memory region
+        # unreliable. The value is the bit field.
+        - alert: PVENVMeCriticalWarning
+          expr: last_over_time(nvme_smart_critical_warning[15m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "NVMe drive {{ $labels.device }} on the Proxmox host reports a critical warning"
+            description: "{{ $labels.model }} ({{ $labels.device }}, serial {{ $labels.serial }}) on {{ $labels.host }} has critical_warning={{ $value }} (bit field: 1 spare capacity below threshold, 2 temperature, 4 reliability degraded, 8 read only, 16 volatile memory backup failed). Every guest on the host runs on this drive: run `nvme smart-log /dev/{{ $labels.device }}` and back up now."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+        # Media and data integrity errors only ever grow. A rise over the last
+        # day means the drive hit a new one. The oldest sample of the window is
+        # the baseline: increase and delta count a series that is new to the
+        # window from zero, so the errors a drive already had would fire the
+        # alert for a day after a first deploy.
+        - alert: PVENVMeMediaErrors
+          expr: max_over_time(nvme_smart_media_errors[15m]) - min_over_time(nvme_smart_media_errors[1d]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "NVMe drive {{ $labels.device }} on the Proxmox host logged new media errors"
+            description: "{{ $labels.model }} ({{ $labels.device }}, serial {{ $labels.serial }}) on {{ $labels.host }} logged {{ $value | humanize }} new media and data integrity errors in the last day. The drive is returning bad data or failing. Run `nvme smart-log /dev/{{ $labels.device }}` and `journalctl -k | grep -i nvme` on the host, and plan to replace it."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+        # Warning from 80% up to 95% and critical above, so one drive does not push twice.
+        - alert: PVENVMeWearHigh
+          expr: last_over_time(nvme_smart_percentage_used[15m]) > 80 <= 95
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "NVMe drive {{ $labels.device }} on the Proxmox host is {{ $value | humanize }}% worn"
+            description: "{{ $labels.model }} ({{ $labels.device }}) on {{ $labels.host }} has used {{ $value | humanize }}% of its rated endurance. Plan its replacement."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+        - alert: PVENVMeWearCritical
+          expr: last_over_time(nvme_smart_percentage_used[15m]) > 95
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: "NVMe drive {{ $labels.device }} on the Proxmox host is almost worn out ({{ $value | humanize }}%)"
+            description: "{{ $labels.model }} ({{ $labels.device }}) on {{ $labels.host }} has used {{ $value | humanize }}% of its rated endurance and can fail at any time. Replace it now."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox
+        # The drive sets critical_warning bit 0 below the threshold too; this
+        # fires earlier, while 10 points of spare capacity are left.
+        - alert: PVENVMeSpareLow
+          expr: >-
+            last_over_time(nvme_smart_available_spare_percent[15m])
+            <= last_over_time(nvme_smart_available_spare_threshold_percent[15m]) + 10
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "NVMe drive {{ $labels.device }} on the Proxmox host is running out of spare capacity"
+            description: "{{ $labels.model }} ({{ $labels.device }}) on {{ $labels.host }} has {{ $value | humanize }}% spare capacity left, within 10 points of the drive's own threshold. The drive is replacing worn out cells. Plan its replacement."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox

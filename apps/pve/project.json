@@ -16,6 +16,17 @@
         "cwd": "{projectRoot}"
       }
     },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "python3 -m unittest discover -s tests",
+          "bash scripts/test-rules.sh"
+        ],
+        "parallel": false,
+        "cwd": "{projectRoot}"
+      }
+    },
     "deploy": {
       "executor": "@ha/nx-executors:invoke",
       "options": {

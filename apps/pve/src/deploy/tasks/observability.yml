@@ -10,6 +10,50 @@
 - name: Forward logs to VictoriaLogs
   ansible.builtin.import_tasks: logs.yml
 
+# rsyslog only restarts at the end of a play, so restart it now, then prove that
+# this host is delivering to VictoriaLogs. The forwarding config being in place
+# is not proof: before this check a host that sent nothing looked the same as
+# one that sent everything (the kernel and journal logs of pve were missing from
+# VictoriaLogs and nothing said so). rsyslog opens the TCP connection when it has
+# a message to send, so one is logged first. A connection that never comes up
+# fails the play. Look for the message in VictoriaLogs with
+# `hostname:"<this host>" "forwarding check"`.
+- name: Restart rsyslog before checking that it delivers
+  ansible.builtin.meta: flush_handlers
+
+- name: Log a forwarding check message
+  ansible.builtin.command:
+    argv:
+      - logger
+      - --tag
+      - pve-observability
+      - "forwarding check from the observability play"
+  changed_when: false
+
+- name: Check that rsyslog holds a connection to VictoriaLogs
+  ansible.builtin.command:
+    argv:
+      - ss
+      - --no-header
+      - --tcp
+      - --numeric
+      - state
+      - established
+      - dport
+      - "="
+      - ":{{ observability_syslog_port }}"
+  register: pve_syslog_connection
+  until: (observability_host | string ~ ':' ~ observability_syslog_port) in pve_syslog_connection.stdout.split()
+  retries: 6
+  delay: 5
+  changed_when: false
+
+# Drive health: SMART wear and error counters of the NVMe drives, which the
+# metric server below does not carry.
+- name: Report NVMe drive health to VictoriaMetrics
+  ansible.builtin.import_tasks: nvme-health.yml
+  tags: [observability, nvme-health]
+
 # Metrics: the cluster's VictoriaMetrics InfluxDB endpoint. Metric servers are
 # cluster-wide (/cluster/metrics/server). Hosts in one cluster share a single
 # entry, so only the first host of each cluster manages it; a standalone host
