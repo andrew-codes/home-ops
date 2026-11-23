@@ -198,6 +198,31 @@ removed via Chocolatey, in `scripts/deploy.yml`, rather than through
 `software.ps1`'s winget-based `$UnwantedPackages` - it was installed through
 Chocolatey originally, so removal uses the same package manager.
 
+VS Code (and its Insiders edition) is kept absent whichever way it got there,
+trying each method in turn and only moving on if the one before left something
+behind:
+
+1. `winget uninstall` of `Microsoft.VisualStudioCode` and
+   `Microsoft.VisualStudioCode.Insiders`, from `$UnwantedPackages`.
+2. Chocolatey: if `choco` is present, the `vscode` and `vscode-insiders`
+   packages are uninstalled when `choco list` shows them.
+3. The Windows uninstall entries: any entry whose `DisplayName` starts with
+   "Microsoft Visual Studio Code" - in HKLM (64 and 32 bit views), the loaded
+   user hives, and the gaming user's HKCU - has its own uninstaller run
+   silently. That catches the per-user installer, the system installer and a
+   manual install.
+4. Last resort: any `Microsoft VS Code` or `Microsoft VS Code Insiders`
+   directory still in Program Files or `%LOCALAPPDATA%\Programs`, plus the "Open
+   with Code" context-menu keys, is deleted.
+
+The machine phase handles the machine-wide installs and the user phase the
+per-user ones, and the log line for the step names which method removed it.
+It does nothing, and closes nothing, when VS Code is already absent. A running
+VS Code is closed first when there is something to remove. The owner's
+settings and extensions (`%APPDATA%\Code`, `~\.vscode`, and the Insiders
+equivalents) are deliberately left behind. The removal logic is tested against
+fakes by `tests/software-vscode.test.ps1`.
+
 Four of those rows are not plain winget, and each for its own reason:
 
 - **NVIDIA App** has no manifest in the community winget source (the `Nvidia`
