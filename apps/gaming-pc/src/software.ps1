@@ -53,11 +53,13 @@ $MachinePackages = @(
 
 # Must not be present. Discord additionally needs the leftover-hunting below:
 # its Squirrel installer is per-user and leaves a working copy behind that
-# winget cannot see. VS Code is kept absent in favor of Zed, above.
+# winget cannot see. VS Code is kept absent in favor of Zed, above, and has the
+# same Chocolatey, uninstall-entry and directory backstops (Remove-VSCodeLeftovers).
 $UnwantedPackages = @(
     @{ Name = 'Playnite'; Id = 'Playnite.Playnite' }
     @{ Name = 'Discord'; Id = 'Discord.Discord' }
     @{ Name = 'Visual Studio Code'; Id = 'Microsoft.VisualStudioCode' }
+    @{ Name = 'Visual Studio Code Insiders'; Id = 'Microsoft.VisualStudioCode.Insiders' }
 )
 
 # Microsoft Store apps. An MSIX install can require an interactive, signed-in
@@ -183,6 +185,224 @@ function Remove-DiscordLeftovers {
     }
 
     Write-Log '  Discord: no per-user leftovers'
+    return 'Absent'
+}
+
+# ---------------------------------------------------------------------------
+# Visual Studio Code, however it was installed
+# ---------------------------------------------------------------------------
+
+# VS Code (and its Insiders edition) can be on the machine through winget, a
+# per-user or system Inno Setup installer, Chocolatey, or by hand. Absence is
+# enforced in that order, each method only acting if the one before left
+# something behind: winget (the $UnwantedPackages entries above), Chocolatey,
+# the uninstall entries in the Windows registry (which covers any install
+# method by running its own uninstaller), and last the application
+# directories. The owner's settings and extensions (%APPDATA%\Code, ~\.vscode,
+# and the Insiders equivalents) are never touched.
+
+$VSCodeChocolateyPackages = @('vscode', 'vscode-insiders')
+
+function Get-VSCodeUninstallEntry {
+    <#
+    .SYNOPSIS
+        Finds the Windows uninstall entries of VS Code and VS Code Insiders.
+    .DESCRIPTION
+        -Scope Machine reads HKLM (64 and 32 bit views) and every user hive
+        that is loaded under HKEY_USERS; -Scope User reads the current user's
+        HKCU. A DisplayName of "Microsoft Visual Studio Code" or
+        "Microsoft Visual Studio Code (User)" or "... Insiders" matches.
+    .OUTPUTS
+        Objects with Name and Command (QuietUninstallString, else
+        UninstallString).
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Machine', 'User')]
+        [string]$Scope
+    )
+
+    $uninstall = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    $paths = if ($Scope -eq 'Machine') {
+        $loadedHives = Get-ChildItem Registry::HKEY_USERS -ErrorAction SilentlyContinue |
+            Where-Object { $_.PSChildName -notlike '*_Classes' } |
+            ForEach-Object { "Registry::HKEY_USERS\$($_.PSChildName)\$uninstall" }
+        @("HKLM:\$uninstall", "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*") + $loadedHives
+    }
+    else {
+        @("HKCU:\$uninstall")
+    }
+
+    foreach ($path in $paths) {
+        Get-ItemProperty -Path $path -ErrorAction SilentlyContinue |
+            Where-Object { $_.DisplayName -like 'Microsoft Visual Studio Code*' } |
+            ForEach-Object {
+                $command = if ($_.QuietUninstallString) { $_.QuietUninstallString } else { $_.UninstallString }
+                if ($command) { [pscustomobject]@{ Name = $_.DisplayName; Command = $command } }
+            }
+    }
+}
+
+function ConvertTo-SilentUninstallCommand {
+    <#
+    .SYNOPSIS
+        Splits an uninstall string into the executable and silent arguments.
+    .DESCRIPTION
+        Inno Setup uninstallers (unins000.exe, what both VS Code installers
+        use) get /VERYSILENT; Windows Installer commands (msiexec) get /qn.
+        Arguments the string already carries are kept.
+    #>
+    param([Parameter(Mandatory = $true)][string]$Command)
+
+    if ($Command -match '^\s*"([^"]+)"\s*(.*)$' -or $Command -match '^\s*(\S+?\.exe)\s*(.*)$') {
+        $file = $Matches[1]
+        $arguments = $Matches[2]
+    }
+    else {
+        throw "cannot parse the uninstall command: $Command"
+    }
+
+    $silent = if ($file -like '*msiexec*') {
+        if ($arguments -match '/q') { @() } else { @('/qn', '/norestart') }
+    }
+    else {
+        if ($arguments -match '/(VERY)?SILENT') { @('/NORESTART', '/SUPPRESSMSGBOXES') } else { @('/VERYSILENT', '/NORESTART', '/SUPPRESSMSGBOXES') }
+    }
+
+    $argumentList = @($arguments, $silent) | ForEach-Object { $_ } | Where-Object { $_ }
+    return [pscustomobject]@{ File = $file; Arguments = ($argumentList -join ' ') }
+}
+
+function Remove-VSCodeChocolatey {
+    <#
+    .SYNOPSIS
+        Uninstalls the Chocolatey packages for VS Code, if choco has any.
+    .OUTPUTS
+        The names of the packages that were uninstalled.
+    #>
+    if (-not (Get-Command choco -ErrorAction SilentlyContinue)) { return }
+
+    foreach ($package in $VSCodeChocolateyPackages) {
+        $listed = & choco list --local-only --exact --limit-output $package
+        if (-not ($listed | Where-Object { $_ -like "$package|*" })) { continue }
+
+        Write-Log "  Visual Studio Code: choco uninstall $package"
+        & choco uninstall $package --yes --no-progress | Out-Null
+        if ($LASTEXITCODE -notin 0, 1605, 1614, 1641, 3010) {
+            throw "choco uninstall $package exited with code $LASTEXITCODE"
+        }
+        $package
+    }
+}
+
+function Remove-VSCodeLeftovers {
+    <#
+    .SYNOPSIS
+        Removes any VS Code that winget (the step before this) did not.
+    .DESCRIPTION
+        Each phase handles what it has the rights for: -Scope Machine
+        (elevated) Chocolatey, HKLM and loaded user hives, Program Files and
+        the HKLM shell entries; -Scope User (the gaming user's own session)
+        HKCU, %LOCALAPPDATA%\Programs and the HKCU shell entries. See the
+        comment above for the order. What removed it is logged.
+    .PARAMETER ContextMenuKeys
+        Registry paths of the "Open with Code" shell entries to delete. Only
+        the default (per Scope) exists so a test can point it at a temp
+        directory, which Test-Path and Remove-Item treat the same way.
+    .OUTPUTS
+        'Removed' if anything was actually deleted, otherwise 'Absent'.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Machine', 'User')]
+        [string]$Scope,
+
+        [string[]]$ContextMenuKeys
+    )
+
+    if ($Scope -eq 'Machine') {
+        $roots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}) | Where-Object { $_ } | Select-Object -Unique
+        $hive = 'HKLM:\SOFTWARE\Classes'
+    }
+    else {
+        $roots = @((Join-Path $env:LOCALAPPDATA 'Programs'))
+        $hive = 'HKCU:\Software\Classes'
+    }
+    $installDirectories = foreach ($root in $roots) {
+        foreach ($edition in 'Microsoft VS Code', 'Microsoft VS Code Insiders') {
+            Join-Path $root $edition
+        }
+    }
+    if (-not $PSBoundParameters.ContainsKey('ContextMenuKeys')) {
+        $ContextMenuKeys = foreach ($target in '*', 'Directory', 'Directory\Background', 'Drive') {
+            foreach ($verb in 'VSCode', 'VSCodeInsiders') {
+                "$hive\$target\shell\$verb"
+            }
+        }
+    }
+
+    $methods = [Collections.Generic.List[string]]::new()
+    $chocoInstalled = (Get-Command choco -ErrorAction SilentlyContinue) -and $Scope -eq 'Machine'
+    $entries = @(Get-VSCodeUninstallEntry -Scope $Scope)
+    $directories = @($installDirectories | Where-Object { Test-Path -LiteralPath $_ })
+
+    # A running editor keeps its own files locked, including the ones an
+    # uninstaller needs to replace, so close it - but only when there is
+    # something to remove, so an already-clean machine is left quiet.
+    if ($chocoInstalled -or $entries.Count -gt 0 -or $directories.Count -gt 0) {
+        Get-Process -Name 'Code', 'Code - Insiders' -ErrorAction SilentlyContinue | Stop-Process -Force
+    }
+
+    # 2. Chocolatey.
+    if ($Scope -eq 'Machine') {
+        foreach ($package in @(Remove-VSCodeChocolatey)) {
+            $methods.Add("chocolatey ($package)")
+        }
+    }
+
+    # 3. The uninstall entries, found again because Chocolatey's removal (and
+    # the uninstaller it runs) takes its own entry away.
+    foreach ($entry in @(Get-VSCodeUninstallEntry -Scope $Scope)) {
+        $command = ConvertTo-SilentUninstallCommand -Command $entry.Command
+        Write-Log "  Visual Studio Code: uninstalling '$($entry.Name)' with its own uninstaller..."
+        $process = Start-Process -FilePath $command.File -ArgumentList $command.Arguments -Wait -PassThru
+        if ($process.ExitCode -notin 0, 3010) {
+            throw "the uninstaller of '$($entry.Name)' exited with code $($process.ExitCode)"
+        }
+        $methods.Add("uninstall entry ($($entry.Name))")
+    }
+
+    # 4. Whatever is left. The Inno Setup uninstaller hands off to a temporary
+    # copy of itself and can still be deleting when it returns, so a locked
+    # file is retried before it is treated as a failure.
+    $deletedDirectory = $false
+    foreach ($directory in $directories | Where-Object { Test-Path -LiteralPath $_ }) {
+        for ($attempt = 1; Test-Path -LiteralPath $directory; $attempt++) {
+            try {
+                Write-Log "  Visual Studio Code: removing leftover $directory"
+                Remove-Item -LiteralPath $directory -Recurse -Force
+            }
+            catch {
+                if ($attempt -ge 5) { throw }
+                Start-Sleep -Seconds 2
+            }
+        }
+        $deletedDirectory = $true
+    }
+    if ($deletedDirectory) { $methods.Add('directory removal') }
+
+    foreach ($key in $ContextMenuKeys | Where-Object { Test-Path -LiteralPath $_ }) {
+        Write-Log "  Visual Studio Code: removing $key"
+        Remove-Item -LiteralPath $key -Recurse -Force
+        $methods.Add('context menu entry removal')
+    }
+
+    if ($methods.Count -gt 0) {
+        Write-Log "  Visual Studio Code: $Scope removed by $(($methods | Select-Object -Unique) -join ', ')"
+        return 'Removed'
+    }
+
+    Write-Log "  Visual Studio Code: no $Scope leftovers"
     return 'Absent'
 }
 
@@ -369,6 +589,11 @@ function Invoke-MachinePhase {
             Uninstall-WingetPackage -Id $package.Id -Name $package.Name
         }.GetNewClosure()
     }
+
+    Write-Log 'Removing machine-wide Visual Studio Code leftovers...'
+    Invoke-Step -Name 'Visual Studio Code leftovers' -Action {
+        Remove-VSCodeLeftovers -Scope Machine
+    }
 }
 
 function Invoke-UserPhase {
@@ -391,6 +616,11 @@ function Invoke-UserPhase {
 
     Write-Log 'Removing per-user Discord leftovers...'
     Invoke-Step -Name 'Discord leftovers' -Action { Remove-DiscordLeftovers }
+
+    Write-Log 'Removing per-user Visual Studio Code leftovers...'
+    Invoke-Step -Name 'Visual Studio Code leftovers' -Action {
+        Remove-VSCodeLeftovers -Scope User
+    }
 }
 
 # ---------------------------------------------------------------------------
