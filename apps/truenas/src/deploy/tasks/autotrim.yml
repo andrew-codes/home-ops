@@ -59,6 +59,7 @@
     argv:
       - midclt
       - call
+      - -job
       - pool.update
       - "{{ item.id | string }}"
       - '{"autotrim": "ON"}'

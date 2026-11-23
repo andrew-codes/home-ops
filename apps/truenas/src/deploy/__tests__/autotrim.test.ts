@@ -33,11 +33,12 @@ const runPlay = (pools: string, disks = "disks"): Result => {
     `#!/bin/sh
 [ "$1" = call ] || exit 2
 shift
+[ "$1" = -job ] && { job=1; shift; }
 echo "$*" >> '${log}'
 case "$1" in
   pool.query) cat '${path.join(fixtures, `${pools}.json`)}' ;;
   disk.query) cat '${path.join(fixtures, `${disks}.json`)}' ;;
-  pool.update) echo '{}' ;;
+  pool.update) [ -n "$job" ] || { echo "pool.update needs -job" >&2; exit 1; }; echo '{}' ;;
   *) echo "unexpected midclt call: $*" >&2; exit 1 ;;
 esac
 `,
