@@ -69,6 +69,13 @@ const sealedSecretNames = [
   // The gaming PC's address, for the vmagent scrape job in
   // deployments/production/metrics. apps/gaming-pc reads it directly too.
   "gaming-pc/ip",
+  // The Pi-holes' addresses and web password, for the exporter
+  // (deployments/base/pihole-monitoring) and the vmagent scrape and probe jobs
+  // (deployments/production/metrics/pihole-scrape.yaml). apps/pihole reads them
+  // directly too. Both Pi-holes share the one password.
+  "pihole/ip",
+  "pihole/password",
+  "pihole2/ip",
   "voice-agent/home-assistant-token",
   "voice-agent/anthropic-api-key",
   "voice-agent/langsmith-api-key",

@@ -295,6 +295,8 @@ metric server, so nothing else is installed or changed. Each guest's logs carry 
 guest whose OS hostname is `localhost` or blank still shows as a distinct host. OS hostnames are not
 changed, and the Proxmox host's logs keep its own hostname.
 
+The Pi-hole query log and FTL log are plain files, not syslog, so they are not in this stream. [`apps/pihole`](../pihole/README.md#observability) forwards them with rsyslog `imfile` under the same `pihole-1` and `pihole-2` host names.
+
 On the Kubernetes node only, the same target also runs
 [`quiet-pod-link-events.yml`](../../resources/k8s/src/deployment/tasks/quiet-pod-link-events.yml)
 (shared with the node prep playbook, `prepare.yml`). Every pod start creates and deletes a veth link, and

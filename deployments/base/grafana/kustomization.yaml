@@ -15,6 +15,7 @@ configMapGenerator:
       - dashboards/gaming-pc.json
       - dashboards/logs.json
       - dashboards/pbs.json
+      - dashboards/pihole.json
       - dashboards/truenas.json
 generatorOptions:
   disableNameSuffixHash: true

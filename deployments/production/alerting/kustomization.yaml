@@ -7,3 +7,4 @@ resources:
   - truenas-health-vmrules.yaml
   - pbs-vmrules.yaml
   - gaming-pc-vmrules.yaml
+  - pihole-vmrules.yaml

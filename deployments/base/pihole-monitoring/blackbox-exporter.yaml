@@ -1,0 +1,107 @@
+# Asks each Pi-hole a real DNS question, the way a client does, from the cluster.
+# vmagent runs the job "pihole-dns" (deployments/production/metrics/pihole-scrape.yaml)
+# against this exporter's /probe, which gives `probe_success` (the Pi-hole answered
+# with NOERROR) and `probe_duration_seconds` (how long it took). That is the ground
+# truth for "is the Pi-hole answering", and a slow answer is what an overwhelmed
+# Pi-hole looks like before it stops. It does not need the Pi-hole's password.
+#
+# example.com is a stable, unblocked name, so a NOERROR with an answer means the
+# Pi-hole's resolver and its upstream both work. It is cached after the first
+# query, so this checks the Pi-hole itself far more than the upstream.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pihole-blackbox-config
+  namespace: default
+data:
+  blackbox.yml: |
+    modules:
+      dns_udp:
+        prober: dns
+        timeout: 4s
+        dns:
+          transport_protocol: udp
+          preferred_ip_protocol: ip4
+          query_name: example.com
+          query_type: A
+          valid_rcodes:
+            - NOERROR
+          validate_answer_rrs:
+            fail_if_none_matches_regexp:
+              - ".+\\sA\\s.+"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole-blackbox
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pihole-blackbox
+  template:
+    metadata:
+      labels:
+        app: pihole-blackbox
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: blackbox-exporter
+          image: prom/blackbox-exporter:v0.28.0
+          args:
+            - --config.file=/etc/blackbox/blackbox.yml
+            - --web.listen-address=:9115
+          ports:
+            - name: http
+              containerPort: 9115
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/blackbox
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: pihole-blackbox-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-blackbox
+  namespace: default
+spec:
+  selector:
+    app: pihole-blackbox
+  ports:
+    - name: http
+      port: 9115
+      targetPort: http
+      protocol: TCP

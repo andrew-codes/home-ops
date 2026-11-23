@@ -1208,11 +1208,21 @@
             "selected": false,
             "text": "kubelet",
             "value": "kubelet"
+          },
+          {
+            "selected": false,
+            "text": "pihole-dns",
+            "value": "pihole-dns"
+          },
+          {
+            "selected": false,
+            "text": "pihole-FTL",
+            "value": "pihole-FTL"
           }
         ],
         "hide": 0,
         "skipUrlSync": false,
-        "query": "sshd,sshd-session,systemd,systemd-logind,systemd-networkd,(systemd),(sd-pam),CRON,cron,kernel,chronyd,rsyslogd,syslog-ng,postfix,avahi-daemon,dhclient,networkd-dispatcher,auditd,python3,proxmox-backup-proxy,proxmox-backup-api,middlewared,ZETTAREPL,tailscaled,nscd,containerd,kubelet"
+        "query": "sshd,sshd-session,systemd,systemd-logind,systemd-networkd,(systemd),(sd-pam),CRON,cron,kernel,chronyd,rsyslogd,syslog-ng,postfix,avahi-daemon,dhclient,networkd-dispatcher,auditd,python3,proxmox-backup-proxy,proxmox-backup-api,middlewared,ZETTAREPL,tailscaled,nscd,containerd,kubelet,pihole-dns,pihole-FTL"
       },
       {
         "name": "namespace",

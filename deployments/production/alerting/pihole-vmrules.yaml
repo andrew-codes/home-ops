@@ -1,0 +1,103 @@
+# Pi-hole rules (apps/pihole, two instances: pihole-1 and pihole-2). They read the
+# series vmagent builds from three jobs, all labelled `pihole`, see
+# deployments/production/metrics/pihole-scrape.yaml:
+#
+#   pihole-dns       a DNS question from the cluster to each Pi-hole (blackbox)
+#   pihole-host      node_exporter on each Pi-hole's host
+#   pihole-exporter  the Pi-hole v6 API (queries per second and the rest)
+#
+# "Is it answering" comes from the DNS probe, not from `up`, because a Pi-hole
+# whose FTL has stopped still has a host that answers node_exporter. The host rule
+# says the machine is gone; the DNS rule says DNS is gone. The exporter job
+# (pihole-exporter) stays in TargetDown in base/vmrules.yaml, which covers the
+# exporter pod itself, and so does the probe job (the blackbox exporter). The host
+# job is left out of TargetDown there because PiholeHostDown covers it.
+#
+# Both Pi-holes are handed to clients at once, so one down is a warning-sized
+# problem for the household but a critical one for the lab: nothing is left to
+# fail over to. The DNS and host rules are critical (a push and a Jira work item,
+# see base/alerting/vmalertmanager.yaml); load, memory, latency and query rate are
+# warnings. The summary is what the phone push shows (see base/alerting/README.md).
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: pihole
+spec:
+  groups:
+    - name: pihole-availability
+      rules:
+        # Two minutes is eight failed probes at 15 seconds. A probe has a 4 second
+        # timeout, so a Pi-hole that is merely slow does not trip this; it trips
+        # PiholeDnsSlow first.
+        - alert: PiholeDnsNotAnswering
+          expr: probe_success{job="pihole-dns"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ $labels.pihole }} is not answering DNS"
+            description: "A DNS query for example.com sent from the cluster to {{ $labels.pihole }} ({{ $labels.instance }}) has failed or returned no answer for 2 minutes. Clients using it get no DNS. Check pihole-FTL on the host (`systemctl status pihole-FTL`), its log (`/var/log/pihole/FTL.log`, in the Logs dashboard as app pihole-FTL) and whether the host is up on the Pi-hole dashboard."
+            dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole
+        - alert: PiholeHostDown
+          expr: up{job="pihole-host"} == 0
+          for: 3m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ $labels.pihole }} is unreachable"
+            description: "The host metrics of {{ $labels.pihole }} ({{ $labels.instance }}) have not been scraped for 3 minutes. The container or its network is down, or node_exporter stopped. Check the DNS probe on the Pi-hole dashboard to tell the two apart."
+            dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole
+        # Pi-hole's own resolver is local and cached, so an answer takes
+        # milliseconds. Half a second for ten minutes is a Pi-hole struggling: a
+        # saturated CPU, an upstream that stopped answering, or a rate limit.
+        - alert: PiholeDnsSlow
+          expr: probe_duration_seconds{job="pihole-dns"} > 0.5 and probe_success{job="pihole-dns"} == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: '{{ $labels.pihole }} is slow to answer DNS ({{ $value | printf "%.2f" }}s)'
+            description: 'A DNS query sent to {{ $labels.pihole }} ({{ $labels.instance }}) has taken {{ $value | printf "%.2f" }} seconds for 10 minutes, where a cached answer takes milliseconds. Look at its load and query rate on the Pi-hole dashboard and for RATE_LIMIT or database lines in its FTL log.'
+            dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole
+    - name: pihole-load
+      rules:
+        # A household normally sends a few queries per second. Pi-hole's default
+        # per-client limit is 1000 queries a minute (about 17 a second), so 30 a
+        # second across all clients for 15 minutes is not a busy evening: it is a
+        # looping client or a flood. The value is queries per second over the last
+        # full 10 minute slot.
+        - alert: PiholeQueryRateHigh
+          expr: pihole_queries_last_10min / 600 > 30
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: '{{ $labels.pihole }} is handling {{ $value | printf "%.0f" }} DNS queries per second'
+            description: '{{ $labels.pihole }} ({{ $labels.hostname }}) has averaged more than 30 queries per second for 15 minutes (now {{ $value | printf "%.1f" }}). Usual is a few per second. A client may be looping. The top clients are on the Pi-hole dashboard.'
+            dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole
+        # Five minute load per core. The Pi-hole containers have few cores, so a
+        # load above 1.5 per core for ten minutes means queries are waiting for CPU.
+        - alert: PiholeHighLoad
+          expr: >-
+            node_load5{job="pihole-host"}
+            / on (instance, pihole) count by (instance, pihole) (node_cpu_seconds_total{job="pihole-host", mode="idle"})
+            > 1.5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: '{{ $labels.pihole }} load is {{ $value | printf "%.1f" }} per core'
+            description: 'The five minute load average of {{ $labels.pihole }} ({{ $labels.instance }}) has been above 1.5 per core for 10 minutes (now {{ $value | printf "%.1f" }}). DNS answers will queue. See its query rate and top clients on the Pi-hole dashboard.'
+            dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole
+        - alert: PiholeMemoryLow
+          expr: >-
+            node_memory_MemAvailable_bytes{job="pihole-host"}
+            / node_memory_MemTotal_bytes{job="pihole-host"}
+            < 0.1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.pihole }} has {{ $value | humanizePercentage }} memory available"
+            description: "{{ $labels.pihole }} ({{ $labels.instance }}) has had less than 10% of its memory available for 10 minutes (now {{ $value | humanizePercentage }}). FTL keeps its cache and query database in memory and the container may start killing processes."
+            dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole

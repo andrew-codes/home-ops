@@ -1,0 +1,181 @@
+# vmalert-tool unit tests for deployments/production/alerting/pihole-vmrules.yaml.
+# scripts/test-rules.sh extracts the rule groups into pihole-rules.yaml next to
+# this file's copy and runs `vmalert-tool unittest`. Series carry the labels
+# vmagent adds (job, instance, pihole), see deployments/production/metrics/pihole-scrape.yaml.
+rule_files:
+  - pihole-rules.yaml
+
+evaluation_interval: 15s
+
+tests:
+  # pihole-1 answers for 5 minutes, stops for 3 minutes, answers again. pihole-2
+  # answers throughout. One failed minute does not alert; two do.
+  - name: a Pi-hole that stops answering DNS goes critical after two minutes
+    interval: 15s
+    input_series:
+      - series: 'probe_success{job="pihole-dns",pihole="pihole-1",instance="10.2.0.130:53"}'
+        # 5 min up (20), 3 min down (12), 2 min up (8)
+        values: "1x20 0x12 1x8"
+      - series: 'probe_success{job="pihole-dns",pihole="pihole-2",instance="10.2.0.131:53"}'
+        values: "1x40"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: PiholeDnsNotAnswering
+        exp_alerts: []
+      - eval_time: 450s
+        alertname: PiholeDnsNotAnswering
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: pihole-dns
+              pihole: pihole-1
+              instance: "10.2.0.130:53"
+            exp_annotations:
+              summary: "pihole-1 is not answering DNS"
+              description: "A DNS query for example.com sent from the cluster to pihole-1 (10.2.0.130:53) has failed or returned no answer for 2 minutes. Clients using it get no DNS. Check pihole-FTL on the host (`systemctl status pihole-FTL`), its log (`/var/log/pihole/FTL.log`, in the Logs dashboard as app pihole-FTL) and whether the host is up on the Pi-hole dashboard."
+              dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole
+      - eval_time: 9m
+        alertname: PiholeDnsNotAnswering
+        exp_alerts: []
+
+  - name: a host that stops answering metrics scrapes goes critical after three minutes
+    interval: 15s
+    input_series:
+      - series: 'up{job="pihole-host",pihole="pihole-2",instance="10.2.0.131:9100"}'
+        # 2 min up (8), then down (24 = 6 min)
+        values: "1x8 0x24"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: PiholeHostDown
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: PiholeHostDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: pihole-host
+              pihole: pihole-2
+              instance: "10.2.0.131:9100"
+            exp_annotations:
+              summary: "pihole-2 is unreachable"
+              description: "The host metrics of pihole-2 (10.2.0.131:9100) have not been scraped for 3 minutes. The container or its network is down, or node_exporter stopped. Check the DNS probe on the Pi-hole dashboard to tell the two apart."
+              dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole
+
+  # A slow answer warns after ten minutes, and only while it still answers: a
+  # failed probe is PiholeDnsNotAnswering's job.
+  - name: a slow but answering Pi-hole warns after ten minutes
+    interval: 30s
+    input_series:
+      - series: 'probe_duration_seconds{job="pihole-dns",pihole="pihole-1",instance="10.2.0.130:53"}'
+        values: "0.01x4 0.8x40"
+      - series: 'probe_success{job="pihole-dns",pihole="pihole-1",instance="10.2.0.130:53"}'
+        values: "1x44"
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: PiholeDnsSlow
+        exp_alerts: []
+      - eval_time: 14m
+        alertname: PiholeDnsSlow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: pihole-dns
+              pihole: pihole-1
+              instance: "10.2.0.130:53"
+            exp_annotations:
+              summary: "pihole-1 is slow to answer DNS (0.80s)"
+              description: "A DNS query sent to pihole-1 (10.2.0.130:53) has taken 0.80 seconds for 10 minutes, where a cached answer takes milliseconds. Look at its load and query rate on the Pi-hole dashboard and for RATE_LIMIT or database lines in its FTL log."
+              dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole
+
+  - name: a failing probe is not also reported as slow
+    interval: 30s
+    input_series:
+      - series: 'probe_duration_seconds{job="pihole-dns",pihole="pihole-1",instance="10.2.0.130:53"}'
+        values: "4x44"
+      - series: 'probe_success{job="pihole-dns",pihole="pihole-1",instance="10.2.0.130:53"}'
+        values: "0x44"
+    alert_rule_test:
+      - eval_time: 14m
+        alertname: PiholeDnsSlow
+        exp_alerts: []
+
+  # 36000 queries in a 10 minute slot is 60 a second.
+  - name: a sustained flood of queries warns and a normal rate does not
+    interval: 1m
+    input_series:
+      - series: 'pihole_queries_last_10min{job="pihole-exporter",hostname="10.2.0.130",pihole="pihole-1",instance="exporter:9617"}'
+        values: "1800x10 36000x30"
+      - series: 'pihole_queries_last_10min{job="pihole-exporter",hostname="10.2.0.131",pihole="pihole-2",instance="exporter:9617"}'
+        values: "1800x40"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PiholeQueryRateHigh
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: PiholeQueryRateHigh
+        exp_alerts: []
+      - eval_time: 30m
+        alertname: PiholeQueryRateHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: pihole-exporter
+              hostname: 10.2.0.130
+              pihole: pihole-1
+              instance: "exporter:9617"
+            exp_annotations:
+              summary: "pihole-1 is handling 60 DNS queries per second"
+              description: "pihole-1 (10.2.0.130) has averaged more than 30 queries per second for 15 minutes (now 60.0). Usual is a few per second. A client may be looping. The top clients are on the Pi-hole dashboard."
+              dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole
+
+  # Two cores, load 4 is 2 per core.
+  - name: load above 1.5 per core for ten minutes warns
+    interval: 1m
+    input_series:
+      - series: 'node_load5{job="pihole-host",pihole="pihole-1",instance="10.2.0.130:9100"}'
+        values: "0.2x5 4x25"
+      - series: 'node_cpu_seconds_total{job="pihole-host",pihole="pihole-1",instance="10.2.0.130:9100",cpu="0",mode="idle"}'
+        values: "0+1x30"
+      - series: 'node_cpu_seconds_total{job="pihole-host",pihole="pihole-1",instance="10.2.0.130:9100",cpu="1",mode="idle"}'
+        values: "0+1x30"
+      - series: 'node_cpu_seconds_total{job="pihole-host",pihole="pihole-1",instance="10.2.0.130:9100",cpu="0",mode="user"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: PiholeHighLoad
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: PiholeHighLoad
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              pihole: pihole-1
+              instance: "10.2.0.130:9100"
+            exp_annotations:
+              summary: "pihole-1 load is 2.0 per core"
+              description: "The five minute load average of pihole-1 (10.2.0.130:9100) has been above 1.5 per core for 10 minutes (now 2.0). DNS answers will queue. See its query rate and top clients on the Pi-hole dashboard."
+              dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole
+
+  - name: memory under ten percent for ten minutes warns
+    interval: 1m
+    input_series:
+      - series: 'node_memory_MemTotal_bytes{job="pihole-host",pihole="pihole-2",instance="10.2.0.131:9100"}'
+        values: "1000x30"
+      - series: 'node_memory_MemAvailable_bytes{job="pihole-host",pihole="pihole-2",instance="10.2.0.131:9100"}'
+        values: "500x5 50x25"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: PiholeMemoryLow
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: PiholeMemoryLow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: pihole-host
+              pihole: pihole-2
+              instance: "10.2.0.131:9100"
+            exp_annotations:
+              summary: "pihole-2 has 5% memory available"
+              description: "pihole-2 (10.2.0.131:9100) has had less than 10% of its memory available for 10 minutes (now 5%). FTL keeps its cache and query database in memory and the container may start killing processes."
+              dashboard_url: https://grafana.smith-simms.family/d/pihole/pi-hole

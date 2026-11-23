@@ -231,6 +231,26 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
+  name: pihole-monitoring
+  namespace: default
+spec:
+  # Its own Kustomization, so a missing pihole secret (the exporter cannot start
+  # without it) never blocks `metrics`, `grafana` or `alerting`.
+  dependsOn:
+    - name: sealed-secrets
+    - name: secrets
+  interval: 10m0s
+  sourceRef:
+    kind: GitRepository
+    name: default
+  path: ./deployments/production/pihole-monitoring
+  prune: true
+  wait: true
+  timeout: 5m0s
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
   name: alerting
   namespace: default
 spec:
