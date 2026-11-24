@@ -363,13 +363,13 @@ the full procedure (BIOS, install, checks) is the [rebuild runbook](docs/rebuild
 
 ### What gets built
 
-| Piece           | Value (default, a variable in `scripts/deploy.yml`)                    |
-| --------------- | ---------------------------------------------------------------------- |
-| Pool            | `GamesPool` (`gaming_pc_storage_pool_name`)                            |
-| Virtual disk    | `Games`, layout **Simple** (striped, no redundancy), 2 columns, fixed provisioning (`gaming_pc_storage_virtual_disk_name`, `gaming_pc_storage_columns`) |
-| Interleave      | 262144 bytes (256 KB, Windows' own default; `gaming_pc_storage_interleave`) |
-| Volume          | `G:`, NTFS, labelled `Games` (`gaming_pc_storage_drive_letter`, `gaming_pc_storage_file_system`) |
-| Steam library   | `G:\SteamLibrary`                                                     |
+| Piece         | Value (default, a variable in `scripts/deploy.yml`)                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pool          | `GamesPool` (`gaming_pc_storage_pool_name`)                                                                                                             |
+| Virtual disk  | `Games`, layout **Simple** (striped, no redundancy), 2 columns, fixed provisioning (`gaming_pc_storage_virtual_disk_name`, `gaming_pc_storage_columns`) |
+| Interleave    | 262144 bytes (256 KB, Windows' own default; `gaming_pc_storage_interleave`)                                                                             |
+| Volume        | `G:`, NTFS, labelled `Games` (`gaming_pc_storage_drive_letter`, `gaming_pc_storage_file_system`)                                                        |
+| Steam library | `G:\SteamLibrary`                                                                                                                                       |
 
 This is the equivalent of RAID 0: the two drives are written in stripes, there is no
 copy of anything, and **if either drive fails everything on `G:` is lost**. That is
@@ -488,18 +488,31 @@ except `dxl`, which stays untouched).
 ### Drive health
 
 The Hardware health dashboard (`deployments/base/grafana/dashboards/hardware-health.json`)
-shows this machine's NVMe drives next to the Proxmox host's and the NAS's: wear, spare
-capacity, media errors, temperature, power-on age and data written, under the same
-`Machine` filter (`gaming-pc`) and with the same OK and WATCH status logic. windows_exporter
-has no SMART data, so this is its own piece:
+shows this machine next to the Proxmox host and the NAS, under the same `Machine` filter
+(`gaming-pc`) and with the same OK and WATCH status logic. windows_exporter has no SMART or
+disk health data, so this is its own piece. What it can show depends on how the drives
+are exposed to Windows:
+
+- **Drives exposed directly:** each NVMe drive's wear, spare capacity, media errors,
+  temperature, power-on age and data written, read with smartctl.
+- **Drives combined into an array in the BIOS (AMD RAID), which is this machine:** Windows
+  reports one disk, `AMD-RAID Array 1` (`Get-PhysicalDisk`: BusType RAID, MediaType SSD), and
+  `smartctl --scan` lists only `scsi` devices (the array and a USB stick), no NVMe one.
+  smartctl cannot read per-drive SMART through the AMD RAID driver, so the dashboard shows
+  the array's health (Healthy, Warning, Unhealthy, Unknown), its size and the free space of
+  the fixed volumes. A drive wearing out is not visible until the array degrades. Finding no
+  NVMe device is normal and not an error.
+
+The pieces:
 
 - **smartctl** (`smartmontools.smartmontools`, installed by [`src/software.ps1`](src/software.ps1)
   from winget like the other machine-wide packages).
 - **`Gaming-PC-DriveHealth`**, a scheduled task registered by `monitoring.ps1`. It runs as
   SYSTEM at boot and every 5 minutes, at BelowNormal priority, with a 2 minute limit. Each run
   is [`src/drive-health.ps1`](src/drive-health.ps1): `smartctl --scan`, then one
-  `smartctl --all` per NVMe drive. [`src/drive-health-metrics.ps1`](src/drive-health-metrics.ps1)
-  turns the JSON into Prometheus text, which is written atomically to
+  `smartctl --all` per NVMe drive (none behind AMD RAID), then `Get-PhysicalDisk` and
+  `Get-Volume` for the array and the volumes. [`src/drive-health-metrics.ps1`](src/drive-health-metrics.ps1)
+  turns the output into Prometheus text, which is written atomically to
   `C:\ProgramData\gaming-pc\monitoring\textfile\gaming-pc-drive-health.prom`. windows_exporter
   already serves that directory, so there is no new port, firewall rule or scrape config.
 - **The series are the pve host's, not new ones.** `nvme_smart_*`, `nvme_capacity_bytes` and
@@ -510,7 +523,22 @@ has no SMART data, so this is its own piece:
   [`gaming-pc-drives`](../../deployments/base/alerting/README.md#gaming-pc) rules read only it.
   The staleness signal is `gaming_pc_drive_health_timestamp_seconds`, not `nvme_health_push_timestamp_seconds`,
   so the Proxmox heartbeat alert is not satisfied by this machine.
-- **Only NVMe drives.** A SATA SSD or hard disk has no standard wear or spare field in
+- **The array and the volumes, in the same file.** `gaming_pc_array_health_status` (0 Healthy,
+  1 Warning, 2 Unhealthy, 3 Unknown, from `HealthStatus`), `gaming_pc_array_operational_status_info`
+  (one series per `OperationalStatus`), `gaming_pc_array_size_bytes` and `gaming_pc_array_collect_ok`,
+  labelled `host` and `array` (the disk's name; USB sticks and cards are left out, the serial number
+  is never read), and `gaming_pc_volume_size_bytes` and `gaming_pc_volume_free_bytes` per fixed
+  volume (`volume` such as `C:`, `role` `system` or `data`). The dashboard shows the array as a row
+  of the drive table (Status, plus an `Array health` column that says Healthy, Warning, Unhealthy
+  or Unknown), and the volumes in `Gaming PC volumes used`. The alerts are
+  `GamingPCArrayDegraded`, `GamingPCArrayUnhealthy`, `GamingPCArrayHealthSourceFailing` and
+  `GamingPCVolumeFreeSpace*`, see the [alerting README](../../deployments/base/alerting/README.md#gaming-pc).
+- **Options to see the drives themselves, not implemented.** AMD RAIDXpert2 (AMD's own RAID tool)
+  may report member drive state, but it is a separate tool with no stable machine-readable output
+  that this task could scrape. Exposing the drives to Windows directly (switching the BIOS from
+  RAID to AHCI/NVMe mode) lets smartctl read each one, which this task already handles, but it
+  destroys the array: it is a rebuild and restore, not a setting to flip.
+- **Only NVMe drives in the per-drive path.** A SATA SSD or hard disk has no standard wear or spare field in
   smartctl's JSON (each vendor names its own attribute), so it is left out instead of guessed at.
   The Hardware health `Gaps` panel says so.
 - **Gameplay cost.** One NVMe SMART log read per drive every 5 minutes, which is a single
@@ -520,18 +548,26 @@ has no SMART data, so this is its own piece:
 - **A failed read is data, not a missing file.** A drive smartctl cannot read, or a smartctl that
   cannot run, becomes `nvme_health_collect_ok 0` (device `scan` for the latter) and the file is still
   replaced, so old values are never served as current. `GamingPCNvmeHealthSourceFailing` fires on it.
+  Likewise `Get-PhysicalDisk` or `Get-Volume` failing becomes `gaming_pc_array_collect_ok 0`
+  (`GamingPCArrayHealthSourceFailing`).
 - **The PC is often off.** The series only exist while it is on, and the dashboard reads them
   through a 15 minute window, so its rows empty out 15 minutes after shutdown. No alert fires for that. If the task stops writing while the PC is on, `GamingPCDriveHealthStale` fires after the file is 20 minutes old.
 
 Checks on the first deploy: the deploy prints a warning when `smartctl.exe` is missing or when
-windows_exporter does not answer with `nvme_smart_percentage_used` after the task's first run. By hand:
+windows_exporter does not answer with `gaming_pc_array_health_status` after the task's first run. By hand:
 
 ```powershell
+Get-PhysicalDisk | Format-Table FriendlyName, HealthStatus, OperationalStatus, BusType, MediaType, Size
 & "$env:ProgramFiles\smartmontools\bin\smartctl.exe" --scan --json
 & "$env:ProgramFiles\smartmontools\bin\smartctl.exe" --all /dev/nvme0
 Get-ScheduledTaskInfo -TaskName Gaming-PC-DriveHealth
 pwsh -NoProfile -File C:\ProgramData\gaming-pc\monitoring\drive-health.ps1 -Print
 ```
+
+After changing the collector, run `yarn nx deploy gaming-pc` (the WinNUT step failing at the end
+is expected; it comes after the exporter step), run the collector with `-Print` as above and check
+that `gaming_pc_array_health_status` appears, then open the Hardware health dashboard and pick
+`gaming-pc` in `Machine`.
 
 ### Why these, and what each is not
 
@@ -666,8 +702,9 @@ fails the deploy:
 [`tests/ohmgraphite-config.test.ps1`](tests/ohmgraphite-config.test.ps1) (the generated
 OhmGraphite config; needs `pwsh`),
 [`tests/drive-health.test.ps1`](tests/drive-health.test.ps1) (the drive health metrics from
-`smartctl --json` fixtures in [`tests/fixtures/smartctl`](tests/fixtures/smartctl), and the whole
-script against a stand-in smartctl; needs `pwsh`),
+`smartctl --json` fixtures in [`tests/fixtures/smartctl`](tests/fixtures/smartctl), the array and
+volumes from [`tests/fixtures/storage`](tests/fixtures/storage), and the whole script against a
+stand-in smartctl, including the AMD RAID case of two `scsi` scan entries; needs `pwsh`),
 [`tests/storage.test.ps1`](tests/storage.test.ps1) (the games drive decisions against fake Storage
 cmdlets from [`tests/helpers`](tests/helpers): the safe no-ops, the existing pool, the wipe opt-in and
 `-WhatIf`; no real disk is touched; needs `pwsh`),

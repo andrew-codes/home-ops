@@ -36,9 +36,9 @@ you choose. Everything on the old striped drive is lost.
 [`src/manually-backup.ps1`](../src/manually-backup.ps1) mirrors two places to the
 network share mapped as `Z:` (the script hard-codes `Z:\`), using rsync:
 
-| Source                                  | What is kept                                                                                                                                                                                                                                                  |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `C:\Program Files (x86)\Steam\userdata` | Steam's per-account local data (controller configs, screenshots index, some local game settings).                                                                                                                                                             |
+| Source                                  | What is kept                                                                                                                                                                                                                                                             |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `C:\Program Files (x86)\Steam\userdata` | Steam's per-account local data (controller configs, screenshots index, some local game settings).                                                                                                                                                                        |
 | Your user profile (`$env:USERPROFILE`)  | Documents, Desktop, Downloads, Pictures, Videos (captures), `.ssh`, `developer`, and every other folder in the profile **except** `AppData`. From `AppData` only: `Roaming\SEGA`, `LocalLow\RedCandleGames`, `Local\MGSDelta*`, `Local\Steam\userdata`, `Local\Ubisoft`. |
 
 It runs with `--delete`, so `Z:` becomes an exact mirror of the source. Running it
@@ -47,16 +47,16 @@ it after the wipe.
 
 ### What it does not cover - check these by hand
 
-| Thing                                | What to do                                                                                                                                                                  |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Thing                                | What to do                                                                                                                                                                                                                                    |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Steam saves in the cloud             | Nothing to copy. Open Steam > Settings > Cloud and confirm Steam Cloud is on. For games without cloud saves, copy their save folders (often under `Documents` - covered - or `AppData\Roaming` / `AppData\Local` - **not** covered) yourself. |
-| Game configs outside the list above  | Anything else in `AppData` (for example `AppData\Local\<game>`, `AppData\Roaming\<launcher>`) is not backed up. Copy the ones you care about to `Z:`.                       |
-| Captures and clips                   | Covered if they are in `Videos` or `Pictures`. NVIDIA or Steam capture folders on another drive are not: look at their settings.                                           |
-| Browser data                         | Not covered (it lives in `AppData`). Sign in to the browser's sync, or export bookmarks and passwords from the browser.                                                    |
-| SSH keys                             | `.ssh` in the profile is covered. The Mac's key that the deploy authorises comes from 1Password (`dev/ssh-key/public`), not from this PC.                                  |
-| 1Password                            | Nothing on this PC to back up if you use the account sign-in. Make sure you have your Secret Key / emergency kit for the new install.                                      |
-| License keys and non-Steam launchers | Not covered. Note keys for any software bought outside Steam and winget (Epic, Ubisoft, GOG, DLC, emulator BIOS files).                                                    |
-| `G:` / games                         | Deliberately not backed up. Steam re-downloads them.                                                                                                                       |
+| Game configs outside the list above  | Anything else in `AppData` (for example `AppData\Local\<game>`, `AppData\Roaming\<launcher>`) is not backed up. Copy the ones you care about to `Z:`.                                                                                         |
+| Captures and clips                   | Covered if they are in `Videos` or `Pictures`. NVIDIA or Steam capture folders on another drive are not: look at their settings.                                                                                                              |
+| Browser data                         | Not covered (it lives in `AppData`). Sign in to the browser's sync, or export bookmarks and passwords from the browser.                                                                                                                       |
+| SSH keys                             | `.ssh` in the profile is covered. The Mac's key that the deploy authorises comes from 1Password (`dev/ssh-key/public`), not from this PC.                                                                                                     |
+| 1Password                            | Nothing on this PC to back up if you use the account sign-in. Make sure you have your Secret Key / emergency kit for the new install.                                                                                                         |
+| License keys and non-Steam launchers | Not covered. Note keys for any software bought outside Steam and winget (Epic, Ubisoft, GOG, DLC, emulator BIOS files).                                                                                                                       |
+| `G:` / games                         | Deliberately not backed up. Steam re-downloads them.                                                                                                                                                                                          |
 
 ### Run the backup
 
@@ -79,7 +79,8 @@ Do the manual items in the table now, then continue.
 
 Windows cannot see the three drives separately while AMD RAID is on: it shows
 one logical drive, and the drive health collector (which reads each NVMe drive
-with smartctl) sees nothing. **This step erases the array.**
+with smartctl) can report only the array's health, not each drive's wear.
+**This step erases the array.**
 
 The menu names differ by motherboard and BIOS version. Look for the words below.
 
@@ -141,6 +142,7 @@ this is the order to do them in.
    PowerShell** on the gaming PC (the block is also in the README under
    [On the Windows machine](../README.md#on-the-windows-machine-once-from-an-administrator-powershell)).
    Re-run `pre-deploy`; it must exit 0.
+
 4. **Turn off Defender Tamper Protection** (Windows Security > Virus & threat
    protection > Manage settings > Tamper Protection > Off). `pre-deploy` checks it.
    The Chocolatey install fails otherwise. See the README for why.
@@ -148,13 +150,13 @@ this is the order to do them in.
    `configurationApi` from the 1Password vault (key `<item>/<field>`), so the Mac
    must be signed in to 1Password:
 
-   | 1Password entry                                          | Used for                                              |
-   | -------------------------------------------------------- | ----------------------------------------------------- |
-   | `gaming-pc/ip`, `gaming-pc/username`, `gaming-pc/user`   | The SSH inventory (`.secrets/hosts.yml`)              |
-   | `gaming-pc/password`, `gaming-pc/andrew-password`        | Elevation (`runas`), auto-login, the `andrew` account |
-   | `dev/ssh-key/public`, `home-assistant/ssh-key-public`    | `authorized_keys` on the PC                           |
-   | `nut/monitor-username`, `nut/monitor-password`           | The UPS client (WinNUT)                               |
-   | `k8s/ip`                                                 | Firewall rules that let the cluster scrape metrics    |
+   | 1Password entry                                        | Used for                                              |
+   | ------------------------------------------------------ | ----------------------------------------------------- |
+   | `gaming-pc/ip`, `gaming-pc/username`, `gaming-pc/user` | The SSH inventory (`.secrets/hosts.yml`)              |
+   | `gaming-pc/password`, `gaming-pc/andrew-password`      | Elevation (`runas`), auto-login, the `andrew` account |
+   | `dev/ssh-key/public`, `home-assistant/ssh-key-public`  | `authorized_keys` on the PC                           |
+   | `nut/monitor-username`, `nut/monitor-password`         | The UPS client (WinNUT)                               |
+   | `k8s/ip`                                               | Firewall rules that let the cluster scrape metrics    |
 
    `deploy.ts` writes the derived files into `apps/gaming-pc/.secrets/` (git-ignored)
    every run. The Mac's private key must be loaded in the SSH agent.
@@ -244,12 +246,13 @@ On the gaming PC, in PowerShell unless noted:
   Expect `ResiliencySettingName` Simple, `NumberOfColumns` 2, a `G:` volume of
   about 3.6 TiB (shown as 3.64 TB or about 4 TB in decimal units), and two NVMe
   disks with `Usage` AutoSelect in the pool.
+
 - [ ] **Steam library registered.** Open Steam > Settings > Storage: `G:\SteamLibrary`
-  is listed. Make it the default (see above). Install any small game to `G:` and
-  confirm it appears in `G:\SteamLibrary\steamapps`.
+      is listed. Make it the default (see above). Install any small game to `G:` and
+      confirm it appears in `G:\SteamLibrary\steamapps`.
 - [ ] **Drive health per member drive.** The collector reads physical NVMe drives,
-  which stay NVMe under Storage Spaces, so each of the three drives is read
-  separately:
+      which stay NVMe under Storage Spaces, so each of the three drives is read
+      separately:
 
   ```powershell
   & "$env:ProgramFiles\smartmontools\bin\smartctl.exe" --scan --json
@@ -258,13 +261,14 @@ On the gaming PC, in PowerShell unless noted:
 
   Then in Grafana, **Hardware health**, machine `gaming-pc`: three NVMe drives
   (boot plus the two pool members), each with wear, spare, temperature and data written.
+
 - [ ] **Metrics scrape.** From the Mac or Grafana, `up{job="gaming-pc"}` is 1 while the
-  PC is on (see [Metrics and sensors](../README.md#metrics-and-sensors) and its
-  checks on the first deploy).
+      PC is on (see [Metrics and sensors](../README.md#metrics-and-sensors) and its
+      checks on the first deploy).
 - [ ] **UPS client.** WinNUT-Client is running in the tray and shows the UPS, if the
-  NAS side is set up. If not, the WinNUT task failure is the known state.
+      NAS side is set up. If not, the WinNUT task failure is the known state.
 - [ ] **Re-run is clean.** `yarn nx deploy gaming-pc` a second time reports `changed=0`
-  for the games drive and Steam library tasks.
+      for the games drive and Steam library tasks.
 
 ## 7. Troubleshooting
 

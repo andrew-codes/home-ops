@@ -162,5 +162,72 @@ spec:
             severity: warning
           annotations:
             summary: "Gaming PC drive health metrics are {{ $value | humanizeDuration }} old"
-            description: "The Gaming-PC-DriveHealth task has not refreshed the drive health textfile for {{ $value | humanizeDuration }} while the PC is on, so its wear, spare and error alerts show old values. In an administrator PowerShell run `Get-ScheduledTaskInfo -TaskName Gaming-PC-DriveHealth`, and run `yarn nx deploy gaming-pc` to put it back."
+            description: "The Gaming-PC-DriveHealth task has not refreshed the drive health textfile for {{ $value | humanizeDuration }} while the PC is on, so its array health, volume space, wear, spare and error alerts show old values. In an administrator PowerShell run `Get-ScheduledTaskInfo -TaskName Gaming-PC-DriveHealth`, and run `yarn nx deploy gaming-pc` to put it back."
+            dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+        # The NVMe drives are one AMD RAID array in the BIOS, so Windows reports
+        # the array and not the drives, and smartctl cannot read their SMART
+        # through the RAID driver. HealthStatus is what Get-PhysicalDisk says:
+        # 0 Healthy, 1 Warning, 2 Unhealthy, 3 Unknown. Judged only while the PC
+        # is up, so the alert resolves when it shuts down instead of 15 minutes
+        # later, and the value is the status.
+        - alert: GamingPCArrayDegraded
+          expr: >-
+            (last_over_time(gaming_pc_array_health_status{job="gaming-pc"}[15m]) == 1
+            or last_over_time(gaming_pc_array_health_status{job="gaming-pc"}[15m]) == 3)
+            and on(instance) up{job="gaming-pc",exporter="windows"} == 1
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Gaming PC disk array {{ $labels.array }} is not healthy"
+            description: 'Windows reports {{ $labels.array }} as {{ if eq ($value | printf "%.0f") "1" }}Warning{{ else }}Unknown{{ end }} (a degraded array, a failing member drive or a rebuild) for 10 minutes. Per-drive SMART is not readable behind the AMD RAID, so this is the early signal there is. Check the array in the BIOS (AMD RAID) or AMD RAIDXpert and back up what is on it. In an administrator PowerShell run `Get-PhysicalDisk | Format-List FriendlyName, HealthStatus, OperationalStatus`.'
+            dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+        - alert: GamingPCArrayUnhealthy
+          expr: >-
+            last_over_time(gaming_pc_array_health_status{job="gaming-pc"}[15m]) == 2
+            and on(instance) up{job="gaming-pc",exporter="windows"} == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Gaming PC disk array {{ $labels.array }} is unhealthy"
+            description: "Windows reports {{ $labels.array }} as Unhealthy for 5 minutes: the array has lost data redundancy or failed. Back up what is on it now, then check the array in the BIOS (AMD RAID) or AMD RAIDXpert. In an administrator PowerShell run `Get-PhysicalDisk | Format-List FriendlyName, HealthStatus, OperationalStatus`."
+            dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+        # The task could not ask Windows about its disks or volumes, so the two
+        # array rules and the space rules cannot see them.
+        - alert: GamingPCArrayHealthSourceFailing
+          expr: last_over_time(gaming_pc_array_collect_ok{job="gaming-pc"}[15m]) == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Gaming PC cannot read its disk array health"
+            description: "Get-PhysicalDisk or Get-Volume failed on the gaming PC for 10 minutes, so its array health and volume space alerts cannot fire. In an administrator PowerShell run `Get-PhysicalDisk` and `Get-ScheduledTaskInfo -TaskName Gaming-PC-DriveHealth`, and run `yarn nx deploy gaming-pc` to put it back."
+            dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+        # Free space as a share of the volume: below 10% warns, below 5% is
+        # critical, so one volume does not push twice. The value is the percent
+        # free. Only while the PC is up, like the array rules.
+        - alert: GamingPCVolumeFreeSpaceLow
+          expr: >-
+            (last_over_time(gaming_pc_volume_free_bytes{job="gaming-pc"}[15m])
+            / last_over_time(gaming_pc_volume_size_bytes{job="gaming-pc"}[15m]) * 100 < 10 >= 5)
+            and on(instance) up{job="gaming-pc",exporter="windows"} == 1
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: 'Gaming PC volume {{ $labels.volume }} ({{ $labels.role }}) has {{ $value | printf "%.1f" }}% free'
+            description: 'Volume {{ $labels.volume }} on the gaming PC has had less than 10% free space for 30 minutes (now {{ $value | printf "%.1f" }}%). Uninstall or move games, or clear the shader and download caches.'
+            dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+        - alert: GamingPCVolumeFreeSpaceCritical
+          expr: >-
+            (last_over_time(gaming_pc_volume_free_bytes{job="gaming-pc"}[15m])
+            / last_over_time(gaming_pc_volume_size_bytes{job="gaming-pc"}[15m]) * 100 < 5)
+            and on(instance) up{job="gaming-pc",exporter="windows"} == 1
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: 'Gaming PC volume {{ $labels.volume }} ({{ $labels.role }}) is almost full ({{ $value | printf "%.1f" }}% free)'
+            description: 'Volume {{ $labels.volume }} on the gaming PC has had less than 5% free space for 15 minutes (now {{ $value | printf "%.1f" }}%). Windows, game updates and the page file need room: free space now.'
             dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health

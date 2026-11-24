@@ -393,5 +393,226 @@ tests:
               host: gaming-pc
             exp_annotations:
               summary: "Gaming PC drive health metrics are 45m 0s old"
-              description: "The Gaming-PC-DriveHealth task has not refreshed the drive health textfile for 45m 0s while the PC is on, so its wear, spare and error alerts show old values. In an administrator PowerShell run `Get-ScheduledTaskInfo -TaskName Gaming-PC-DriveHealth`, and run `yarn nx deploy gaming-pc` to put it back."
+              description: "The Gaming-PC-DriveHealth task has not refreshed the drive health textfile for 45m 0s while the PC is on, so its array health, volume space, wear, spare and error alerts show old values. In an administrator PowerShell run `Get-ScheduledTaskInfo -TaskName Gaming-PC-DriveHealth`, and run `yarn nx deploy gaming-pc` to put it back."
               dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+
+  # What apps/gaming-pc/src/drive-health.ps1 writes for the AMD RAID array:
+  # Windows reports the array as one disk (BusType RAID) and the drives behind it
+  # are not readable. Healthy for 10 minutes, Warning for 20, then Unhealthy.
+  - name: a healthy array stays quiet
+    interval: 1m
+    input_series:
+      - series: 'gaming_pc_array_health_status{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc",array="AMD-RAID Array 1",bus_type="RAID",media_type="SSD",array="AMD-RAID Array 1"}'
+        values: "0x60"
+      - series: 'gaming_pc_array_collect_ok{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc"}'
+        values: "1x60"
+      - series: 'up{job="gaming-pc",exporter="windows",instance="pc:9182"}'
+        values: "1x60"
+    alert_rule_test:
+      - eval_time: 50m
+        alertname: GamingPCArrayDegraded
+        exp_alerts: []
+      - eval_time: 50m
+        alertname: GamingPCArrayUnhealthy
+        exp_alerts: []
+      - eval_time: 50m
+        alertname: GamingPCArrayHealthSourceFailing
+        exp_alerts: []
+
+  - name: a degraded array warns and an unhealthy one is critical
+    interval: 1m
+    input_series:
+      - series: 'gaming_pc_array_health_status{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc",array="AMD-RAID Array 1",bus_type="RAID",media_type="SSD"}'
+        values: "0x10 1x20 2x30"
+      - series: 'up{job="gaming-pc",exporter="windows",instance="pc:9182"}'
+        values: "1x60"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: GamingPCArrayDegraded
+        exp_alerts: []
+      - eval_time: 25m
+        alertname: GamingPCArrayDegraded
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: gaming-pc
+              exporter: windows
+              instance: "pc:9182"
+              host: gaming-pc
+              array: AMD-RAID Array 1
+              bus_type: RAID
+              media_type: SSD
+            exp_annotations:
+              summary: "Gaming PC disk array AMD-RAID Array 1 is not healthy"
+              description: "Windows reports AMD-RAID Array 1 as Warning (a degraded array, a failing member drive or a rebuild) for 10 minutes. Per-drive SMART is not readable behind the AMD RAID, so this is the early signal there is. Check the array in the BIOS (AMD RAID) or AMD RAIDXpert and back up what is on it. In an administrator PowerShell run `Get-PhysicalDisk | Format-List FriendlyName, HealthStatus, OperationalStatus`."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+      - eval_time: 25m
+        alertname: GamingPCArrayUnhealthy
+        exp_alerts: []
+      - eval_time: 45m
+        alertname: GamingPCArrayDegraded
+        exp_alerts: []
+      - eval_time: 45m
+        alertname: GamingPCArrayUnhealthy
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: gaming-pc
+              exporter: windows
+              instance: "pc:9182"
+              host: gaming-pc
+              array: AMD-RAID Array 1
+              bus_type: RAID
+              media_type: SSD
+            exp_annotations:
+              summary: "Gaming PC disk array AMD-RAID Array 1 is unhealthy"
+              description: "Windows reports AMD-RAID Array 1 as Unhealthy for 5 minutes: the array has lost data redundancy or failed. Back up what is on it now, then check the array in the BIOS (AMD RAID) or AMD RAIDXpert. In an administrator PowerShell run `Get-PhysicalDisk | Format-List FriendlyName, HealthStatus, OperationalStatus`."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+
+  # An unknown status is not healthy either.
+  - name: an unknown array status warns
+    interval: 1m
+    input_series:
+      - series: 'gaming_pc_array_health_status{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc",array="AMD-RAID Array 1",bus_type="RAID",media_type="SSD"}'
+        values: "3x30"
+      - series: 'up{job="gaming-pc",exporter="windows",instance="pc:9182"}'
+        values: "1x30"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: GamingPCArrayDegraded
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: gaming-pc
+              exporter: windows
+              instance: "pc:9182"
+              host: gaming-pc
+              array: AMD-RAID Array 1
+              bus_type: RAID
+              media_type: SSD
+            exp_annotations:
+              summary: "Gaming PC disk array AMD-RAID Array 1 is not healthy"
+              description: "Windows reports AMD-RAID Array 1 as Unknown (a degraded array, a failing member drive or a rebuild) for 10 minutes. Per-drive SMART is not readable behind the AMD RAID, so this is the early signal there is. Check the array in the BIOS (AMD RAID) or AMD RAIDXpert and back up what is on it. In an administrator PowerShell run `Get-PhysicalDisk | Format-List FriendlyName, HealthStatus, OperationalStatus`."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+
+  # The array was unhealthy, then the PC shut down: the alert resolves with it
+  # instead of lingering for the 15 minute look-back.
+  - name: an unhealthy array resolves when the pc goes down
+    interval: 1m
+    input_series:
+      - series: 'gaming_pc_array_health_status{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc",array="AMD-RAID Array 1",bus_type="RAID",media_type="SSD"}'
+        values: "2x30"
+      - series: 'up{job="gaming-pc",exporter="windows",instance="pc:9182"}'
+        values: "1x15 0x15"
+    alert_rule_test:
+      - eval_time: 14m
+        alertname: GamingPCArrayUnhealthy
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: gaming-pc
+              exporter: windows
+              instance: "pc:9182"
+              host: gaming-pc
+              array: AMD-RAID Array 1
+              bus_type: RAID
+              media_type: SSD
+            exp_annotations:
+              summary: "Gaming PC disk array AMD-RAID Array 1 is unhealthy"
+              description: "Windows reports AMD-RAID Array 1 as Unhealthy for 5 minutes: the array has lost data redundancy or failed. Back up what is on it now, then check the array in the BIOS (AMD RAID) or AMD RAIDXpert. In an administrator PowerShell run `Get-PhysicalDisk | Format-List FriendlyName, HealthStatus, OperationalStatus`."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+      - eval_time: 25m
+        alertname: GamingPCArrayUnhealthy
+        exp_alerts: []
+
+  - name: an array that cannot be read fires
+    interval: 1m
+    input_series:
+      - series: 'gaming_pc_array_collect_ok{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc"}'
+        values: "0x30"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: GamingPCArrayHealthSourceFailing
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: GamingPCArrayHealthSourceFailing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: gaming-pc
+              exporter: windows
+              instance: "pc:9182"
+              host: gaming-pc
+            exp_annotations:
+              summary: "Gaming PC cannot read its disk array health"
+              description: "Get-PhysicalDisk or Get-Volume failed on the gaming PC for 10 minutes, so its array health and volume space alerts cannot fire. In an administrator PowerShell run `Get-PhysicalDisk` and `Get-ScheduledTaskInfo -TaskName Gaming-PC-DriveHealth`, and run `yarn nx deploy gaming-pc` to put it back."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+
+  # C: has 25% free (quiet), D: falls to 8% (warning), then 3% (critical).
+  - name: low volume space warns below 10 percent and is critical below 5
+    interval: 1m
+    input_series:
+      - series: 'gaming_pc_volume_size_bytes{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc",volume="C:",role="system"}'
+        values: "2000x120"
+      - series: 'gaming_pc_volume_free_bytes{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc",volume="C:",role="system"}'
+        values: "500x120"
+      - series: 'gaming_pc_volume_size_bytes{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc",volume="D:",role="data"}'
+        values: "4000x120"
+      - series: 'gaming_pc_volume_free_bytes{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc",volume="D:",role="data"}'
+        values: "800x10 320x50 120x60"
+      - series: 'up{job="gaming-pc",exporter="windows",instance="pc:9182"}'
+        values: "1x120"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: GamingPCVolumeFreeSpaceLow
+        exp_alerts: []
+      - eval_time: 50m
+        alertname: GamingPCVolumeFreeSpaceLow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: gaming-pc
+              exporter: windows
+              instance: "pc:9182"
+              host: gaming-pc
+              volume: "D:"
+              role: data
+            exp_annotations:
+              summary: "Gaming PC volume D: (data) has 8.0% free"
+              description: "Volume D: on the gaming PC has had less than 10% free space for 30 minutes (now 8.0%). Uninstall or move games, or clear the shader and download caches."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+      - eval_time: 50m
+        alertname: GamingPCVolumeFreeSpaceCritical
+        exp_alerts: []
+      - eval_time: 90m
+        alertname: GamingPCVolumeFreeSpaceLow
+        exp_alerts: []
+      - eval_time: 90m
+        alertname: GamingPCVolumeFreeSpaceCritical
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: gaming-pc
+              exporter: windows
+              instance: "pc:9182"
+              host: gaming-pc
+              volume: "D:"
+              role: data
+            exp_annotations:
+              summary: "Gaming PC volume D: (data) is almost full (3.0% free)"
+              description: "Volume D: on the gaming PC has had less than 5% free space for 15 minutes (now 3.0%). Windows, game updates and the page file need room: free space now."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health/hardware-health
+
+  - name: a full volume on a pc that is off stays quiet
+    interval: 1m
+    input_series:
+      - series: 'gaming_pc_volume_size_bytes{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc",volume="D:",role="data"}'
+        values: "4000x60"
+      - series: 'gaming_pc_volume_free_bytes{job="gaming-pc",exporter="windows",instance="pc:9182",host="gaming-pc",volume="D:",role="data"}'
+        values: "100x60"
+      - series: 'up{job="gaming-pc",exporter="windows",instance="pc:9182"}'
+        values: "0x60"
+    alert_rule_test:
+      - eval_time: 50m
+        alertname: GamingPCVolumeFreeSpaceCritical
+        exp_alerts: []
