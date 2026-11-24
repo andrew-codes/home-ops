@@ -37,6 +37,8 @@ TASK_LOOKBACK = 14 * 24 * 3600
 # call must not take the whole run (and the heartbeat) with it.
 API_TIMEOUT = 30
 SERVICES = ("proxmox-backup", "proxmox-backup-proxy")
+# Where pbs-gc-retry.py keeps the state of its retries of a failed garbage collection.
+GC_RETRY_STATE = "/var/lib/pbs-gc-retry/state.json"
 
 
 class Metrics:
@@ -227,6 +229,23 @@ def collect_jobs(out: Metrics) -> None:
             out.add("pbs_health_collect_ok", 0, source="jobs_" + kind)
 
 
+def collect_gc_retry(out: Metrics, path: str | None = None) -> None:
+    """Where the retries of a failed garbage collection stand (see pbs-gc-retry.py).
+
+    pbs_gc_retry_exhausted is 1 while a datastore's last garbage collection is
+    failed and the retries are used up. A host that never retried has no file
+    and reports nothing.
+    """
+    try:
+        with open(path or GC_RETRY_STATE) as handle:
+            state = json.load(handle)
+    except FileNotFoundError:
+        return
+    for store, entry in sorted(state.items()):
+        out.add("pbs_gc_retry_attempts", entry.get("attempts", 0), datastore=store)
+        out.add("pbs_gc_retry_exhausted", int(bool(entry.get("exhausted"))), datastore=store)
+
+
 def collect(out: Metrics, now: float) -> None:
     try:
         collect_services(out)
@@ -258,6 +277,12 @@ def collect(out: Metrics, now: float) -> None:
         print("tasks: %r" % (error,), file=sys.stderr)
         out.add("pbs_health_collect_ok", 0, source="tasks")
     collect_jobs(out)
+    try:
+        collect_gc_retry(out)
+        out.add("pbs_health_collect_ok", 1, source="gc_retry")
+    except Exception as error:
+        print("gc_retry: %r" % (error,), file=sys.stderr)
+        out.add("pbs_health_collect_ok", 0, source="gc_retry")
 
 
 def main(argv: list[str]) -> int:

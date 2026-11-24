@@ -61,6 +61,8 @@ tests:
         values: "1x180"
       - series: 'pbs_job_last_run_ok{type="gc",datastore="main"}'
         values: "1x180"
+      - series: 'pbs_gc_retry_exhausted{datastore="main"}'
+        values: "0x180"
     alert_rule_test:
       - { eval_time: 170m, alertname: PBSMetricsMissing, exp_alerts: [] }
       - { eval_time: 170m, alertname: PBSHealthMetricsMissing, exp_alerts: [] }
@@ -83,6 +85,11 @@ tests:
       - {
           eval_time: 170m,
           alertname: PBSGarbageCollectionFailed,
+          exp_alerts: [],
+        }
+      - {
+          eval_time: 170m,
+          alertname: PBSGarbageCollectionRetriesExhausted,
           exp_alerts: [],
         }
 
@@ -456,5 +463,76 @@ tests:
           - exp_labels: { severity: warning, type: gc, datastore: main }
             exp_annotations:
               summary: "Proxmox Backup Server garbage collection failed on main"
-              description: "The last garbage collection of datastore main failed, so pruned backups are not freeing space and the datastore will keep growing. Open the task log in the PBS UI (Administration, Tasks) for the error and run it again from Datastore, Prune and GC."
+              description: "The last garbage collection of datastore main failed, so pruned backups are not freeing space and the datastore will keep growing. The PBS host retries it by itself with a growing delay (pbs-gc-retry.timer), and this clears when a retry succeeds. Open the task log in the PBS UI (Administration, Tasks) for the error, and `journalctl -u pbs-gc-retry` on the host for the retries."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+
+  # A garbage collection fails (the bucket answered SlowDown). On `main` the
+  # host's retry succeeds: the failed alert fires meanwhile and clears, and the
+  # retries are never exhausted. On `offsite` every retry fails: the host gives
+  # up at 30 minutes, which adds the critical alert, and a manual run at 70
+  # minutes clears both.
+  - name: garbage collection retries
+    interval: 1m
+    input_series:
+      - series: 'pbs_job_last_run_ok{type="gc",datastore="main"}'
+        values: "0x20 1x70"
+      - series: 'pbs_gc_retry_attempts{datastore="main"}'
+        values: "0x20 1x70"
+      - series: 'pbs_gc_retry_exhausted{datastore="main"}'
+        values: "0x90"
+      - series: 'pbs_job_last_run_ok{type="gc",datastore="offsite"}'
+        values: "0x70 1x20"
+      - series: 'pbs_gc_retry_attempts{datastore="offsite"}'
+        values: "1x30 5x40 0x20"
+      - series: 'pbs_gc_retry_exhausted{datastore="offsite"}'
+        values: "0x30 1x40 0x20"
+    alert_rule_test:
+      # Failed, but inside the 5 minute wait, and the retries are not used up.
+      - { eval_time: 3m, alertname: PBSGarbageCollectionFailed, exp_alerts: [] }
+      - eval_time: 15m
+        alertname: PBSGarbageCollectionFailed
+        exp_alerts:
+          - exp_labels: { severity: warning, type: gc, datastore: main }
+            exp_annotations:
+              summary: "Proxmox Backup Server garbage collection failed on main"
+              description: "The last garbage collection of datastore main failed, so pruned backups are not freeing space and the datastore will keep growing. The PBS host retries it by itself with a growing delay (pbs-gc-retry.timer), and this clears when a retry succeeds. Open the task log in the PBS UI (Administration, Tasks) for the error, and `journalctl -u pbs-gc-retry` on the host for the retries."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+          - exp_labels: { severity: warning, type: gc, datastore: offsite }
+            exp_annotations:
+              summary: "Proxmox Backup Server garbage collection failed on offsite"
+              description: "The last garbage collection of datastore offsite failed, so pruned backups are not freeing space and the datastore will keep growing. The PBS host retries it by itself with a growing delay (pbs-gc-retry.timer), and this clears when a retry succeeds. Open the task log in the PBS UI (Administration, Tasks) for the error, and `journalctl -u pbs-gc-retry` on the host for the retries."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+      - {
+          eval_time: 15m,
+          alertname: PBSGarbageCollectionRetriesExhausted,
+          exp_alerts: [],
+        }
+      # The retry of main succeeded at 20 minutes: only offsite is left, and its
+      # retries ran out at 30 minutes.
+      - eval_time: 45m
+        alertname: PBSGarbageCollectionFailed
+        exp_alerts:
+          - exp_labels: { severity: warning, type: gc, datastore: offsite }
+            exp_annotations:
+              summary: "Proxmox Backup Server garbage collection failed on offsite"
+              description: "The last garbage collection of datastore offsite failed, so pruned backups are not freeing space and the datastore will keep growing. The PBS host retries it by itself with a growing delay (pbs-gc-retry.timer), and this clears when a retry succeeds. Open the task log in the PBS UI (Administration, Tasks) for the error, and `journalctl -u pbs-gc-retry` on the host for the retries."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+      - eval_time: 45m
+        alertname: PBSGarbageCollectionRetriesExhausted
+        exp_alerts:
+          - exp_labels: { severity: critical, datastore: offsite }
+            exp_annotations:
+              summary: "Proxmox Backup Server garbage collection keeps failing on offsite"
+              description: "Garbage collection of datastore offsite failed and every automatic retry failed too, so the host has stopped retrying and pruned backups are not freeing space. Read the error in the task log in the PBS UI (Administration, Tasks) and `journalctl -u pbs-gc-retry` on the host. For an S3 datastore it is usually the bucket answering SlowDown (HTTP 503) or an unreachable endpoint. Run garbage collection by hand from Datastore, Prune and GC once the cause is fixed: a success clears this."
+              dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+      # A manual run succeeded at 70 minutes: both are clear.
+      - {
+          eval_time: 88m,
+          alertname: PBSGarbageCollectionFailed,
+          exp_alerts: [],
+        }
+      - {
+          eval_time: 88m,
+          alertname: PBSGarbageCollectionRetriesExhausted,
+          exp_alerts: [],
+        }

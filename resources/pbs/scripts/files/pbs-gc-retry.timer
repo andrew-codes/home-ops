@@ -1,0 +1,11 @@
+# Managed by resources/pbs (scripts/deploy.yml). Edits are overwritten.
+[Unit]
+Description=Retry a failed Proxmox Backup Server garbage collection
+
+[Timer]
+OnActiveSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

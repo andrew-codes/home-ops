@@ -1,0 +1,14 @@
+# Managed by resources/pbs (scripts/deploy.yml). Edits are overwritten.
+[Unit]
+Description=Retry a failed Proxmox Backup Server garbage collection
+Documentation=https://docs.home.smith-simms.family/wiki/spaces/HA/overview
+After=proxmox-backup.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/pbs-gc-retry/pbs-gc-retry.py run
+SyslogIdentifier=pbs-gc-retry
+# The script starts the garbage collection and returns; PBS runs it. This only
+# stops a run whose API calls hang before the next one starts.
+TimeoutStartSec=300
+Nice=10

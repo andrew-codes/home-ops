@@ -240,5 +240,18 @@ spec:
             severity: warning
           annotations:
             summary: "Proxmox Backup Server garbage collection failed on {{ $labels.datastore }}"
-            description: "The last garbage collection of datastore {{ $labels.datastore }} failed, so pruned backups are not freeing space and the datastore will keep growing. Open the task log in the PBS UI (Administration, Tasks) for the error and run it again from Datastore, Prune and GC."
+            description: "The last garbage collection of datastore {{ $labels.datastore }} failed, so pruned backups are not freeing space and the datastore will keep growing. The PBS host retries it by itself with a growing delay (pbs-gc-retry.timer), and this clears when a retry succeeds. Open the task log in the PBS UI (Administration, Tasks) for the error, and `journalctl -u pbs-gc-retry` on the host for the retries."
+            dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server
+        # pbs_gc_retry_exhausted is 1 while the last garbage collection of the
+        # datastore is failed and the host has used all its retries of it
+        # (resources/pbs, scripts/files/pbs-gc-retry.py). It follows the failed
+        # alert above and means waiting no longer helps.
+        - alert: PBSGarbageCollectionRetriesExhausted
+          expr: last_over_time(pbs_gc_retry_exhausted[15m]) == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Proxmox Backup Server garbage collection keeps failing on {{ $labels.datastore }}"
+            description: "Garbage collection of datastore {{ $labels.datastore }} failed and every automatic retry failed too, so the host has stopped retrying and pruned backups are not freeing space. Read the error in the task log in the PBS UI (Administration, Tasks) and `journalctl -u pbs-gc-retry` on the host. For an S3 datastore it is usually the bucket answering SlowDown (HTTP 503) or an unreachable endpoint. Run garbage collection by hand from Datastore, Prune and GC once the cause is fixed: a success clears this."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=Proxmox%20Backup%20Server

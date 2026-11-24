@@ -6,8 +6,11 @@ a field fails here instead of on the real host.
 """
 
 import importlib.util
+import json
+import os
 import pathlib
 import subprocess
+import tempfile
 import time
 import unittest
 from unittest import mock
@@ -167,7 +170,7 @@ class Collect(unittest.TestCase):
             'pbs_gc_pending_bytes{datastore="main"} 2048',
         ):
             self.assertIn(expected, lines)
-        for source in ("services", "datastores", "groups", "tasks", "jobs_verify", "jobs_prune", "jobs_gc"):
+        for source in ("services", "datastores", "groups", "tasks", "jobs_verify", "jobs_prune", "jobs_gc", "gc_retry"):
             self.assertIn('pbs_health_collect_ok{source="%s"} 1' % source, lines)
 
     def test_failed_gc_job(self):
@@ -244,6 +247,59 @@ class Collect(unittest.TestCase):
             % (NOW - 60),
             lines,
         )
+
+
+class GcRetry(unittest.TestCase):
+    def read(self, state):
+        out = pbs_health.Metrics()
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "state.json")
+            if state is not None:
+                pathlib.Path(path).write_text(json.dumps(state))
+            pbs_health.collect_gc_retry(out, path)
+        return out.lines
+
+    def test_retry_state_is_reported_per_datastore(self):
+        lines = self.read(
+            {
+                "offsite": {"attempts": 5, "exhausted": True},
+                "main": {"attempts": 0, "exhausted": False},
+            }
+        )
+        self.assertEqual(
+            lines,
+            [
+                'pbs_gc_retry_attempts{datastore="main"} 0',
+                'pbs_gc_retry_exhausted{datastore="main"} 0',
+                'pbs_gc_retry_attempts{datastore="offsite"} 5',
+                'pbs_gc_retry_exhausted{datastore="offsite"} 1',
+            ],
+        )
+
+    def test_a_host_that_never_retried_reports_nothing(self):
+        self.assertEqual(self.read(None), [])
+
+    def test_an_unreadable_state_file_is_a_failing_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "state.json")
+            pathlib.Path(path).write_text("{not json")
+            with mock.patch.object(pbs_health, "GC_RETRY_STATE", path):
+                self.assertIn(
+                    'pbs_health_collect_ok{source="gc_retry"} 0',
+                    collect(api()),
+                )
+
+    def test_a_retry_that_succeeded_is_reported_through_the_job(self):
+        # PBS records a retry as the last run of the job, so the job metric is
+        # what clears the failed alert.
+        fake = api(
+            {
+                "/admin/gc": [
+                    {"store": "main", "last-run-state": "OK", "last-run-endtime": NOW - 60}
+                ]
+            }
+        )
+        self.assertIn('pbs_job_last_run_ok{datastore="main",type="gc"} 1', collect(fake))
 
 
 class Metrics(unittest.TestCase):
