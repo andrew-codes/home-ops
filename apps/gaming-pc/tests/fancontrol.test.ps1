@@ -164,6 +164,20 @@ $param = (Get-Command (Join-Path $work 'fancontrol-profile.ps1')).Parameters['Pr
 $allowed = ($param.Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }).ValidValues
 Assert-Equal 'balance,gpu-boost' ($allowed -join ',') 'the script accepts balance and gpu-boost only'
 
+# The script run as a command: -InstallDir must survive the dot-sourced helpers.
+# The fake FanControl.exe is a shell script that records its arguments, so this runs off Windows only.
+if (-not $IsWindows) {
+    $dir = New-FakeInstall
+    foreach ($f in $balance, $boost) { Copy-Item (Join-Path $profileSource $f) (Join-Path $dir 'Configurations') }
+    $record = Join-Path $dir 'args.txt'
+    $exe = Join-Path $dir 'FanControl.exe'
+    Set-Content -Path $exe -Value ("#!/bin/sh`n" + 'echo "$@" > ' + "'$record'")
+    chmod +x $exe
+    pwsh -NoProfile -File (Join-Path $work 'fancontrol-profile.ps1') gpu-boost -InstallDir $dir | Out-Null
+    for ($i = 0; $i -lt 50 -and -not (Test-Path $record); $i++) { Start-Sleep -Milliseconds 100 }
+    Assert-Equal "-c $boost" ((Get-Content $record -Raw).Trim()) 'the command line -InstallDir picks the FanControl that is launched'
+}
+
 # --- The whole script, run for real against the fake install --------------------
 # Shortcuts need COM, which only exists on Windows, so this runs there only.
 if ($IsWindows) {

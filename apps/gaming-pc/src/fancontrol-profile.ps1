@@ -27,7 +27,9 @@ $ErrorActionPreference = 'Stop'
 
 $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
 # Only the helpers: fancontrol.ps1 returns early when dot-sourced.
+$requestedInstallDir = $InstallDir
 . (Join-Path $ScriptDir 'fancontrol.ps1')
+$InstallDir = $requestedInstallDir
 
 function Switch-FanControlProfile {
     param(
