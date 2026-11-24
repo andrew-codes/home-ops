@@ -106,8 +106,10 @@ rules that are not obvious from the code:
 - Binaries and the SYSTEM task's scripts live in `C:\ProgramData\gaming-pc\monitoring`, never in
   `developer\tools`, because the deploy empties that directory. The monitoring directory is locked
   to administrators: a SYSTEM task runs what is in it.
-- OhmGraphite stays CPU-class only. FanControl already polls the same hardware and controls fans
-  through the Super I/O, so do not enable its motherboard, storage or GPU classes.
+- OhmGraphite is CPU-class only by default. FanControl already polls the same hardware and controls
+  fans through the Super I/O, so do not enable its storage or GPU classes, and enable the motherboard
+  class only through the `GAMING_PC_MOTHERBOARD_FANS` opt-in
+  ([README.md](README.md#motherboard-fan-speeds-opt-in)).
 - No "PC down" alert: the PC is off most of the day. `TargetDown` skips the `gaming-pc` job.
 - `yarn nx test gaming-pc` needs `pwsh`, Docker and `yq`. Run it after touching the FPS scripts or
   the thermal alert rules.
