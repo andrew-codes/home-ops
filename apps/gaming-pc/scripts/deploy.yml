@@ -18,6 +18,7 @@
     gaming_pc_storage_columns: 2
     gaming_pc_storage_wipe: false
     gaming_pc_storage_required: false
+    gaming_pc_motherboard_fans: false
 
   tasks:
     - name: Set timezone to Eastern Time
@@ -1201,9 +1202,11 @@
     # through the PawnIO driver that FanControl installs; the script warns, and
     # does not fail, when it is missing. Idempotent: it prints RESULT changed=0
     # when every exporter already matches its pinned version and settings.
+    # gaming_pc_motherboard_fans (GAMING_PC_MOTHERBOARD_FANS, from deploy.ts) is
+    # the opt-in for chassis and CPU radiator fan RPM; it is false by default.
     - name: Install and configure the metrics exporters
       win_shell: |
-        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\monitoring.ps1"
+        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\monitoring.ps1"{{ ' -MotherboardFans' if (gaming_pc_motherboard_fans | bool) else '' }}
       register: monitoring
       changed_when: "'changed=0 ' not in monitoring.stdout"
       become: yes

@@ -7,7 +7,9 @@
 #   PresentMon        Frame times through ETW, no injection into any game.
 #                     Wrapped by fps-exporter.ps1 and run by a boot-time task.
 #   OhmGraphite       CPU package temperature only, through LibreHardwareMonitor
-#                     and the PawnIO driver FanControl already installs.
+#                     and the PawnIO driver FanControl already installs. With the
+#                     opt-in -MotherboardFans it also reads chassis and CPU
+#                     radiator fan RPM.
 #   drive-health.ps1  NVMe wear, spare, errors and temperature from smartctl
 #                     (smartmontools, installed by software.ps1), written every
 #                     5 minutes as a textfile for windows_exporter.
@@ -19,6 +21,13 @@
 #
 # The firewall rules for the two scrape ports are not here: deploy.yml owns them
 # because they need the cluster node's address, which comes from 1Password.
+
+# -MotherboardFans is the opt-in for chassis and CPU radiator fan RPM. It is OFF
+# unless a deploy passes it (GAMING_PC_MOTHERBOARD_FANS=true), so a normal deploy
+# also turns it back off. See README.md#motherboard-fan-speeds-opt-in.
+param(
+    [switch]$MotherboardFans
+)
 
 $ErrorActionPreference = 'Stop'
 # Progress rendering slows Invoke-WebRequest to a crawl on large files.
@@ -375,6 +384,8 @@ function Test-DriveHealthSource {
 # ---------------------------------------------------------------------------
 
 function Get-OhmGraphiteConfig {
+    param([switch]$MotherboardFans)
+
     # Prometheus pull mode: sensors are read only when vmagent scrapes, so the
     # poll interval is the scrape interval and nothing runs between scrapes.
     # `type` is what selects it. OhmGraphite defaults to Graphite push when the
@@ -387,7 +398,16 @@ function Get-OhmGraphiteConfig {
     # and the motherboard, Super I/O and embedded controller are exactly what
     # FanControl is controlling fans through, which a second reader must not
     # touch. Storage is off because SMART reads are the classic in-game hitch.
+    #
+    # The one exception is the opt-in -MotherboardFans, which turns the motherboard
+    # class on to read the fan RPM tachometers. OhmGraphite cannot narrow that
+    # class to the Super I/O, so it opens the embedded controller too, and it
+    # reads the pump header (Fan #7) along with the rest. Reads only: nothing here
+    # ever sets a control. See README.md#motherboard-fan-speeds-opt-in.
     $disabled = 'gpu', 'motherboard', 'ram', 'network', 'storage', 'controller', 'psu', 'battery'
+    if ($MotherboardFans) {
+        $disabled = $disabled | Where-Object { $_ -ne 'motherboard' }
+    }
     $lines = foreach ($class in $disabled) { "    <add key=`"/$class/enabled`" value=`"false`" />" }
     return @"
 <?xml version="1.0" encoding="utf-8" ?>
@@ -405,7 +425,7 @@ $($lines -join "`r`n")
 
 function Install-OhmGraphite {
     $installDirectory = Join-Path $env:ProgramFiles 'OhmGraphite'
-    $config = Get-OhmGraphiteConfig
+    $config = Get-OhmGraphiteConfig -MotherboardFans:$MotherboardFans
     $desired = '{0}|{1}' -f $OhmGraphite.Version, (Get-TextHash $config)
     $service = Get-Service -Name 'OhmGraphite' -ErrorAction SilentlyContinue
 
@@ -538,6 +558,13 @@ Invoke-Step -Name 'smartctl' -Optional -Action { Test-DriveHealthSource }
 Invoke-Step -Name 'OhmGraphite CPU sensors' -Optional -Action {
     Test-Endpoint -Name 'OhmGraphite' -Url "http://localhost:$($OhmGraphite.Port)/metrics" `
         -ExpectedSeries 'ohm_cpu_celsius'
+}
+
+if ($MotherboardFans) {
+    Invoke-Step -Name 'OhmGraphite motherboard fans' -Optional -Action {
+        Test-Endpoint -Name 'OhmGraphite' -Url "http://localhost:$($OhmGraphite.Port)/metrics" `
+            -ExpectedSeries 'ohm_superio_revolutions_per_minute'
+    }
 }
 
 foreach ($warning in $script:Warnings) {

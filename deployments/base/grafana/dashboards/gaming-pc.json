@@ -2111,6 +2111,194 @@
     },
     {
       "type": "row",
+      "title": "Fans",
+      "id": 34,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 71
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Fan speed now",
+      "description": "Chassis fan A, CPU radiator fans and Chassis fan B are the Nuvoton NCT6799D Fan #1, #2 and #3 headers, named as in the FanControl profiles. They are read by OhmGraphite's motherboard class, which is OFF unless the deploy ran with GAMING_PC_MOTHERBOARD_FANS=true (README: Motherboard fan speeds, opt-in). The pump header (Fan #7) is deliberately not shown. GPU fans come from windows_exporter and are always collected. 0 RPM on a GPU is normal while the card is cool (fan stop).",
+      "id": 35,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 72
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_replace(label_replace(label_replace(ohm_superio_revolutions_per_minute{job=\"gaming-pc\",sensor=~\"Fan #[123]\"},\"fan\",\"Chassis fan A\",\"sensor\",\"Fan #1\"),\"fan\",\"CPU radiator fans\",\"sensor\",\"Fan #2\"),\"fan\",\"Chassis fan B\",\"sensor\",\"Fan #3\")",
+          "legendFormat": "{{fan}}",
+          "refId": "A",
+          "range": false,
+          "instant": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_replace(max(windows_gpu_fan_speed_rpm{job=\"gaming-pc\"}),\"fan\",\"GPU fans\",\"\",\"\")",
+          "legendFormat": "{{fan}}",
+          "refId": "B",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rotrpm",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "text": "Not collected",
+                  "color": "#8e8e8e"
+                }
+              }
+            }
+          ],
+          "decimals": 0,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "value_and_name",
+        "orientation": "auto"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Fan speed",
+      "description": "Chassis fan A, CPU radiator fans and Chassis fan B are the Nuvoton NCT6799D Fan #1, #2 and #3 headers, named as in the FanControl profiles. They are read by OhmGraphite's motherboard class, which is OFF unless the deploy ran with GAMING_PC_MOTHERBOARD_FANS=true (README: Motherboard fan speeds, opt-in). The pump header (Fan #7) is deliberately not shown. GPU fans come from windows_exporter and are always collected. 0 RPM on a GPU is normal while the card is cool (fan stop).",
+      "id": 36,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 72
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_replace(label_replace(label_replace(ohm_superio_revolutions_per_minute{job=\"gaming-pc\",sensor=~\"Fan #[123]\"},\"fan\",\"Chassis fan A\",\"sensor\",\"Fan #1\"),\"fan\",\"CPU radiator fans\",\"sensor\",\"Fan #2\"),\"fan\",\"Chassis fan B\",\"sensor\",\"Fan #3\")",
+          "legendFormat": "{{fan}}",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "label_replace(max(windows_gpu_fan_speed_rpm{job=\"gaming-pc\"}),\"fan\",\"GPU fans\",\"\",\"\")",
+          "legendFormat": "{{fan}}",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rotrpm",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 6,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": ["lastNotNull", "max"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
       "title": "By game",
       "id": 23,
       "collapsed": false,
@@ -2118,7 +2306,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 71
+        "y": 80
       },
       "panels": []
     },
@@ -2135,7 +2323,7 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 72
+        "y": 81
       },
       "targets": [
         {
@@ -2257,7 +2445,7 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 72
+        "y": 81
       },
       "targets": [
         {
@@ -2319,7 +2507,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 79
+        "y": 88
       },
       "panels": []
     },
@@ -2336,7 +2524,7 @@
         "h": 4,
         "w": 24,
         "x": 0,
-        "y": 80
+        "y": 89
       },
       "targets": [
         {

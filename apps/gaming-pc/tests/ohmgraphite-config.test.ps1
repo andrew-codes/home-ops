@@ -40,5 +40,19 @@ Assert-Equal 'metrics/' $settings['prometheus_path'] 'path has the trailing slas
 Assert-Equal 'false' $settings['/gpu/enabled'] 'gpu class disabled'
 Assert-Equal $null $settings['/cpu/enabled'] 'cpu class left on'
 
+# The motherboard class is what FanControl controls fans through, so it stays
+# off by default and only the opt-in switch turns it on, and nothing else with it.
+Assert-Equal 'false' $settings['/motherboard/enabled'] 'motherboard class disabled by default'
+
+$optIn = @{}
+foreach ($add in ([xml](Get-OhmGraphiteConfig -MotherboardFans)).configuration.appSettings.add) {
+    $optIn[$add.key] = $add.value
+}
+Assert-Equal $null $optIn['/motherboard/enabled'] 'motherboard class left on with -MotherboardFans'
+foreach ($class in 'gpu', 'ram', 'network', 'storage', 'controller', 'psu', 'battery') {
+    Assert-Equal 'false' $optIn["/$class/enabled"] "$class class still disabled with -MotherboardFans"
+}
+Assert-Equal 'prometheus' $optIn['type'] 'exporter type unchanged with -MotherboardFans'
+
 if ($script:Failures -gt 0) { Write-Host "$script:Failures failure(s)"; exit 1 }
 Write-Host 'all passed'

@@ -30,6 +30,12 @@ const run = async (
   const storageWipe = process.env["GAMING_PC_STORAGE_WIPE"] === "true"
   const storageRequired = process.env["GAMING_PC_STORAGE_REQUIRED"] === "true"
 
+  // Chassis and CPU radiator fan RPM needs OhmGraphite to open the Super I/O
+  // that FanControl controls fans through, so it is off unless asked for, and a
+  // deploy without it turns it back off:
+  //   GAMING_PC_MOTHERBOARD_FANS=true  read motherboard fan RPM (README.md#motherboard-fan-speeds-opt-in)
+  const motherboardFans = process.env["GAMING_PC_MOTHERBOARD_FANS"] === "true"
+
   await fs.mkdir(path.join(__dirname, "..", ".secrets"), { recursive: true })
 
   // Transport lives here, not in the playbook, so the playbook stays connection
@@ -67,6 +73,7 @@ nut_monitor_password: ${JSON.stringify(nutMonitorPassword)}
 k8s_node_ip: ${JSON.stringify(k8sNodeIp)}
 gaming_pc_storage_wipe: ${storageWipe}
 gaming_pc_storage_required: ${storageRequired}
+gaming_pc_motherboard_fans: ${motherboardFans}
 `,
     "utf8",
   )

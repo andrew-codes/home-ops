@@ -363,13 +363,13 @@ the full procedure (BIOS, install, checks) is the [rebuild runbook](docs/rebuild
 
 ### What gets built
 
-| Piece           | Value (default, a variable in `scripts/deploy.yml`)                    |
-| --------------- | ---------------------------------------------------------------------- |
-| Pool            | `GamesPool` (`gaming_pc_storage_pool_name`)                            |
-| Virtual disk    | `Games`, layout **Simple** (striped, no redundancy), 2 columns, fixed provisioning (`gaming_pc_storage_virtual_disk_name`, `gaming_pc_storage_columns`) |
-| Interleave      | 262144 bytes (256 KB, Windows' own default; `gaming_pc_storage_interleave`) |
-| Volume          | `G:`, NTFS, labelled `Games` (`gaming_pc_storage_drive_letter`, `gaming_pc_storage_file_system`) |
-| Steam library   | `G:\SteamLibrary`                                                     |
+| Piece         | Value (default, a variable in `scripts/deploy.yml`)                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pool          | `GamesPool` (`gaming_pc_storage_pool_name`)                                                                                                             |
+| Virtual disk  | `Games`, layout **Simple** (striped, no redundancy), 2 columns, fixed provisioning (`gaming_pc_storage_virtual_disk_name`, `gaming_pc_storage_columns`) |
+| Interleave    | 262144 bytes (256 KB, Windows' own default; `gaming_pc_storage_interleave`)                                                                             |
+| Volume        | `G:`, NTFS, labelled `Games` (`gaming_pc_storage_drive_letter`, `gaming_pc_storage_file_system`)                                                        |
+| Steam library | `G:\SteamLibrary`                                                                                                                                       |
 
 This is the equivalent of RAID 0: the two drives are written in stripes, there is no
 copy of anything, and **if either drive fails everything on `G:` is lost**. That is
@@ -475,7 +475,7 @@ the version, URL and hash at the top of the script.
 | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **windows_exporter** 0.32.1, port 9182, collectors `cpu,gpu,memory,textfile`                                                                   | GPU temperature, fan, power, clocks, utilisation and VRAM, CPU load and clocks, memory, and the FPS file below                                                                                                                                                                                                                                                                          | User-mode Windows service, no kernel driver. The GPU sensors come from the Windows graphics kernel, the same source Task Manager uses.            |
 | **PresentMon** 2.6.0 console, started at boot by the `Gaming-PC-FPS` task as SYSTEM, wrapped by [`src/fps-exporter.ps1`](src/fps-exporter.ps1) | Frame times through event tracing (ETW), summarised by [`src/fps-summary.ps1`](src/fps-summary.ps1) every 30 s into `C:\ProgramData\gaming-pc\monitoring\textfile\gaming-pc-fps.prom`: `gaming_pc_fps_average`, `gaming_pc_fps_1pct_low`, `gaming_pc_frametime_p99_milliseconds`, `gaming_pc_frametime_max_milliseconds`, `gaming_pc_frames_total` and `gaming_pc_active_app_info{app}` | It does not inject into or hook any game. The file is empty when no game is running, so the series disappear instead of freezing.                 |
-| **OhmGraphite** 0.38.0, port 4445, Prometheus pull mode                                                                                        | CPU temperature only (`ohm_cpu_celsius`, plus package power and clocks)                                                                                                                                                                                                                                                                                                                 | A second reader of the same LibreHardwareMonitor stack FanControl already runs, through the PawnIO driver FanControl installs. It adds no driver. |
+| **OhmGraphite** 0.38.0, port 4445, Prometheus pull mode                                                                                        | CPU temperature only (`ohm_cpu_celsius`, plus package power and clocks), and with the [opt-in](#motherboard-fan-speeds-opt-in) chassis and CPU radiator fan RPM                                                                                                                                                                                                                         | A second reader of the same LibreHardwareMonitor stack FanControl already runs, through the PawnIO driver FanControl installs. It adds no driver. |
 
 Where things live: `C:\Program Files\windows_exporter`, `C:\Program Files\OhmGraphite`,
 `C:\Program Files\smartmontools` and `C:\ProgramData\gaming-pc\monitoring` (PresentMon,
@@ -543,7 +543,8 @@ pwsh -NoProfile -File C:\ProgramData\gaming-pc\monitoring\drive-health.ps1 -Prin
   LibreHardwareMonitor never opens them. The Super I/O and embedded controller are
   what FanControl is controlling fans through, and storage SMART reads are the
   classic in-game hitch, so none of them is polled. As a result **fan speeds other
-  than the GPU's and motherboard temperatures are not exported.**
+  than the GPU's and motherboard temperatures are not exported** unless the deploy
+  is run with the opt-in in [Motherboard fan speeds, opt-in](#motherboard-fan-speeds-opt-in).
 - **The GPU is read through the Windows graphics kernel, not NVAPI.** LibreHardwareMonitor
   issue 598 ties NVAPI GPU polling to in-game stutter on an RTX 3090, and FanControl
   already polls the card at 1 Hz, so a second NVAPI reader is the one to avoid.
@@ -554,6 +555,60 @@ pwsh -NoProfile -File C:\ProgramData\gaming-pc\monitoring\drive-health.ps1 -Prin
   hotspot on Blackwell, and a standard RTX 5090 has no connector sensor. The
   connector can run hotter than the core reads, so the GPU temperature alerts
   protect the core and the fans, not the connector.
+
+### Motherboard fan speeds, opt-in
+
+The chassis fans and the CPU radiator fans are read from the Nuvoton NCT6799D Super
+I/O, the same chip FanControl controls them through. That is off by default. A normal
+`yarn nx deploy gaming-pc` leaves OhmGraphite's motherboard class disabled, and also
+switches it back off if an earlier deploy had enabled it. To turn it on:
+
+```sh
+GAMING_PC_MOTHERBOARD_FANS=true yarn nx deploy gaming-pc
+```
+
+`scripts/deploy.ts` passes it to the playbook as `gaming_pc_motherboard_fans`, the
+playbook passes `-MotherboardFans` to `monitoring.ps1`, and the script rewrites
+OhmGraphite's config without `/motherboard/enabled=false`, restarts the service and
+checks that `ohm_superio_revolutions_per_minute` is there. It is never stored, so
+set it on every deploy where you want the series. Nothing else changes: the GPU,
+storage, RAM, network, controller, PSU and battery classes stay off, and the pump
+header is never written to.
+
+**Why it is opt-in.** The safety case is indirect, not documented:
+
+- LibreHardwareMonitor takes the machine-wide `Global\Access_ISABUS.HTP.Method` mutex
+  around every Super I/O read and write, and FanControl's built-in copy of
+  LibreHardwareMonitor takes the same one, so the two readers take turns.
+- LibreHardwareMonitor only writes fan registers when something asks it to take
+  software control of a fan, which OhmGraphite never does, so the pump header
+  (Fan #7, left at 100%) is read at most, never set.
+- But OhmGraphite cannot narrow the motherboard class to the Super I/O. It opens the
+  embedded controller and every other board sensor too, and LibreHardwareMonitor
+  writes a config bit (the NCT679x I/O space lock) when it first opens the chip.
+- Neither FanControl nor LibreHardwareMonitor documents two readers on this chip as
+  supported, and Windows updates have broken board sensor reads before
+  (FanControl issue 4101).
+
+**If anything looks off,** run the deploy without the variable. That removes the
+motherboard class again, and FanControl is back to being the only reader. A game
+or anti-cheat complaining about PawnIO is covered above under the PawnIO bullet.
+
+**What you get.** `ohm_superio_revolutions_per_minute{sensor="Fan #1".."Fan #7"}`
+(plus the other Super I/O temperatures, voltages and control percentages). The
+Gaming PC dashboard's Fans row names Fan #1, #2 and #3 as in the FanControl profile
+(`src/fancontrol/`): Chassis fan A, CPU radiator fans, Chassis fan B. Fan #7, the
+pump, is not shown. With the opt-in off, those panels show "Not collected" and the
+GPU fans are still there. To confirm after a deploy, run this in Grafana Explore on
+VictoriaMetrics and expect one series per fan header:
+
+```promql
+ohm_superio_revolutions_per_minute{job="gaming-pc"}
+```
+
+A header with nothing connected reads 0. The sensor names are LibreHardwareMonitor's
+(`Fan #1` is the first fan header), so if a series is missing or the names differ,
+look at the labels in Explore and adjust the `label_replace` in the Fans panels.
 
 ### Gameplay cost
 
