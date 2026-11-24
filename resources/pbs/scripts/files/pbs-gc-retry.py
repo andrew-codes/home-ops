@@ -198,12 +198,17 @@ def retry(now: float, dry_run: bool) -> int:
         log("error", "read-failed", error=repr(error))
         return 1
     running = gc_running(tasks)
-    state = load_state(STATE_PATH)
+    stores = {job["store"] for job in jobs}
+    state = {store: entry for store, entry in load_state(STATE_PATH).items() if store in stores}
     failed = False
     for job in sorted(jobs, key=lambda item: item["store"]):
         store = job["store"]
         entry = {**new_entry(), **state.get(store, {})}
         action, reason = decide(job, entry, now)
+        if action == "exhausted" and store in running:
+            # PBS records the last run only when it ends, so the final retry is still in flight.
+            entry["exhausted"] = False
+            action, reason = "running", "last retry still running"
         fields = {"datastore": store, "attempts": entry["attempts"], "reason": reason}
         if action == "start" and running:
             # Any garbage collection, not only this datastore's: one at a time.

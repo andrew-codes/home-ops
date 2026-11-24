@@ -202,6 +202,29 @@ class Retry(unittest.TestCase):
         self.assertEqual(self.state()["offsite"]["attempts"], 1)
         self.assertIn("event=start-failed", log)
 
+    def test_the_last_retry_still_running_is_not_exhausted(self):
+        now, ended, upid = NOW, NOW - 20 * MIN, "UPID:failed"
+        for attempt in range(1, gc_retry.MAX_ATTEMPTS + 1):
+            self.run_retry([job(ended=ended, upid=upid)], now=now)
+            upid, ended = "UPID:retry%d" % attempt, now + 60
+            now = ended + gc_retry.BASE_BACKOFF * 2**attempt
+            self.state_cap_off()
+        running = [{"worker_type": "garbage_collection", "worker_id": "offsite", "starttime": now - 60}]
+        status, log = self.run_retry([job(ended=ended, upid=upid)], running, now=now)
+        self.assertEqual((status, len(self.started)), (0, gc_retry.MAX_ATTEMPTS))
+        self.assertFalse(self.state()["offsite"]["exhausted"])
+        self.assertNotIn("event=exhausted", log)
+        self.assertIn("event=running", log)
+        self.run_retry([job(ended=ended, upid=upid)], now=now + 600)
+        self.assertTrue(self.state()["offsite"]["exhausted"])
+
+    def test_state_for_a_datastore_that_is_gone_is_pruned(self):
+        gc_retry.save_state(
+            self.state_path, {"gone": entry(attempts=5, exhausted=True), "offsite": entry(attempts=1)}
+        )
+        self.run_retry([job(state="OK")])
+        self.assertEqual(list(self.state()), ["offsite"])
+
     def test_success_closes_the_episode(self):
         self.run_retry([job()])
         self.run_retry([job("OK", upid="UPID:retry1", ended=NOW + 600)], now=NOW + 900)
