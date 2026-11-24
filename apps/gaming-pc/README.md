@@ -363,13 +363,13 @@ the full procedure (BIOS, install, checks) is the [rebuild runbook](docs/rebuild
 
 ### What gets built
 
-| Piece           | Value (default, a variable in `scripts/deploy.yml`)                    |
-| --------------- | ---------------------------------------------------------------------- |
-| Pool            | `GamesPool` (`gaming_pc_storage_pool_name`)                            |
-| Virtual disk    | `Games`, layout **Simple** (striped, no redundancy), 2 columns, fixed provisioning (`gaming_pc_storage_virtual_disk_name`, `gaming_pc_storage_columns`) |
-| Interleave      | 262144 bytes (256 KB, Windows' own default; `gaming_pc_storage_interleave`) |
-| Volume          | `G:`, NTFS, labelled `Games` (`gaming_pc_storage_drive_letter`, `gaming_pc_storage_file_system`) |
-| Steam library   | `G:\SteamLibrary`                                                     |
+| Piece         | Value (default, a variable in `scripts/deploy.yml`)                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pool          | `GamesPool` (`gaming_pc_storage_pool_name`)                                                                                                             |
+| Virtual disk  | `Games`, layout **Simple** (striped, no redundancy), 2 columns, fixed provisioning (`gaming_pc_storage_virtual_disk_name`, `gaming_pc_storage_columns`) |
+| Interleave    | 262144 bytes (256 KB, Windows' own default; `gaming_pc_storage_interleave`)                                                                             |
+| Volume        | `G:`, NTFS, labelled `Games` (`gaming_pc_storage_drive_letter`, `gaming_pc_storage_file_system`)                                                        |
+| Steam library | `G:\SteamLibrary`                                                                                                                                       |
 
 This is the equivalent of RAID 0: the two drives are written in stripes, there is no
 copy of anything, and **if either drive fails everything on `G:` is lost**. That is
