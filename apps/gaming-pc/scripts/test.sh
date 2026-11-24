@@ -2,7 +2,7 @@
 # Tests for the pieces of this app that run without the gaming PC: the PowerShell
 # FPS summariser, the OhmGraphite config, the drive health metrics, the games drive
 # (storage.ps1, against fake Storage cmdlets), the Steam library file edit and the
-# VS Code removal (need pwsh),
+# VS Code removal and the FanControl profiles (need pwsh),
 # and the vmalert-tool unit tests for the alert rules (need docker and yq). All of them are on the
 # pull request runners.
 set -euo pipefail
