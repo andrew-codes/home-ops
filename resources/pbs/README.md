@@ -163,14 +163,14 @@ A garbage collection of an S3 datastore (the Backblaze B2 offsite datastore) mak
 
 Each run reads the last run of every datastore's garbage collection job (`/admin/gc`) and does one of these for each datastore:
 
-| Decision    | When                                                                                                  |
-| ----------- | ----------------------------------------------------------------------------------------------------- |
-| `ok`        | the last run succeeded (`OK` or `WARNINGS`), or the job never ran                                     |
-| `wait`      | the last run failed, but the backoff since it ended has not passed                                    |
-| `start`     | the last run failed and the backoff has passed: it starts garbage collection through the PBS API      |
-| `running`   | a retry is due, but some garbage collection task is running (on any datastore), so nothing is started |
-| `capped`    | a retry is due, but 6 were already started in the last 24 hours                                       |
-| `exhausted` | the last run failed and all 5 retries of it were used                                                 |
+| Decision    | When                                                                                                                 |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| `ok`        | the last run succeeded (`OK` or `WARNINGS`), or the job never ran                                                    |
+| `wait`      | the last run failed, but the backoff since it ended has not passed                                                   |
+| `start`     | the last run failed and the backoff has passed: it starts garbage collection through the PBS API                     |
+| `running`   | a retry is due, or the last one was used and still runs, but a garbage collection task is running (on any datastore) |
+| `capped`    | a retry is due, but 6 were already started in the last 24 hours                                                      |
+| `exhausted` | the last run failed, all 5 retries of it were used and the last one has ended                                        |
 
 - **Backoff.** Retry _n_ starts `10 min x 2^(n-1)` after the failed run ended: 10, 20, 40, 80 and 160 minutes, five retries in about five hours. The timer only decides when a retry is due, so a retry starts up to 5 minutes late.
 - **An episode** is one failure and the retries of it. A failed run that the script did not start (the scheduled run, or one started by hand) opens a new episode with a fresh set of five retries. A good run closes it. The state is kept in `/var/lib/pbs-gc-retry/state.json`.
