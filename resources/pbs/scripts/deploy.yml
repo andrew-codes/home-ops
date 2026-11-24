@@ -597,6 +597,63 @@
       when: pbs_health_script.changed or pbs_health_service.changed
       tags: [observability, health]
 
+    # A garbage collection of an S3 datastore can fail part way through when the
+    # bucket answers SlowDown (HTTP 503), and the next scheduled run is days away.
+    # scripts/files/pbs-gc-retry.py starts a failed one again, with bounded
+    # retries and a backoff, every 5 minutes. It only starts garbage collections
+    # that PBS itself would run, and pbs-health.py reports where it stands. See
+    # README.md#garbage-collection-retry.
+    - name: Create the garbage collection retry directory
+      ansible.builtin.file:
+        path: /usr/local/lib/pbs-gc-retry
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      tags: [gc-retry]
+
+    - name: Install the garbage collection retry script
+      ansible.builtin.copy:
+        src: pbs-gc-retry.py
+        dest: /usr/local/lib/pbs-gc-retry/pbs-gc-retry.py
+        owner: root
+        group: root
+        mode: "0755"
+      tags: [gc-retry]
+
+    - name: Install the garbage collection retry service
+      ansible.builtin.copy:
+        src: pbs-gc-retry.service
+        dest: /etc/systemd/system/pbs-gc-retry.service
+        owner: root
+        group: root
+        mode: "0644"
+      register: pbs_gc_retry_service
+      tags: [gc-retry]
+
+    - name: Install the garbage collection retry timer
+      ansible.builtin.copy:
+        src: pbs-gc-retry.timer
+        dest: /etc/systemd/system/pbs-gc-retry.timer
+        owner: root
+        group: root
+        mode: "0644"
+      register: pbs_gc_retry_timer
+      tags: [gc-retry]
+
+    - name: Reload systemd units after a garbage collection retry unit change
+      ansible.builtin.systemd:
+        daemon_reload: yes
+      when: pbs_gc_retry_service.changed or pbs_gc_retry_timer.changed
+      tags: [gc-retry]
+
+    - name: Ensure the garbage collection retry timer is enabled and running
+      ansible.builtin.systemd:
+        name: pbs-gc-retry.timer
+        enabled: yes
+        state: started
+      tags: [gc-retry]
+
     - name: Allow SSH in UFW
       ufw:
         rule: allow
