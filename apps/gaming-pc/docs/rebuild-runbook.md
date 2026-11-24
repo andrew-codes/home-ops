@@ -184,8 +184,10 @@ time. What it does, in order (the full list is in [the README](../README.md)):
    and the rest), the NVIDIA app, Logi Options+ and MoonDeck Buddy.
 6. **Register the Steam library** (`steam-library.ps1`): creates `G:\SteamLibrary` and
    adds it to Steam's `libraryfolders.vdf`, keeping a backup of that file.
-7. Installs the metrics exporters and the drive health collector.
-8. Configures WinNUT-Client (UPS monitoring). **This last task is expected to
+7. Installs the FanControl profiles (`fancontrol.ps1`): both profiles into FanControl, `balance`
+   as the default on a first install, and two Start menu shortcuts.
+8. Installs the metrics exporters and the drive health collector.
+9. Configures WinNUT-Client (UPS monitoring). **This last task is expected to
    fail** until the NAS's NUT server and allow-list are set up (see
    [NUT UPS monitoring](../README.md#nut-ups-monitoring)). A failure there with
    everything above green is the known state, not a problem with the rebuild.
@@ -265,6 +267,11 @@ On the gaming PC, in PowerShell unless noted:
 - [ ] **Metrics scrape.** From the Mac or Grafana, `up{job="gaming-pc"}` is 1 while the
       PC is on (see [Metrics and sensors](../README.md#metrics-and-sensors) and its
       checks on the first deploy).
+- [ ] **FanControl profiles.** FanControl is installed and, after a reboot, starts on the
+      `balance` profile (the profile name shows in its window). Both `gpc-thermal-balance.json` and
+      `gpc-thermal-gpu-boost.json` are in its `Configurations` folder, and the Start menu has
+      `FanControl - Balance` and `FanControl - GPU boost`. The pump (Fan #7) shows as not controlled.
+      See [FanControl profiles](../README.md#fancontrol-profiles).
 - [ ] **UPS client.** WinNUT-Client is running in the tray and shows the UPS, if the
       NAS side is set up. If not, the WinNUT task failure is the known state.
 - [ ] **Re-run is clean.** `yarn nx deploy gaming-pc` a second time reports `changed=0`

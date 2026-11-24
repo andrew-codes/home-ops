@@ -2,7 +2,7 @@
 # Tests for the pieces of this app that run without the gaming PC: the PowerShell
 # FPS summariser, the OhmGraphite config, the drive health metrics, the games drive
 # (storage.ps1, against fake Storage cmdlets), the Steam library file edit and the
-# VS Code removal (need pwsh),
+# VS Code removal and the FanControl profiles (need pwsh),
 # and the vmalert-tool unit tests for the alert rules (need docker and yq). All of them are on the
 # pull request runners.
 set -euo pipefail
@@ -15,6 +15,7 @@ pwsh -NoProfile -File "$root/tests/drive-health.test.ps1"
 pwsh -NoProfile -File "$root/tests/storage.test.ps1"
 pwsh -NoProfile -File "$root/tests/steam-library.test.ps1"
 pwsh -NoProfile -File "$root/tests/software-vscode.test.ps1"
+pwsh -NoProfile -File "$root/tests/fancontrol.test.ps1"
 
 vmrule="$root/../../deployments/production/alerting/gaming-pc-vmrules.yaml"
 # Keep in step with the VictoriaMetrics version in deployments/base/metrics/vmsingle.yaml.

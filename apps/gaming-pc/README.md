@@ -181,6 +181,7 @@ before acting, so a second deploy installs nothing.
 | NVIDIA App                                                       | Chocolatey                        | `nvidia-app`                   |
 | NVIDIA game-ready driver                                         | NVIDIA, via `src/run.ps1`         | -                              |
 | DXL (DLSS eXtended Loader)                                       | GitHub release, via `src/dxl.ps1` | `LCPD15/DXL`                   |
+| FanControl (see [below](#fancontrol-profiles))                   | winget (Inno installer)           | `Rem0o.FanControl`             |
 | WinNUT-Client (UPS monitoring, see [below](#nut-ups-monitoring)) | winget (user scope)               | `nutdotnet.WinNUT`             |
 
 **1Password installs at user scope**, not machine scope like the other winget
@@ -279,6 +280,77 @@ Four of those rows are not plain winget, and each for its own reason:
 Chocolatey's own bootstrap script trips a Windows Defender false positive -
 see [Turn off Windows Defender Tamper Protection](#turn-off-windows-defender-tamper-protection-once-in-windows-security)
 under Prerequisites for what it is and the one-time manual step it requires.
+
+### FanControl profiles
+
+`software.ps1` installs [FanControl](https://github.com/Rem0o/FanControl.Releases)
+(`Rem0o.FanControl`) with `--installer-type inno`: the manifest also publishes a
+portable zip, which winget could pick instead and which would land in a per-user
+folder. Like the other entries it is installed once and never upgraded by the
+deploy. [`src/fancontrol.ps1`](src/fancontrol.ps1) then manages the two profiles,
+so a rebuilt machine gets them back on the first deploy. It runs after the
+software install and before the metrics step, which needs the PawnIO driver
+FanControl ships.
+
+| Profile     | File                                                                      | What it does                                                                                                    |
+| ----------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `balance`   | [`gpc-thermal-balance.json`](src/fancontrol/gpc-thermal-balance.json)     | The default. FanControl drives the chassis and radiator fans and leaves the two GPU fans to NVIDIA's own curve. |
+| `gpu-boost` | [`gpc-thermal-gpu-boost.json`](src/fancontrol/gpc-thermal-gpu-boost.json) | The same, plus FanControl drives the two GPU fans with its "GPU fans" curve (forced).                           |
+
+Both are FanControl version 286 files for this exact hardware (Nuvoton
+nct6799d headers, RTX 5090, AMD CPU). They differ only in the two GPU fan
+controls. **The pump header (Fan #7) is disabled in both and must stay that
+way**; `tests/fancontrol.test.ps1` fails if either file enables it.
+
+What the deploy does, and what it never does:
+
+- **Copies the profiles** into FanControl's `Configurations` folder, which sits
+  next to `FanControl.exe`. A file that already matches by SHA-256 is left alone
+  (the task reports `changed=0`). A different one is backed up first, once, as
+  `<name>.gaming-pc.bak`; a later difference keeps that first backup.
+- **Sets `balance` as the default only when nothing has been chosen.** FanControl
+  records the profile it loads in `Configurations\CACHE` (`CurrentConfigFileName`),
+  and its Windows-start task launches it without `-c`, so that file is what decides.
+  The deploy writes `balance` there only on a first install: no `CACHE`, no
+  recorded profile, or FanControl's own stock `userConfig.json`. Once you have
+  picked anything else it never touches it, and it never switches profiles on a
+  re-run. It also will not edit `CACHE` while FanControl is running (the app
+  rewrites it on exit); it warns instead.
+- **Installs two all-users Start menu shortcuts**, `FanControl - Balance` and
+  `FanControl - GPU boost`, which run `FanControl.exe -c <profile>.json` from the
+  FanControl folder.
+- Starts nothing and switches nothing on a schedule. OhmGraphite stays CPU-class
+  only.
+
+**Switching.** Switching by hand in FanControl (window or tray) stays the main
+way and works as it always did. The shortcuts and
+[`fancontrol-profile.ps1`](src/fancontrol-profile.ps1) are optional shortcuts to
+the same thing:
+
+```powershell
+fancontrol-profile.ps1 balance      # or gpu-boost
+```
+
+Both run `FanControl.exe -c <profile>.json`, which FanControl documents as
+starting with that config or, when it is already running, changing its config
+in place. No restart is needed. Run them in your own session: FanControl is a
+desktop app and asks for elevation itself.
+
+**Changing a profile.** Edit it in FanControl, then copy the saved file from
+`Configurations` (next to `FanControl.exe`, normally
+`C:\Program Files (x86)\FanControl\Configurations`) back over the file in
+`src/fancontrol/`, and commit it. Until you do, the next deploy backs your edit up
+(`.gaming-pc.bak`) and puts the repo version back.
+
+**Unverified, because nothing here can run against the machine.** The `CACHE`
+file, its `CurrentConfigFileName` key and the `Configurations` folder come from
+FanControl's issue tracker (issues 3865 and 1880), not from its docs, and the
+winget package's install path comes from the uninstall registry entry with
+Program Files (x86) as the fallback. `CACHE` is assumed to be JSON; if it is not,
+the deploy leaves it alone and warns, and you pick `balance` once in the app.
+Check these on the first deploy: the output of the "Install the FanControl
+profiles and shortcuts" task, then that FanControl starts on `balance` after a
+reboot.
 
 ### NUT UPS monitoring
 

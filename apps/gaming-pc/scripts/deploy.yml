@@ -1197,6 +1197,28 @@
         ansible_become_user: "{{ ansible_user }}"
         ansible_become_password: "{{ windows_password }}"
 
+    # FanControl's two profiles (src/fancontrol/), the balance default and the
+    # Start menu shortcuts. Ordered after the machine software install, which
+    # installs FanControl, and before monitoring.ps1, which needs the PawnIO
+    # driver FanControl brings. Idempotent: it prints RESULT changed=0 when the
+    # profiles match by hash and the shortcuts are right, and it never changes
+    # a profile the owner has already chosen. See README.md#fancontrol-profiles.
+    - name: Install the FanControl profiles and shortcuts
+      win_shell: |
+        pwsh -NoProfile -File "C:\Users\{{ user }}\developer\tools\fancontrol.ps1"
+      register: fancontrol
+      changed_when: "'changed=0 ' not in fancontrol.stdout"
+      become: yes
+      become_method: runas
+      vars:
+        ansible_become_user: "{{ ansible_user }}"
+        ansible_become_password: "{{ windows_password }}"
+
+    - name: Show the FanControl output when it recorded warnings
+      ansible.builtin.debug:
+        var: fancontrol.stdout_lines
+      when: "'warnings=0' not in fancontrol.stdout"
+
     # Ordered after the software install because OhmGraphite reads the CPU
     # through the PawnIO driver that FanControl installs; the script warns, and
     # does not fail, when it is missing. Idempotent: it prints RESULT changed=0

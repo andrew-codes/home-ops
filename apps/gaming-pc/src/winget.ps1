@@ -154,7 +154,11 @@ function Install-WingetPackage {
         [string]$Source = 'winget',
 
         [ValidateSet('machine', 'user', 'default')]
-        [string]$Scope = 'default'
+        [string]$Scope = 'default',
+
+        # Picks one installer of a manifest that publishes several, e.g. inno
+        # over a portable zip. Empty lets winget choose.
+        [string]$InstallerType = ''
     )
 
     if (Test-WingetPackageInstalled -Id $Id) {
@@ -174,6 +178,9 @@ function Install-WingetPackage {
     # --scope there makes winget reject the command outright.
     if ($Scope -ne 'default' -and $Source -eq 'winget') {
         $arguments += @('--scope', $Scope)
+    }
+    if ($InstallerType) {
+        $arguments += @('--installer-type', $InstallerType)
     }
 
     Write-Log "  $Name ($Id): installing from $Source..."
