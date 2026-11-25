@@ -49,7 +49,7 @@
 
     # A misconfigured NUT client can shut this host down unexpectedly - see
     # README.md#nut-ups-monitoring before merging changes here.
-    - name: NUT client (UPS monitoring via the Synology NAS, auto-shutdown on FSD/low battery)
+    - name: NUT client (UPS monitoring via the TrueNAS NUT server, auto-shutdown on FSD/low battery)
       ansible.builtin.import_tasks: tasks/nut-client.yml
       tags: [nut]
 

@@ -1,4 +1,4 @@
-# Configures WinNUT-Client's connection to the Synology NAS's NUT server and
+# Configures WinNUT-Client's connection to the TrueNAS NUT server and
 # its shutdown thresholds, then makes sure it is actually running.
 #
 # Run as its own step in scripts/deploy.yml, separate from software.ps1's

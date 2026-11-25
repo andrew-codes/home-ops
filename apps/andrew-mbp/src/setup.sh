@@ -15,7 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # devtools' own shell config has already set it, so a re-run on a configured
 # machine reuses the existing checkout rather than making a second one.
 DEVTOOLS_DIR="${REPO_HOME:-$HOME/developer/repos}/devtools"
-DEVTOOLS_BRANCH="zsh"
+DEVTOOLS_BRANCH="main"
 DEVTOOLS_REMOTE="https://github.com/andrew-codes/devtools.git"
 
 # Time Machine backs up to the NAS over SMB. The share defaults to `backup`,
