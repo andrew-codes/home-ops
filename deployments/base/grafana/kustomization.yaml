@@ -14,6 +14,7 @@ configMapGenerator:
       - dashboards/alert-history.json
       - dashboards/gaming-pc.json
       - dashboards/hardware-health.json
+      - dashboards/kubernetes-pods.json
       - dashboards/logs.json
       - dashboards/pbs.json
       - dashboards/pihole.json
