@@ -6,7 +6,7 @@ Takes a stock Apple Silicon Mac to a fully configured machine with one command, 
 
 ## What it manages
 
-This configuration does not stand alone. [devtools](https://github.com/andrew-codes/devtools) (the `zsh` branch) already defines a complete nix-darwin system for this machine - the shell, dotfiles, CLI toolchain, macOS defaults and agent harness. `andrew-mbp` **extends that exact configuration** with the applications below.
+This configuration does not stand alone. [devtools](https://github.com/andrew-codes/devtools) (the `main` branch) already defines a complete nix-darwin system for this machine - the shell, dotfiles, CLI toolchain, macOS defaults and agent harness. `andrew-mbp` **extends that exact configuration** with the applications below.
 
 macOS activates exactly one nix-darwin system generation at a time, so `andrew-mbp` is deliberately not a second configuration running alongside devtools. `flake.nix` uses `extendModules` to re-evaluate devtools' own `darwinConfigurations."mac"` with one extra module, so nothing devtools declares is dropped and devtools' internals never need to be duplicated here.
 
@@ -60,7 +60,7 @@ The three `NAS_*` variables configure the Time Machine destination and are **req
 
 Beyond the `git` used to clone this repo, nothing needs to be preinstalled - not Nix, not Homebrew, not `mas`, not Nx. `setup.sh`:
 
-1. **devtools.** Clones `andrew-codes/devtools` (`zsh` branch) to `~/developer/repos/devtools`, or fast-forwards it if it is already there, then runs devtools' own `setup.sh` exactly as devtools' README documents. That is what installs [Determinate Nix](https://determinate.systems/) on a machine with no Nix, symlinks the checkout to `~/.dotfiles`, trusts Homebrew taps, acquires devtools' own App Store apps, and runs the first `darwin-rebuild switch`. Homebrew itself is installed by `nix-homebrew` during that switch.
+1. **devtools.** Clones `andrew-codes/devtools` (`main` branch) to `~/developer/repos/devtools`, or fast-forwards it if it is already there, then runs devtools' own `setup.sh` exactly as devtools' README documents. That is what installs [Determinate Nix](https://determinate.systems/) on a machine with no Nix, symlinks the checkout to `~/.dotfiles`, trusts Homebrew taps, acquires devtools' own App Store apps, and runs the first `darwin-rebuild switch`. Homebrew itself is installed by `nix-homebrew` during that switch.
 2. **Mac App Store apps.** Runs `mas get` for each entry in `mas-apps.nix`, then waits for the download to land.
 3. **The andrew-mbp configuration.** `darwin-rebuild switch` onto `andrew-mbp`, which is devtools' configuration plus `applications.nix` - a superset, so nothing devtools installed is removed.
 4. **Default browser.** Sets Dia as the `http`/`https` handler.

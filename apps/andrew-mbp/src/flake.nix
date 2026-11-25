@@ -3,7 +3,7 @@
 
   # Deliberately a single input.
   #
-  # devtools (https://github.com/andrew-codes/devtools, `zsh` branch) already
+  # devtools (https://github.com/andrew-codes/devtools, `main` branch) already
   # evaluates a complete nix-darwin system for this machine: nixpkgs,
   # nix-darwin, home-manager and nix-homebrew are all pinned by *its*
   # flake.lock. Taking only devtools as an input means this machine can never
@@ -14,7 +14,7 @@
   # the modules evaluated here and the dotfiles devtools symlinks out of
   # ~/.dotfiles always come from the same tree. The pin below is the fallback
   # used when the flake is evaluated on its own (`nix flake check`).
-  inputs.devtools.url = "github:andrew-codes/devtools/zsh";
+  inputs.devtools.url = "github:andrew-codes/devtools/main";
 
   outputs =
     { self, devtools }:

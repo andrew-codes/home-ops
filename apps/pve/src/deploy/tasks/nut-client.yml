@@ -16,9 +16,9 @@
 
 # A misconfigured client here can shut this host down unexpectedly - the UPS
 # name, NAS address and monitor credentials must be verified against the real
-# Synology NUT server (out of scope for this repo) before merge or re-run
+# TrueNAS NUT server (out of scope for this repo) before merge or re-run
 # against the real host. See README.md#nut-ups-monitoring.
-- name: Configure upsmon to monitor the Synology NAS's NUT server and shut down on FSD/low battery
+- name: Configure upsmon to monitor the TrueNAS NUT server and shut down on FSD/low battery
   ansible.builtin.template:
     src: upsmon.conf.j2
     dest: /etc/nut/upsmon.conf

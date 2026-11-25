@@ -212,13 +212,13 @@ PCIe slot for one card first if that's an option on this board.
 
 > [!WARNING]
 > **A misconfigured client here can shut this host down unexpectedly.** Verify the
-> NUT server address, UPS name and thresholds below against the real Synology NAS
+> NUT server address, UPS name and thresholds below against the real TrueNAS NUT server
 > before relying on this, or before merging a change to it.
 
 Installs `nut-client` (client-only - no local `upsd`) and configures `upsmon` to
-monitor the Synology NAS's built-in UPS Network Status service (out of scope for
+monitor the TrueNAS box's NUT server (its UPS service, out of scope for
 this repo - not provisioned here) as a NUT server at `10.5.113.53:3493`, `secondary`
-mode, and to run `shutdown -h +0` on `FSD` (forced shutdown, signalled by the NAS) or
+mode, and to run `shutdown -h +0` on `FSD` (forced shutdown, signalled by the NUT server) or
 on its own low-battery detection.
 
 - `/etc/nut/nut.conf` is set to `MODE=netclient` - this host never runs `upsd`, it
@@ -230,19 +230,18 @@ on its own low-battery detection.
 - The `nut-monitor` (`upsmon`) service is enabled and started, restarted only when
   the rendered config actually changed.
 - **The UPS name (`ups`) is an assumption, not a confirmed value** - it is the
-  Synology default, but has not been verified against this NAS's real UPS Network
-  Status configuration. Confirm it (and the monitor account) before the first real
+  TrueNAS default, but has not been verified against the TrueNAS NUT server's real
+  UPS service configuration. Confirm it (and the monitor account) before the first real
   run - see [NUT monitor account](#nut-monitor-account-and-ups-name).
 
 #### NUT monitor account and UPS name
 
-The Synology UPS Network Status service authenticates NUT clients with a
-username/password pair configured on the NAS itself (out of scope for this repo),
+The TrueNAS UPS service authenticates NUT clients with a
+username/password pair configured on the TrueNAS box itself (out of scope for this repo),
 plus a UPS name that identifies the device to `upsmon`'s `MONITOR` line. Confirm both
-against the NAS's **Control Panel > Hardware & Power > UPS > Network UPS Server**
-settings before the first run, and populate `nut/monitor-username` /
+against the TrueNAS UPS service settings before the first run, and populate `nut/monitor-username` /
 `nut/monitor-password` in 1Password to match - see
-[Secrets that do not exist yet](#secrets-that-do-not-exist-yet). The NAS must also
+[Secrets that do not exist yet](#secrets-that-do-not-exist-yet). The TrueNAS NUT server must also
 have this host's IP allow-listed as a permitted client, the same as
 [gaming-pc's equivalent step](../gaming-pc/README.md#nut-ups-monitoring).
 
@@ -381,8 +380,8 @@ These need a human at the machine (or its console), not this playbook:
 - **Creating the NAS-share service account** and putting its real
   credentials into the 1Password item this automation reads - see
   [Secrets that do not exist yet](#secrets-that-do-not-exist-yet).
-- **Confirming the NUT monitor account and UPS name** against the Synology NAS's
-  UPS Network Status settings, and allow-listing this host as a permitted client -
+- **Confirming the NUT monitor account and UPS name** against the TrueNAS
+  UPS service settings, and allow-listing this host as a permitted client -
   see [NUT monitor account and UPS name](#nut-monitor-account-and-ups-name).
 - **Approving the PBS TLS fingerprint** on first connect, by adding `pbs/fingerprint` to
   1Password first - see
@@ -447,8 +446,8 @@ and [`apps/dorri-mbp/README.md`](../dorri-mbp/README.md), only `nas/ip` exists i
 
 - `pve-nas-iso` (fields `username`, `password`) - a service account for the NAS's
   `ISO` SMB share.
-- `nut` (fields `monitor-username`, `monitor-password`) - the account the Synology
-  NAS's UPS Network Status service authenticates NUT clients with. Shared with
+- `nut` (fields `monitor-username`, `monitor-password`) - the account the TrueNAS
+  UPS service authenticates NUT clients with. Shared with
   [`pbs`](../../resources/pbs/README.md#nut-ups-monitoring) and
   [`gaming-pc`](../gaming-pc/README.md#nut-ups-monitoring), which read the same two
   fields - one monitor account for every client, matching how the NAS itself models

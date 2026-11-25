@@ -356,13 +356,13 @@ reboot.
 
 > [!WARNING]
 > **A misconfigured client here can shut this machine down unexpectedly.** Verify
-> the NUT server address, UPS name and thresholds below against the real Synology
-> NAS before relying on this, or before merging a change to it.
+> the NUT server address, UPS name and thresholds below against the real TrueNAS
+> NUT server before relying on this, or before merging a change to it.
 
-WinNUT-Client (`nutdotnet.WinNUT`) monitors the Synology NAS's built-in UPS Network
-Status service (out of scope for this repo - not provisioned here) as a NUT server
+WinNUT-Client (`nutdotnet.WinNUT`) monitors the TrueNAS box's NUT server (its UPS service,
+out of scope for this repo - not provisioned here) as a NUT server
 at `10.5.113.53:3493`, and shuts this machine down gracefully on `FSD` (forced
-shutdown, signalled by the NAS) or on its own low-battery detection. This is
+shutdown, signalled by the NUT server) or on its own low-battery detection. This is
 monitoring plus auto-shutdown, not just alerting.
 
 - **Installed in the user phase, not the machine phase.** The only installer winget
@@ -401,10 +401,9 @@ monitoring plus auto-shutdown, not just alerting.
   app's _next_ login; since this deploy's job is protecting the host now, the same
   step also launches WinNUT-Client immediately if it is not already running.
 - **The UPS name (`ups`) is an assumption, not a confirmed value** - it is the
-  Synology default, but has not been verified against this NAS's real UPS Network
-  Status configuration. Confirm it, the monitor account, and allow-list this
-  machine as a permitted client (NAS Control Panel > Hardware & Power > UPS >
-  Network UPS Server) before the first real run.
+  TrueNAS default, but has not been verified against the TrueNAS NUT server's real
+  UPS service configuration. Confirm it, the monitor account, and allow-list this
+  machine as a permitted client (TrueNAS UPS service settings) before the first real run.
 - The monitor account is shared with
   [`pve`](../pve/README.md#nut-monitor-account-and-ups-name) and
   [`pbs`](../../resources/pbs/README.md#nut-ups-monitoring), all reading the same
