@@ -40,12 +40,19 @@ spec:
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
     - name: truenas-disks
       rules:
+        # These two rules cover the hard disks and SATA SSDs. An NVMe drive runs
+        # at 50 to 55 °C normally, so it is left out here (matched by serial
+        # against the SMART series) and has its own thresholds in
+        # TrueNASNvmeTemperatureHigh and TrueNASNvmeTemperatureCritical.
         - alert: TrueNASDiskTemperatureHigh
           expr: >-
             label_replace(label_replace(
               last_over_time({__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"}[30m]),
               "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
               "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*") >= 50
+              unless on(disk)
+              label_replace(last_over_time(truenas_smart_temperature_celsius{disk=~"nvme.+"}[30m]),
+              "disk", "$1", "serial", "(.+)")
           for: 15m
           labels:
             severity: warning
@@ -59,6 +66,9 @@ spec:
               last_over_time({__name__=~"truenas[.]nas[.]truenas_disk_temp[.].+[.]temp"}[30m]),
               "disk", "$1", "__name__", "truenas[.]nas[.]truenas_disk_temp[.](.+)[.]temp"),
               "disk", "$1", "disk", "_serial_lunid_([^_]+)_.*") >= 60
+              unless on(disk)
+              label_replace(last_over_time(truenas_smart_temperature_celsius{disk=~"nvme.+"}[30m]),
+              "disk", "$1", "serial", "(.+)")
           for: 5m
           labels:
             severity: critical

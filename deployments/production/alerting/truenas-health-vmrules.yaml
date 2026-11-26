@@ -252,6 +252,28 @@ spec:
             summary: "TrueNAS NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) raised a critical warning"
             description: "NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) reports critical warning flags {{ $value | humanize }} (bit field: 1 spare capacity low, 2 temperature, 4 reliability degraded, 8 read-only, 16 volatile memory backup failed). Run `smartctl -a /dev/{{ $labels.disk }}` on the NAS for the detail."
             dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
+        # An NVMe drive in this NAS idles at 50 to 55 °C, which is normal, so it
+        # has its own thresholds instead of the 50 and 60 °C hard disk ones in
+        # TrueNASDiskTemperatureHigh and TrueNASDiskTemperatureCritical (which
+        # skip NVMe drives). 70 °C is near where NVMe drives start to throttle.
+        - alert: TrueNASNvmeTemperatureHigh
+          expr: last_over_time(truenas_smart_temperature_celsius{disk=~"nvme.+"}[15m]) >= 70
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "TrueNAS NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) is running hot"
+            description: "NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) has been at {{ $value | humanize }}°C or more for 15 minutes (warning threshold 70°C, normal is about 53°C). Check the fans and airflow in the NAS."
+            dashboard_url: https://grafana.smith-simms.family/d/hardware-health
+        - alert: TrueNASNvmeTemperatureCritical
+          expr: last_over_time(truenas_smart_temperature_celsius{disk=~"nvme.+"}[15m]) >= 80
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "TrueNAS NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) is overheating"
+            description: "NVMe disk {{ $labels.serial }} ({{ $labels.disk }}) is at {{ $value | humanize }}°C, at or above the 80°C critical threshold, for 5 minutes. The drive throttles and can fail. Check the fans and airflow in the NAS."
+            dashboard_url: https://grafana.smith-simms.family/d/hardware-health
         - alert: TrueNASNvmeMediaErrorsIncreasing
           expr: delta(truenas_smart_nvme_media_errors[7d]) > 0
           labels:

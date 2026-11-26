@@ -370,6 +370,38 @@ tests:
               description: "Disk SERIAL-SDC (sdc) has had a nonzero reported uncorrectable errors count for over an hour (1). It could not read data it should have, and is likely to fail."
               dashboard_url: https://grafana.smith-simms.family/dashboards?query=TrueNAS
 
+  # An NVMe drive idles at 53 C, which is normal: no temperature alert. The
+  # second one is a real overheat: warning after 15 minutes, critical at 80 C.
+  - name: NVMe temperature
+    interval: 1m
+    input_series:
+      - series: 'truenas_smart_temperature_celsius{disk="nvme0n1",serial="SERIAL-NVME"}'
+        values: "53x60"
+      - series: 'truenas_smart_temperature_celsius{disk="nvme1n1",serial="SERIAL-NVME1"}'
+        values: "72x40 85x30"
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: TrueNASNvmeTemperatureHigh
+        exp_alerts:
+          - exp_labels:
+              { severity: warning, disk: nvme1n1, serial: SERIAL-NVME1 }
+            exp_annotations:
+              summary: "TrueNAS NVMe disk SERIAL-NVME1 (nvme1n1) is running hot"
+              description: "NVMe disk SERIAL-NVME1 (nvme1n1) has been at 72°C or more for 15 minutes (warning threshold 70°C, normal is about 53°C). Check the fans and airflow in the NAS."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health
+      - eval_time: 30m
+        alertname: TrueNASNvmeTemperatureCritical
+        exp_alerts: []
+      - eval_time: 60m
+        alertname: TrueNASNvmeTemperatureCritical
+        exp_alerts:
+          - exp_labels:
+              { severity: critical, disk: nvme1n1, serial: SERIAL-NVME1 }
+            exp_annotations:
+              summary: "TrueNAS NVMe disk SERIAL-NVME1 (nvme1n1) is overheating"
+              description: "NVMe disk SERIAL-NVME1 (nvme1n1) is at 85°C, at or above the 80°C critical threshold, for 5 minutes. The drive throttles and can fail. Check the fans and airflow in the NAS."
+              dashboard_url: https://grafana.smith-simms.family/d/hardware-health
+
   # An NVMe disk with a critical warning flag and media errors.
   - name: failing NVMe disk
     interval: 1m

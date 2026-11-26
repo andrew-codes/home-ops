@@ -233,3 +233,34 @@ tests:
       - eval_time: 70m
         alertname: TrueNASDiskMissing
         exp_alerts: []
+
+  # The NVMe drive idles at 53C and has its own thresholds (TrueNASNvme*
+  # Temperature*); the hard disk rules skip it, matched by serial against the
+  # SMART series. A hard disk at 55C still alerts in the test above.
+  - name: NVMe drive at 53C does not trip the disk rules
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp._serial_lunid_NVMESERIAL_5000.temp"}'
+        values: "53x60"
+      - series: 'truenas_smart_temperature_celsius{disk="nvme0n1",serial="NVMESERIAL"}'
+        values: "53x60"
+    alert_rule_test:
+      - eval_time: 55m
+        alertname: TrueNASDiskTemperatureHigh
+        exp_alerts: []
+
+  # Even at 65C the hard disk critical rule skips the NVMe drive.
+  - name: hot NVMe drive is left to the NVMe rules
+    interval: 1m
+    input_series:
+      - series: '{__name__="truenas.nas.truenas_disk_temp._serial_lunid_NVMESERIAL_5000.temp"}'
+        values: "65x60"
+      - series: 'truenas_smart_temperature_celsius{disk="nvme0n1",serial="NVMESERIAL"}'
+        values: "65x60"
+    alert_rule_test:
+      - eval_time: 55m
+        alertname: TrueNASDiskTemperatureHigh
+        exp_alerts: []
+      - eval_time: 55m
+        alertname: TrueNASDiskTemperatureCritical
+        exp_alerts: []
